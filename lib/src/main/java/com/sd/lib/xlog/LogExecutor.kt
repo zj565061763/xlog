@@ -1,7 +1,7 @@
 package com.sd.lib.xlog
 
 /**
- * 日志写入执行器
+ * 日志执行器，可以定义日志写入的线程
  */
 interface FLogExecutor {
     /**

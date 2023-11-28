@@ -61,7 +61,7 @@ object FLog {
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
 
-        /** 日志写入执行器 */
+        /** 日志执行器，可以定义日志写入的线程，默认在调用线程执行 */
         executor: FLogExecutor? = null,
     ) {
         synchronized(FLog) {
