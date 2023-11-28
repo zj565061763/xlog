@@ -10,6 +10,7 @@ import com.sd.lib.xlog.fDebug
 import com.sd.lib.xlog.flogD
 import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
+import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
 import kotlin.time.measureTime
 
@@ -33,10 +34,11 @@ private fun log() {
     // 打开控制台日志
     FLog.enableConsoleLog(true)
 
-    flogD<AppLogger> { "debug" }
-    flogI<AppLogger> { "info" }
-    flogW<AppLogger> { "warning" }
-    flogE<AppLogger> { "error" }
+    flogV<AppLogger> { "Verbose" }
+    flogD<AppLogger> { "Debug" }
+    flogI<AppLogger> { "Info" }
+    flogW<AppLogger> { "Warning" }
+    flogE<AppLogger> { "Error" }
 
     // 打印控制台日志，不会写入到文件中，tag：DebugLogger
     fDebug { "console debug log" }

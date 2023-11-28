@@ -11,8 +11,8 @@ class App : Application() {
         super.onCreate()
         // 打开日志，默认只打开文件日志
         FLog.open(
-            //（必传参数）日志等级 Debug, Info, Warning, Error
-            level = FLogLevel.Debug,
+            //（必传参数）日志等级 All, Verbose, Debug, Info, Warning, Error
+            level = FLogLevel.All,
 
             //（必传参数）日志文件目录，日志文件名称为当天的日期，例如：20231125.log
             directory = filesDir.resolve("app_log"),
@@ -26,7 +26,7 @@ class App : Application() {
 
         // 修改某个日志标识的配置信息
         FLog.config<AppLogger> {
-            this.level = FLogLevel.Debug
+            this.level = FLogLevel.All
             this.tag = "AppLoggerAppLogger"
         }
 

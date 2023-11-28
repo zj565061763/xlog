@@ -8,6 +8,7 @@ import com.sd.lib.xlog.fDebug
 import com.sd.lib.xlog.flogD
 import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
+import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
 import org.junit.Assert.*
 import org.junit.Test
@@ -35,23 +36,25 @@ class AppTest {
         kotlin.run {
             FLog.close()
             FLog.open(
-                level = FLogLevel.Debug,
+                level = FLogLevel.All,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             assertEquals(true, FLog.isOpened())
             var count = 0
+            flogV<TestLogger> { count++ }
             flogD<TestLogger> { count++ }
             flogI<TestLogger> { count++ }
             flogW<TestLogger> { count++ }
             flogE<TestLogger> { count++ }
-            assertEquals(4, count)
+            assertEquals(5, count)
         }
 
         kotlin.run {
             FLog.close()
             assertEquals(false, FLog.isOpened())
             var count = 0
+            flogV<TestLogger> { count++ }
             flogD<TestLogger> { count++ }
             flogI<TestLogger> { count++ }
             flogW<TestLogger> { count++ }
@@ -64,14 +67,83 @@ class AppTest {
     fun testLogLevel() {
         val dir = logDir()
 
+        // All
+        kotlin.run {
+            FLog.close()
+            FLog.open(
+                level = FLogLevel.All,
+                directory = dir,
+                limitMBPerDay = 1,
+            )
+            var result = ""
+            flogV<TestLogger> {
+                result += "v"
+                Unit
+            }
+            flogD<TestLogger> {
+                result += "d"
+                Unit
+            }
+            flogI<TestLogger> {
+                result += "i"
+                Unit
+            }
+            flogW<TestLogger> {
+                result += "w"
+                Unit
+            }
+            flogE<TestLogger> {
+                result += "e"
+                Unit
+            }
+            assertEquals("vdiwe", result)
+        }
+
+        // Verbose
+        kotlin.run {
+            FLog.close()
+            FLog.open(
+                level = FLogLevel.Verbose,
+                directory = dir,
+                limitMBPerDay = 1,
+            )
+            var result = ""
+            flogV<TestLogger> {
+                result += "v"
+                Unit
+            }
+            flogD<TestLogger> {
+                result += "d"
+                Unit
+            }
+            flogI<TestLogger> {
+                result += "i"
+                Unit
+            }
+            flogW<TestLogger> {
+                result += "w"
+                Unit
+            }
+            flogE<TestLogger> {
+                result += "e"
+                Unit
+            }
+            assertEquals("vdiwe", result)
+        }
+
+        // Debug
         kotlin.run {
             FLog.close()
             FLog.open(
                 level = FLogLevel.Debug,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             var result = ""
+            flogV<TestLogger> {
+                result += "v"
+                Unit
+            }
             flogD<TestLogger> {
                 result += "d"
                 Unit
@@ -91,14 +163,19 @@ class AppTest {
             assertEquals("diwe", result)
         }
 
+        // Info
         kotlin.run {
             FLog.close()
             FLog.open(
                 level = FLogLevel.Info,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             var result = ""
+            flogV<TestLogger> {
+                result += "v"
+                Unit
+            }
             flogD<TestLogger> {
                 result += "d"
                 Unit
@@ -118,14 +195,19 @@ class AppTest {
             assertEquals("iwe", result)
         }
 
+        // Warning
         kotlin.run {
             FLog.close()
             FLog.open(
                 level = FLogLevel.Warning,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             var result = ""
+            flogV<TestLogger> {
+                result += "v"
+                Unit
+            }
             flogD<TestLogger> {
                 result += "d"
                 Unit
@@ -145,14 +227,19 @@ class AppTest {
             assertEquals("we", result)
         }
 
+        // Error
         kotlin.run {
             FLog.close()
             FLog.open(
                 level = FLogLevel.Error,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             var result = ""
+            flogV<TestLogger> {
+                result += "v"
+                Unit
+            }
             flogD<TestLogger> {
                 result += "d"
                 Unit
@@ -179,9 +266,9 @@ class AppTest {
         kotlin.run {
             FLog.close()
             FLog.open(
-                level = FLogLevel.Debug,
+                level = FLogLevel.All,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             var count = 0
             fDebug { count++ }
@@ -193,7 +280,7 @@ class AppTest {
             FLog.open(
                 level = FLogLevel.Warning,
                 directory = dir,
-                limitMBPerDay = 2,
+                limitMBPerDay = 1,
             )
             var count = 0
             fDebug { count++ }
@@ -208,7 +295,7 @@ class AppTest {
         FLog.open(
             level = FLogLevel.Info,
             directory = dir,
-            limitMBPerDay = 2,
+            limitMBPerDay = 1,
         )
 
         kotlin.run {
@@ -242,9 +329,9 @@ class AppTest {
 
         FLog.close()
         FLog.open(
-            level = FLogLevel.Debug,
+            level = FLogLevel.All,
             directory = dir,
-            limitMBPerDay = 2,
+            limitMBPerDay = 1,
         )
 
         assertEquals(false, dir.exists())
@@ -268,7 +355,7 @@ class AppTest {
 
         FLog.close()
         FLog.open(
-            level = FLogLevel.Debug,
+            level = FLogLevel.All,
             directory = dir,
             limitMBPerDay = 1,
         )
@@ -296,7 +383,7 @@ class AppTest {
 
         FLog.close()
         FLog.open(
-            level = FLogLevel.Debug,
+            level = FLogLevel.All,
             directory = dir,
             limitMBPerDay = 1,
         )
