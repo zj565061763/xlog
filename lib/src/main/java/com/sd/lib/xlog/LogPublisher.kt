@@ -52,7 +52,6 @@ internal abstract class AbstractLogPublisher(
         if (_logFileChecker.register()) {
             // 任务提交成功
         } else {
-            fDebug { "lib check log file post failed" }
             checkLogFileExist()
         }
     }
