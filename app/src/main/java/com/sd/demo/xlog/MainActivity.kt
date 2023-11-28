@@ -5,12 +5,14 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.sd.demo.xlog.databinding.ActivityMainBinding
 import com.sd.demo.xlog.log.AppLogger
+import com.sd.demo.xlog.log.UserLogger
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.fDebug
 import com.sd.lib.xlog.flogD
 import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogW
+import kotlin.concurrent.thread
 import kotlin.time.measureTime
 
 class MainActivity : AppCompatActivity() {
@@ -33,10 +35,13 @@ private fun log() {
     // 打开控制台日志
     FLog.enableConsoleLog(true)
 
-    flogD<AppLogger> { "debug" }
-    flogI<AppLogger> { "info" }
-    flogW<AppLogger> { "warning" }
-    flogE<AppLogger> { "error" }
+    flogI<AppLogger> { "1" }
+    flogI<AppLogger> { "2" }
+    flogW<AppLogger> { "3" }
+    flogI<UserLogger> { "user debug" }
+    thread {
+        flogI<UserLogger> { "thread" }
+    }
 
     // 打印控制台日志，不会写入到文件中，tag：DebugLogger
     fDebug { "console debug log" }

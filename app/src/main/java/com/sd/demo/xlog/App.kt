@@ -23,7 +23,7 @@ class App : Application() {
         // 修改某个日志标识的配置信息
         FLog.config<AppLogger> {
             this.level = FLogLevel.Debug
-            this.tag = "AppLoggerAppLogger"
+//            this.tag = "AppLoggerAppLogger"
         }
 
         /**

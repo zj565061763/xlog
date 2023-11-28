@@ -22,7 +22,7 @@ interface FLogRecord {
     val isMainThread: Boolean
 
     /** 线程ID */
-    val threadID: Long
+    val threadID: String
 }
 
 internal fun newLogRecord(
@@ -38,7 +38,7 @@ internal fun newLogRecord(
         level = level,
         millis = System.currentTimeMillis(),
         isMainThread = Looper.getMainLooper() === Looper.myLooper(),
-        threadID = Thread.currentThread().id,
+        threadID = Thread.currentThread().id.toString(),
     )
 }
 
@@ -49,5 +49,5 @@ private data class DefaultLogRecord(
     override val level: FLogLevel,
     override val millis: Long,
     override val isMainThread: Boolean,
-    override val threadID: Long,
+    override val threadID: String,
 ) : FLogRecord

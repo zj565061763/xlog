@@ -15,26 +15,30 @@ interface FLogFormatter {
  */
 internal class LogFormatterDefault : FLogFormatter {
     private val _logTimeFactory = LogTimeFactory()
+    private val _list = mutableListOf<String>()
 
     override fun format(record: FLogRecord): String {
         val logTime = _logTimeFactory.create(record.millis)
         return buildString {
             append(logTime.timeString)
 
-            append("[")
-            append(record.tag)
+            _list.clear()
+            if (record.tag.isNotEmpty()) {
+                _list.add(record.tag)
+            }
 
             if (record.level != FLogLevel.Info) {
-                append(",")
-                append(record.level.displayName())
+                _list.add(record.level.displayName())
             }
 
             if (!record.isMainThread) {
-                append(",")
-                append(record.threadID.toString())
+                _list.add(record.threadID)
             }
 
-            append("]")
+            if (_list.isNotEmpty()) {
+                append(_list.joinToString(prefix = "[", postfix = "]"))
+            }
+
             append(" ")
             append(record.msg)
             append("\n")
