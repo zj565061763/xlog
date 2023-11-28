@@ -4,7 +4,7 @@ import android.util.Log
 import java.io.File
 
 enum class FLogLevel {
-    Debug, Info, Warning, Error, Off,
+    All, Verbose, Debug, Info, Warning, Error, Off,
 }
 
 object FLog {
@@ -125,6 +125,7 @@ object FLog {
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
         synchronized(FLog) {
             if (!isOpened()) return false
+            if (level == FLogLevel.All) return false
             if (level == FLogLevel.Off) return false
             val limitLevel = getConfig(clazz)?.level ?: _level
             return level >= limitLevel
@@ -164,6 +165,7 @@ object FLog {
 
             if (_enableConsoleLog) {
                 when (record.level) {
+                    FLogLevel.Verbose -> Log.v(tag, msg)
                     FLogLevel.Debug -> Log.d(tag, msg)
                     FLogLevel.Info -> Log.i(tag, msg)
                     FLogLevel.Warning -> Log.w(tag, msg)
@@ -253,6 +255,14 @@ object FLog {
     }
 
     /**
+     * 打印[FLogLevel.Verbose]日志
+     */
+    @JvmStatic
+    fun logV(clazz: Class<out FLogger>, msg: String?) {
+        log(clazz, FLogLevel.Verbose, msg)
+    }
+
+    /**
      * 打印[FLogLevel.Debug]日志
      */
     @JvmStatic
@@ -282,17 +292,5 @@ object FLog {
     @JvmStatic
     fun logE(clazz: Class<out FLogger>, msg: String?) {
         log(clazz, FLogLevel.Error, msg)
-    }
-}
-
-private class ConsolePublisher : LogPublisher {
-    override fun publish(record: FLogRecord) {
-        when (record.level) {
-            FLogLevel.Debug -> Log.d(record.tag, record.msg)
-            FLogLevel.Info -> Log.i(record.tag, record.msg)
-            FLogLevel.Warning -> Log.w(record.tag, record.msg)
-            FLogLevel.Error -> Log.e(record.tag, record.msg)
-            else -> {}
-        }
     }
 }

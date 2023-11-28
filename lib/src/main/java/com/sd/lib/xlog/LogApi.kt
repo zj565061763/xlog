@@ -1,6 +1,13 @@
 package com.sd.lib.xlog
 
 /**
+ * 打印[FLogLevel.Verbose]日志
+ */
+inline fun <reified T : FLogger> flogV(block: () -> Any) {
+    logInternal<T>(FLogLevel.Verbose, block)
+}
+
+/**
  * 打印[FLogLevel.Debug]日志
  */
 inline fun <reified T : FLogger> flogD(block: () -> Any) {

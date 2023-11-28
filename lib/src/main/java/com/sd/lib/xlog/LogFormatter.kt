@@ -48,6 +48,8 @@ internal class LogFormatterDefault : FLogFormatter {
 
 private fun FLogLevel.displayName(): String {
     return when (this) {
+        FLogLevel.All -> "A"
+        FLogLevel.Verbose -> "V"
         FLogLevel.Debug -> "D"
         FLogLevel.Info -> ""
         FLogLevel.Warning -> "W"
