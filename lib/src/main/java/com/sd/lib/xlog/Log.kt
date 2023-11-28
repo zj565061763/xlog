@@ -15,6 +15,9 @@ object FLog {
     /** 日志文件目录 */
     private var _logDirectory: File? = null
 
+    /** 日志写入执行器 */
+    private var _executor: FLogExecutor? = null
+
     /** 文件日志 */
     @Volatile
     private var _publisher: DirectoryLogPublisher? = null
@@ -57,12 +60,16 @@ object FLog {
 
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
+
+        /** 日志写入执行器 */
+        executor: FLogExecutor? = null,
     ) {
         synchronized(FLog) {
             if (isOpened()) return
             if (level == FLogLevel.Off) error("level off")
             _level = level
             _logDirectory = directory
+            _executor = executor
             _publisher = LogPublisherImpl(
                 directory = directory,
                 limitMBPerDay = limitMBPerDay,
@@ -146,7 +153,14 @@ object FLog {
                 _lastLogTag = tag
             }
 
-            _publisher?.publish(record)
+            val publisher = checkNotNull(_publisher)
+
+            val executor = _executor
+            if (executor == null) {
+                publisher.publish(record)
+            } else {
+                executor.submit { publisher.publish(record) }
+            }
 
             if (_enableConsoleLog) {
                 when (record.level) {
@@ -214,6 +228,8 @@ object FLog {
             _lastLogTag = ""
             _publisher?.close()
             _publisher = null
+            _executor?.close()
+            _executor = null
         }
     }
 
