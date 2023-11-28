@@ -92,6 +92,18 @@ object FLog {
     }
 
     /**
+     * 设置日志等级
+     */
+    @JvmStatic
+    fun setLevel(level: FLogLevel) {
+        synchronized(FLog) {
+            if (isOpened()) {
+                _level = level
+            }
+        }
+    }
+
+    /**
      * 修改[FLogger]配置信息
      */
     inline fun <reified T : FLogger> config(noinline block: FLoggerConfig.() -> Unit) {
