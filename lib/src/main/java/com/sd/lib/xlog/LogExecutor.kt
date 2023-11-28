@@ -7,7 +7,7 @@ interface FLogExecutor {
     /**
      * 提交任务
      */
-    fun submit(runnable: Runnable)
+    fun submit(task: Runnable)
 
     /**
      * 关闭
