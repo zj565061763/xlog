@@ -4,14 +4,20 @@ import com.sd.lib.xlog.FLogExecutor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class AppLogExecutor : FLogExecutor {
-    private var _executor: ExecutorService? = Executors.newSingleThreadExecutor()
+class AppLogExecutor(
+    private val debug: Boolean
+) : FLogExecutor {
+    private var _executor: ExecutorService? = null
 
     override fun submit(task: Runnable) {
-        val executor = _executor ?: Executors.newSingleThreadExecutor().also {
-            _executor = it
+        if (debug) {
+            task.run()
+        } else {
+            val executor = _executor ?: Executors.newSingleThreadExecutor().also {
+                _executor = it
+            }
+            executor.submit(task)
         }
-        executor.submit(task)
     }
 
     override fun close() {

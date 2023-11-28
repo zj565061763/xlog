@@ -1,6 +1,7 @@
 package com.sd.demo.xlog
 
 import android.app.Application
+import com.sd.demo.xlog.log.AppLogExecutor
 import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
@@ -10,14 +11,17 @@ class App : Application() {
         super.onCreate()
         // 打开日志，默认只打开文件日志
         FLog.open(
-            // 日志等级 Debug, Info, Warning, Error
+            //（必传参数）日志等级 Debug, Info, Warning, Error
             level = FLogLevel.Debug,
 
-            // 日志文件目录，日志文件名称为当天的日期，例如：20231125.log
+            //（必传参数）日志文件目录，日志文件名称为当天的日期，例如：20231125.log
             directory = filesDir.resolve("app_log"),
 
-            // 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小
+            //（必传参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小
             limitMBPerDay = 100,
+
+            //（可选参数）自定义执行线程，包括日志的格式化和写入，默认在调用线程执行
+            executor = AppLogExecutor(debug = true)
         )
 
         // 修改某个日志标识的配置信息
