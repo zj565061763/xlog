@@ -23,7 +23,6 @@ object FLog {
     private var _publisher: DirectoryLogPublisher? = null
 
     /** 是否打印控制台日志 */
-    @Volatile
     private var _enableConsoleLog: Boolean = false
 
     /** [FLogger]配置信息 */
