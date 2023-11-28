@@ -1,0 +1,21 @@
+[versions]
+
+androidCompileSdk = "34"
+androidMinSdk = "21"
+androidTargetSdk = "34"
+
+androidGradlePlugin = "8.1.4"
+kotlin = "1.9.20"
+
+[libraries]
+
+androidx-appcompat = "androidx.appcompat:appcompat:1.6.1"
+
+androidx-test-ext-junit = "androidx.test.ext:junit:1.1.5"
+androidx-test-espresso-core = "androidx.test.espresso:espresso-core:3.5.1"
+
+[plugins]
+
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
