@@ -19,12 +19,15 @@ object FLog {
     @Volatile
     private var _publisher: DirectoryLogPublisher? = null
 
-    /** 控制台日志 */
+    /** 是否打印控制台日志 */
     @Volatile
-    private var _consolePublisher: LogPublisher? = null
+    private var _enableConsoleLog: Boolean = false
 
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
+
+    /** 上一次打印日志的tag */
+    private var _lastLogTag = ""
 
     /**
      * 日志是否已经打开
@@ -77,7 +80,7 @@ object FLog {
     fun enableConsoleLog(enable: Boolean) {
         synchronized(FLog) {
             if (isOpened()) {
-                _consolePublisher = if (enable) ConsolePublisher() else null
+                _enableConsoleLog = enable
             }
         }
     }
@@ -132,15 +135,28 @@ object FLog {
 
             val config = getConfig(clazz)
             val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
+            val finalTag = if (tag == _lastLogTag) "" else tag
 
             val record = newLogRecord(
-                tag = tag,
+                logger = clazz,
+                tag = finalTag,
                 msg = msg,
                 level = level,
-            )
+            ).also {
+                _lastLogTag = tag
+            }
 
             _publisher?.publish(record)
-            _consolePublisher?.publish(record)
+
+            if (_enableConsoleLog) {
+                when (record.level) {
+                    FLogLevel.Debug -> Log.d(tag, msg)
+                    FLogLevel.Info -> Log.i(tag, msg)
+                    FLogLevel.Warning -> Log.w(tag, msg)
+                    FLogLevel.Error -> Log.e(tag, msg)
+                    else -> {}
+                }
+            }
         }
     }
 
@@ -193,8 +209,9 @@ object FLog {
         synchronized(FLog) {
             _level = FLogLevel.Off
             _logDirectory = null
-            _consolePublisher = null
+            _enableConsoleLog = false
             _configHolder.clear()
+            _lastLogTag = ""
             _publisher?.close()
             _publisher = null
         }

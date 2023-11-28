@@ -3,6 +3,9 @@ package com.sd.lib.xlog
 import android.os.Looper
 
 interface FLogRecord {
+    /** 日志标识 */
+    val logger: Class<out FLogger>
+
     /** 日志标志 */
     val tag: String
 
@@ -23,11 +26,13 @@ interface FLogRecord {
 }
 
 internal fun newLogRecord(
+    logger: Class<out FLogger>,
     tag: String,
     msg: String,
     level: FLogLevel,
 ): FLogRecord {
     return DefaultLogRecord(
+        logger = logger,
         tag = tag,
         msg = msg,
         level = level,
@@ -38,6 +43,7 @@ internal fun newLogRecord(
 }
 
 private data class DefaultLogRecord(
+    override val logger: Class<out FLogger>,
     override val tag: String,
     override val msg: String,
     override val level: FLogLevel,
