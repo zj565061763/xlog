@@ -21,7 +21,7 @@ interface FLogRecord {
     /** 日志是否在主线程生成 */
     val isMainThread: Boolean
 
-    /** 线程ID */
+    /** 日志生成的线程ID */
     val threadID: String
 }
 
