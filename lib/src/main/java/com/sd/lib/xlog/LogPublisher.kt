@@ -49,7 +49,7 @@ internal abstract class AbstractLogPublisher(
         checkLimit(dateInfo)
 
         // 检查日志文件是否存在
-        if (_logFileChecker.post()) {
+        if (_logFileChecker.register()) {
             // 任务提交成功
         } else {
             fDebug { "lib check log file post failed" }
@@ -117,7 +117,7 @@ internal abstract class AbstractLogPublisher(
     private class LogFileChecker(private val block: () -> Unit) {
         private var _idleHandler: IdleHandler? = null
 
-        fun post(): Boolean {
+        fun register(): Boolean {
             Looper.myLooper() ?: return false
             _idleHandler?.let { return true }
             val idleHandler = IdleHandler {
