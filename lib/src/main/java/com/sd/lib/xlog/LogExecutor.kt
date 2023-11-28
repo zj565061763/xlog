@@ -5,8 +5,8 @@ package com.sd.lib.xlog
  */
 interface FLogExecutor {
     /**
-     * 提交任务，库中可以保证提交方法是按顺序提交的，
-     * 开发者执行也应该保证是按顺序执行，否则会有先后顺序的问题
+     * 提交任务，库中可以保证按顺序提交任务，
+     * 开发者应该保证按顺序执行任务，否则会有先后顺序的问题
      */
     fun submit(task: Runnable)
 
