@@ -106,7 +106,6 @@ internal abstract class AbstractLogPublisher(
                     // 文件存在
                 } else {
                     // 文件不存在，关闭后会重新创建
-                    fDebug { "lib log file not found close store" }
                     info.store.close()
                 }
             }
