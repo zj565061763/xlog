@@ -236,16 +236,20 @@ object FLog {
     @JvmStatic
     fun close() {
         synchronized(FLog) {
-            _isOpened = false
-            _level = FLogLevel.Off
-            _logDirectory = null
-            _enableConsoleLog = false
-            _configHolder.clear()
-            _publisher?.let { publisher ->
-                _executor?.close(publisher)
-                _executor = null
-                publisher.close()
-                _publisher = null
+            if (_isOpened) {
+                _isOpened = false
+
+                _level = FLogLevel.Off
+                _logDirectory = null
+                _enableConsoleLog = false
+                _configHolder.clear()
+
+                _publisher?.let { publisher ->
+                    _executor?.close(publisher)
+                    _executor = null
+                    publisher.close()
+                    _publisher = null
+                }
             }
         }
     }
