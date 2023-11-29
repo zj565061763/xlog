@@ -214,14 +214,12 @@ object FLog {
     fun <T> logDirectory(block: (File) -> T): T? {
         synchronized(FLog) {
             if (!_isOpened) return null
+            val dir = _logDirectory ?: return null
 
             val oldLevel = _level
             _level = FLogLevel.Off
             _publisher?.close()
-
-            val result = _logDirectory?.let { dir ->
-                libTryRun { block(dir) }.getOrElse { null }
-            }
+            val result = libTryRun { block(dir) }.getOrElse { null }
 
             if (_isOpened) {
                 _level = oldLevel
