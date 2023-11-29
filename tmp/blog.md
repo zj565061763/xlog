@@ -259,7 +259,7 @@ measureTime {
 
 * 优化日志等级显示
 
-打印的时候提供了4个日志等级：`Debug, Info, Warning, Error`，一般最常用的记录等级是`Info`，所以在格式化的时候如果等级是`Info`则不显示等级标志，规则如下：
+打印的时候提供了4个日志等级：`Verbose, Debug, Info, Warning, Error`，一般最常用的记录等级是`Info`，所以在格式化的时候如果等级是`Info`则不显示等级标志，规则如下：
 ```kotlin
 private fun FLogLevel.displayName(): String {
     return when (this) {
