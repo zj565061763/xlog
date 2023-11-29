@@ -36,7 +36,10 @@ internal abstract class AbstractLogPublisher(
     private val _limit = limitMBPerDay * 1024 * 1024
 
     private var _dateInfo: DateInfo? = null
-    private val _logFileChecker = LogFileChecker { checkLogFileExist() }
+    private val _logFileChecker = SafeIdleHandler {
+        checkLogFileExist()
+        false
+    }
 
     final override fun publish(record: FLogRecord) {
         val log = formatter.format(record)
@@ -112,20 +115,27 @@ internal abstract class AbstractLogPublisher(
         }
     }
 
-    private class LogFileChecker(private val block: () -> Unit) {
+    private class SafeIdleHandler(private val block: () -> Boolean) {
         private var _idleHandler: IdleHandler? = null
 
         fun register(): Boolean {
             Looper.myLooper() ?: return false
-            _idleHandler?.let { return true }
-            val idleHandler = IdleHandler {
-                libTryRun { block() }
-                _idleHandler = null
-                false
+            synchronized(this@SafeIdleHandler) {
+                _idleHandler?.let { return true }
+                IdleHandler {
+                    block().also { sticky ->
+                        synchronized(this@SafeIdleHandler) {
+                            if (!sticky) {
+                                _idleHandler = null
+                            }
+                        }
+                    }
+                }.also {
+                    _idleHandler = it
+                    Looper.myQueue().addIdleHandler(it)
+                }
+                return true
             }
-            _idleHandler = idleHandler
-            Looper.myQueue().addIdleHandler(idleHandler)
-            return true
         }
     }
 }
