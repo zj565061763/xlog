@@ -30,7 +30,7 @@ object FLog {
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
 
-    /** 日志写入执行器 */
+    /** 日志执行器 */
     private var _executor: FLogExecutor? = null
 
     /** 文件日志 */
