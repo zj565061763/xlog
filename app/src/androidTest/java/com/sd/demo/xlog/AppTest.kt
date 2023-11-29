@@ -28,7 +28,7 @@ class AppTest {
     @Test
     fun testCommon() {
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.All)
 
             var count = 0
@@ -45,7 +45,7 @@ class AppTest {
     fun testLogLevel() {
         // All
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.All)
             var result = ""
             flogV<TestLogger> {
@@ -73,7 +73,7 @@ class AppTest {
 
         // Verbose
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.Verbose)
             var result = ""
             flogV<TestLogger> {
@@ -101,7 +101,7 @@ class AppTest {
 
         // Debug
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.Debug)
             var result = ""
             flogV<TestLogger> {
@@ -129,7 +129,7 @@ class AppTest {
 
         // Info
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.Info)
             var result = ""
             flogV<TestLogger> {
@@ -157,7 +157,7 @@ class AppTest {
 
         // Warning
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.Warning)
             var result = ""
             flogV<TestLogger> {
@@ -185,7 +185,7 @@ class AppTest {
 
         // Error
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.Error)
             var result = ""
             flogV<TestLogger> {
@@ -215,7 +215,7 @@ class AppTest {
     @Test
     fun testConsoleDebug() {
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.All)
             var count = 0
             fDebug { count++ }
@@ -223,7 +223,7 @@ class AppTest {
         }
 
         kotlin.run {
-            FLog.open(_context)
+            FLog.init(_context)
             FLog.setLevel(FLogLevel.Warning)
             var count = 0
             fDebug { count++ }
@@ -233,7 +233,7 @@ class AppTest {
 
     @Test
     fun testConfig() {
-        FLog.open(_context)
+        FLog.init(_context)
         FLog.setLevel(FLogLevel.Info)
 
         kotlin.run {
@@ -263,7 +263,7 @@ class AppTest {
 
     @Test
     fun testDeleteLogFile() {
-        FLog.open(_context)
+        FLog.init(_context)
         FLog.setLevel(FLogLevel.All)
 
         val dir = FLog.logDirectory { it }
@@ -323,7 +323,7 @@ class AppTest {
 
     @Test
     fun testLogFileDeleted() {
-        FLog.open(_context)
+        FLog.init(_context)
         FLog.setLevel(FLogLevel.All)
 
         val dir = FLog.logDirectory { it }
@@ -346,7 +346,7 @@ class AppTest {
 
     @Test
     fun testLogFileLimit() {
-        FLog.open(_context, limitMBPerDay = 1)
+        FLog.init(_context, limitMBPerDay = 1)
         FLog.setLevel(FLogLevel.All)
 
         val dir = FLog.logDirectory { it }

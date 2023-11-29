@@ -54,7 +54,7 @@ object FLog {
      */
     @JvmStatic
     @JvmOverloads
-    fun open(
+    fun init(
         context: Context,
 
         /** 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小 */

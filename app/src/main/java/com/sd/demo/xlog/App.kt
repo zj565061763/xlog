@@ -13,7 +13,7 @@ class App : Application() {
          * 初始化，日志保存目录：[Context.getFilesDir]/flog，
          * 默认只打开文件日志，可以调用[FLog.enableConsoleLog]方法开关控制台日志，
          */
-        FLog.open(
+        FLog.init(
             context = this,
 
             //（可选参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认100MB
