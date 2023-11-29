@@ -18,12 +18,37 @@ internal interface DirectoryLogPublisher : LogPublisher, AutoCloseable {
     override fun close()
 }
 
-internal abstract class AbstractLogPublisher(
+internal fun defaultPublisher(
     /** 日志文件目录 */
     directory: File,
 
-    /** 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小 */
-    limitMBPerDay: Long,
+    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
+    limitPerDay: Long,
+
+    /** 日志格式化 */
+    formatter: FLogFormatter,
+
+    /** 日志文件名 */
+    filename: LogFilename,
+
+    /** 日志仓库工厂 */
+    storeFactory: FLogStore.Factory
+): DirectoryLogPublisher {
+    return LogPublisherImpl(
+        directory = directory,
+        limitPerDay = limitPerDay,
+        formatter = formatter,
+        filename = filename,
+        storeFactory = storeFactory,
+    )
+}
+
+private abstract class AbstractLogPublisher(
+    /** 日志文件目录 */
+    directory: File,
+
+    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
+    limitPerDay: Long,
 ) : DirectoryLogPublisher {
 
     private data class DateInfo(
@@ -33,7 +58,7 @@ internal abstract class AbstractLogPublisher(
     )
 
     private val _directory = directory
-    private val _limit = limitMBPerDay * 1024 * 1024
+    private val _limit = limitPerDay
 
     private var _dateInfo: DateInfo? = null
     private val _logFileChecker = SafeIdleHandler {
@@ -140,13 +165,13 @@ internal abstract class AbstractLogPublisher(
     }
 }
 
-internal class LogPublisherImpl(
+private class LogPublisherImpl(
     directory: File,
-    limitMBPerDay: Long,
+    limitPerDay: Long,
     override val formatter: FLogFormatter,
     override val filename: LogFilename,
     override val storeFactory: FLogStore.Factory,
 ) : AbstractLogPublisher(
     directory = directory,
-    limitMBPerDay = limitMBPerDay,
+    limitPerDay = limitPerDay,
 )

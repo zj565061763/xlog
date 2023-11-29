@@ -70,9 +70,9 @@ object FLog {
             _level = level
             _logDirectory = directory
             _executor = executor
-            _publisher = LogPublisherImpl(
+            _publisher = defaultPublisher(
                 directory = directory,
-                limitMBPerDay = limitMBPerDay,
+                limitPerDay = limitMBPerDay * 1024 * 1024,
                 formatter = formatter ?: LogFormatterDefault(),
                 filename = LogFilenameDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
