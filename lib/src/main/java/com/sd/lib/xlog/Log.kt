@@ -31,7 +31,7 @@ object FLog {
     /** 是否异步发布日志 */
     private var _async: Boolean = false
     /** 异步发布日志任务 */
-    private val _asyncTaskHolder: MutableSet<AsyncLogTask> = hashSetOf()
+    private val _taskHolder: MutableSet<AsyncLogTask> = hashSetOf()
 
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
@@ -180,14 +180,17 @@ object FLog {
                 }
             }
 
-            if (_async || _asyncTaskHolder.isNotEmpty()) {
-                AsyncLogTask(_publisher, record) {
+            if (_async || _taskHolder.isNotEmpty()) {
+                AsyncLogTask(_publisher, record) { task ->
                     // finish
-                    _asyncTaskHolder.remove(it)
-                }.let {
+                    _taskHolder.remove(task)
+                    if (_taskHolder.isEmpty() && !_isOpened) {
+                        task.publisher.close()
+                    }
+                }.let { task ->
                     // submit
-                    _asyncTaskHolder.add(it)
-                    it.submit()
+                    _taskHolder.add(task)
+                    task.submit()
                 }
             } else {
                 _publisher.publish(record)
@@ -316,7 +319,7 @@ object FLog {
 private val _logExecutor by lazy { Executors.newSingleThreadExecutor() }
 
 private class AsyncLogTask(
-    private val publisher: LogPublisher,
+    val publisher: LogPublisher,
     private val record: FLogRecord,
     private val finish: (AsyncLogTask) -> Unit,
 ) : Runnable {
