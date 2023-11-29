@@ -443,8 +443,9 @@ class AppLogStore(file: File) : FLogStore {
 打印日志默认在调用线程执行，可以通过`FLogExecutor`接口自定义执行线程
 
 ```kotlin
+private val logExecutor = Executors.newSingleThreadExecutor()
+
 class AppLogExecutor(private val debug: Boolean) : FLogExecutor {
-    private var _executor: ExecutorService? = null
 
     override fun submit(task: Runnable) {
         if (debug) {
@@ -452,16 +453,8 @@ class AppLogExecutor(private val debug: Boolean) : FLogExecutor {
             task.run()
         } else {
             // release模式下异步执行
-            val executor = _executor ?: Executors.newSingleThreadExecutor().also {
-                _executor = it
-            }
-            executor.submit(task)
+            logExecutor.submit(task)
         }
-    }
-
-    override fun close() {
-        _executor?.shutdown()
-        _executor = null
     }
 }
 ```
@@ -476,11 +469,6 @@ interface FLogExecutor {
      * 开发者应该保证按顺序执行任务，否则会有先后顺序的问题
      */
     fun submit(task: Runnable)
-
-    /**
-     * 关闭
-     */
-    fun close()
 }
 ```
 
