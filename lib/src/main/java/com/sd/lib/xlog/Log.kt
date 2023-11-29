@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import android.util.Log
 import java.io.File
+import java.util.WeakHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
@@ -34,6 +35,9 @@ object FLog {
 
     /** 文件日志 */
     private var _publisher: LogPublisher? = null
+
+    /** 异步任务 */
+    private val _taskHolder: MutableMap<SafeExecutorTask, String> = WeakHashMap()
 
     /**
      * 日志是否已经打开
@@ -172,7 +176,10 @@ object FLog {
             if (executor == null) {
                 publisher.publish(record)
             } else {
-                executor.submit(SafeExecutorTask(publisher, record))
+                SafeExecutorTask(publisher, record).also { task ->
+                    _taskHolder[task] = ""
+                    executor.submit(task)
+                }
             }
 
             if (_enableConsoleLog) {
@@ -183,6 +190,20 @@ object FLog {
                     FLogLevel.Warning -> Log.w(tag, msg)
                     FLogLevel.Error -> Log.e(tag, msg)
                     else -> {}
+                }
+            }
+        }
+    }
+
+    /**
+     * 移除异步任务
+     */
+    internal fun removeTask(task: SafeExecutorTask) {
+        synchronized(FLog) {
+            _taskHolder.remove(task)
+            if (_taskHolder.isEmpty()) {
+                if (task.publisher != _publisher) {
+                    task.publisher.close()
                 }
             }
         }
@@ -311,8 +332,8 @@ object FLog {
     }
 }
 
-private class SafeExecutorTask(
-    private val publisher: LogPublisher,
+internal class SafeExecutorTask(
+    val publisher: LogPublisher,
     private val record: FLogRecord,
 ) : Runnable {
     private val _published = AtomicBoolean(false)
@@ -321,6 +342,7 @@ private class SafeExecutorTask(
         if (_published.compareAndSet(false, true)) {
             synchronized(FLog) {
                 publisher.publish(record)
+                FLog.removeTask(this@SafeExecutorTask)
             }
         }
     }
