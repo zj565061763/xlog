@@ -11,11 +11,11 @@ internal interface LogPublisher {
     fun publish(record: FLogRecord)
 }
 
-internal interface DirectoryLogPublisher : LogPublisher {
+internal interface DirectoryLogPublisher : LogPublisher, AutoCloseable {
     val formatter: FLogFormatter
     val filename: LogFilename
     val storeFactory: FLogStore.Factory
-    fun close()
+    override fun close()
 }
 
 internal abstract class AbstractLogPublisher(

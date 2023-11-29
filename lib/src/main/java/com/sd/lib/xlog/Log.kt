@@ -152,6 +152,7 @@ object FLog {
         synchronized(FLog) {
             if (msg.isNullOrEmpty()) return
             if (!isLoggable(clazz, level)) return
+            val publisher = _publisher ?: return
 
             val config = getConfig(clazz)
             val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
@@ -162,8 +163,6 @@ object FLog {
                 msg = msg,
                 level = level,
             )
-
-            val publisher = checkNotNull(_publisher)
 
             val executor = _executor
             if (executor == null) {
@@ -213,16 +212,20 @@ object FLog {
     @JvmStatic
     fun <T> logDirectory(block: (File) -> T): T? {
         synchronized(FLog) {
-            return if (_isOpened) {
-                val oldLevel = _level
-                _level = FLogLevel.Off
-                _publisher?.close()
-                val result = libTryRun { block(checkNotNull(_logDirectory)) }
-                _level = oldLevel
-                result.getOrElse { null }
-            } else {
-                null
+            if (!_isOpened) return null
+
+            val oldLevel = _level
+            _level = FLogLevel.Off
+            _publisher?.close()
+
+            val result = _logDirectory?.let { dir ->
+                libTryRun { block(dir) }.getOrElse { null }
             }
+
+            if (_isOpened) {
+                _level = oldLevel
+            }
+            return result
         }
     }
 
@@ -237,10 +240,12 @@ object FLog {
             _logDirectory = null
             _enableConsoleLog = false
             _configHolder.clear()
-            _publisher?.close()
-            _publisher = null
-            _executor?.close()
-            _executor = null
+            _publisher?.let { publisher ->
+                _executor?.close(publisher)
+                _executor = null
+                publisher.close()
+                _publisher = null
+            }
         }
     }
 

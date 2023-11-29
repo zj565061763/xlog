@@ -11,7 +11,8 @@ interface FLogExecutor {
     fun submit(task: Runnable)
 
     /**
-     * 关闭
+     * 日志关闭回调，
+     * 如果异步任务还未完成的，需要在任务完成后调用[AutoCloseable.close]关闭[closeable]释放资源
      */
-    fun close()
+    fun close(closeable: AutoCloseable)
 }
