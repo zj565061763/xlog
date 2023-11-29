@@ -23,9 +23,6 @@ class App : Application() {
             limitMBPerDay = 100,
         )
 
-        // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off
-        FLog.setLevel(FLogLevel.All)
-
         // 修改某个日志标识的配置信息
         FLog.config<AppLogger> {
             this.level = FLogLevel.All
