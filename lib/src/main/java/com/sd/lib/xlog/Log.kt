@@ -30,7 +30,7 @@ object FLog {
     private var _level: FLogLevel = FLogLevel.Info
 
     /** 是否打印控制台日志 */
-    private var _enableConsoleLog: Boolean = false
+    private var _consoleLogEnabled: Boolean = false
 
     /** 日志等级是否被[logDirectory]暂时锁定 */
     private var _isLevelLockedByLogDirectory = false
@@ -50,7 +50,7 @@ object FLog {
 
     /**
      * 初始化，日志保存目录：[Context.getFilesDir]/flog，
-     * 默认只打开文件日志，可以调用[enableConsoleLog]方法开关控制台日志，
+     * 默认只打开文件日志，可以调用[setConsoleLogEnabled]方法开关控制台日志，
      */
     @JvmStatic
     @JvmOverloads
@@ -87,11 +87,18 @@ object FLog {
      * 是否打打印控制台日志，[debug]方法不受此开关的限制
      */
     @JvmStatic
-    fun enableConsoleLog(enable: Boolean) {
+    fun setConsoleLogEnabled(enabled: Boolean) {
         synchronized(FLog) {
             checkInited()
-            _enableConsoleLog = enable
+            _consoleLogEnabled = enabled
         }
+    }
+
+    /**
+     * 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小
+     */
+    fun setLimitMBPerDay(limitMBPerDay: Int) {
+        // TODO limit
     }
 
     /**
@@ -180,7 +187,7 @@ object FLog {
                 level = level,
             )
 
-            if (_enableConsoleLog) {
+            if (_consoleLogEnabled) {
                 when (record.level) {
                     FLogLevel.Verbose -> Log.v(tag, msg)
                     FLogLevel.Debug -> Log.d(tag, msg)

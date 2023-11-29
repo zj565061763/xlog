@@ -11,7 +11,7 @@ class App : Application() {
         super.onCreate()
         /**
          * 初始化，日志保存目录：[Context.getFilesDir]/flog，
-         * 默认只打开文件日志，可以调用[FLog.enableConsoleLog]方法开关控制台日志，
+         * 默认只打开文件日志，可以调用[FLog.setConsoleLogEnabled]方法开关控制台日志，
          */
         FLog.init(
             context = this,

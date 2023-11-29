@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
 
 private fun log() {
     // 打开控制台日志
-    FLog.enableConsoleLog(true)
+    FLog.setConsoleLogEnabled(true)
 
     flogV<AppLogger> { "Verbose" }
     flogD<AppLogger> { "Debug" }
@@ -49,7 +49,7 @@ private fun log() {
  */
 private fun testPerformance(logLength: Int = 500, repeat: Int = 1_0000) {
     // 关闭控制台日志
-    FLog.enableConsoleLog(false)
+    FLog.setConsoleLogEnabled(false)
     val log = "1".repeat(logLength)
     measureTime {
         repeat(repeat) {

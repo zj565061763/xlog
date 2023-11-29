@@ -346,8 +346,9 @@ class AppTest {
 
     @Test
     fun testLogFileLimit() {
-        FLog.init(_context, limitMBPerDay = 1)
+        FLog.init(_context)
         FLog.setLevel(FLogLevel.All)
+        FLog.setLimitMBPerDay(1)
 
         val dir = FLog.logDirectory { it }
 
