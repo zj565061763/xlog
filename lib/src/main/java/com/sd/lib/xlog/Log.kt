@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import android.util.Log
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
     All, Verbose, Debug, Info, Warning, Error, Off,
@@ -168,7 +169,7 @@ object FLog {
             if (executor == null) {
                 publisher.publish(record)
             } else {
-                executor.submit { publisher.publish(record) }
+                executor.submit(SafeExecutorTask(publisher, record))
             }
 
             if (_enableConsoleLog) {
@@ -310,5 +311,18 @@ object FLog {
     @JvmStatic
     fun logE(clazz: Class<out FLogger>, msg: String?) {
         log(clazz, FLogLevel.Error, msg)
+    }
+}
+
+private class SafeExecutorTask(
+    private val publisher: LogPublisher,
+    private val record: FLogRecord,
+) : Runnable {
+    private val _published = AtomicBoolean(false)
+
+    override fun run() {
+        if (_published.compareAndSet(false, true)) {
+            publisher.publish(record)
+        }
     }
 }
