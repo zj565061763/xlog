@@ -14,8 +14,6 @@ androidx-appcompat = "androidx.appcompat:appcompat:1.6.1"
 androidx-test-ext-junit = "androidx.test.ext:junit:1.1.5"
 androidx-test-espresso-core = "androidx.test.espresso:espresso-core:3.5.1"
 
-sd-closeable = "com.github.zj565061763:closeable:latest.release"
-
 [plugins]
 
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

@@ -1,7 +1,6 @@
 package com.sd.lib.xlog
 
 import android.util.Log
-import com.sd.lib.closeable.FCloseableStore
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -74,21 +73,13 @@ object FLog {
             _level = level
             _logDirectory = directory
             _executor = executor
-
-            val publisher = defaultPublisher(
+            _publisher = defaultPublisher(
                 directory = directory,
                 limitPerDay = limitMBPerDay * 1024 * 1024,
                 formatter = formatter ?: LogFormatterDefault(),
                 filename = LogFilenameDefault().also { _filename = it },
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
             ).safePublisher()
-
-            _publisher = if (executor == null) {
-                publisher
-            } else {
-                FCloseableStore.key(directory.absolutePath, LogPublisher::class.java) { publisher }
-            }
-
             _isOpened = true
         }
     }
