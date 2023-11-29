@@ -17,7 +17,7 @@ class App : Application() {
          */
         FLog.init(this)
 
-        // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：Info
+        // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
         FLog.setLevel(FLogLevel.All)
 
         // 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认不限制大小
