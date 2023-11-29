@@ -109,8 +109,10 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
     }
 
     override fun close() {
-        _dateInfo?.store?.close()
-        _dateInfo = null
+        _dateInfo?.let {
+            it.store.close()
+            _dateInfo = null
+        }
     }
 
     private fun getDateInfo(record: FLogRecord): DateInfo {
