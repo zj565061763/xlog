@@ -3,7 +3,6 @@ package com.sd.lib.xlog
 import android.os.Looper
 import android.os.MessageQueue.IdleHandler
 import java.io.File
-import kotlin.properties.Delegates
 
 internal interface LogPublisher : AutoCloseable {
     /**
@@ -21,43 +20,57 @@ internal interface DirectoryLogPublisher : LogPublisher {
     /** 日志文件目录 */
     val directory: File
 
-    /**
-     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
-     */
-    fun setLimitPerDay(limit: Long)
+    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
+    val limitPerDay: Long
 
-    /**
-     * 设置日志格式化
-     */
-    fun setFormatter(formatter: FLogFormatter)
+    /** 日志格式化 */
+    val formatter: FLogFormatter
 
-    /**
-     * 设置日志文件名
-     */
-    fun setFilename(filename: LogFilename)
+    /** 日志仓库工厂 */
+    val storeFactory: FLogStore.Factory
 
-    /**
-     * 设置日志仓库工厂
-     */
-    fun setStoreFactory(factory: FLogStore.Factory)
+    /** 日志文件名 */
+    val filename: LogFilename
 }
 
-internal fun defaultPublisher(directory: File): DirectoryLogPublisher {
-    return LogPublisherImpl(directory)
+internal fun defaultPublisher(
+    /** 日志文件目录 */
+    directory: File,
+
+    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
+    limitPerDay: Long,
+
+    /** 日志格式化 */
+    formatter: FLogFormatter,
+
+    /** 日志仓库工厂 */
+    storeFactory: FLogStore.Factory,
+
+    /** 日志文件名 */
+    filename: LogFilename,
+): DirectoryLogPublisher {
+    return LogPublisherImpl(
+        directory = directory,
+        limitPerDay = limitPerDay,
+        formatter = formatter,
+        storeFactory = storeFactory,
+        filename = filename,
+    )
 }
 
-private class LogPublisherImpl(override val directory: File) : DirectoryLogPublisher {
+private class LogPublisherImpl(
+    override val directory: File,
+    override val limitPerDay: Long,
+    override val formatter: FLogFormatter,
+    override val storeFactory: FLogStore.Factory,
+    override val filename: LogFilename,
+) : DirectoryLogPublisher {
+
     private data class DateInfo(
         val date: String,
         val file: File,
         val store: FLogStore,
     )
-
-    // 配置信息
-    private var _limit by Delegates.notNull<Long>()
-    private lateinit var _formatter: FLogFormatter
-    private lateinit var _filename: LogFilename
-    private lateinit var _storeFactory: FLogStore.Factory
 
     private var _dateInfo: DateInfo? = null
     private val _logFileChecker = SafeIdleHandler {
@@ -65,25 +78,8 @@ private class LogPublisherImpl(override val directory: File) : DirectoryLogPubli
         false
     }
 
-    override fun setLimitPerDay(limit: Long) {
-        _limit = limit
-    }
-
-    override fun setFormatter(formatter: FLogFormatter) {
-        _formatter = formatter
-    }
-
-    override fun setFilename(filename: LogFilename) {
-        _filename = filename
-    }
-
-    override fun setStoreFactory(factory: FLogStore.Factory) {
-        close()
-        _storeFactory = factory
-    }
-
     override fun publish(record: FLogRecord) {
-        val log = _formatter.format(record)
+        val log = formatter.format(record)
         val dateInfo = getDateInfo(record)
 
         // 保存日志
@@ -109,7 +105,7 @@ private class LogPublisherImpl(override val directory: File) : DirectoryLogPubli
     }
 
     private fun getDateInfo(record: FLogRecord): DateInfo {
-        val date = _filename.filenameOf(record.millis).also { check(it.isNotEmpty()) }
+        val date = filename.filenameOf(record.millis).also { check(it.isNotEmpty()) }
         val dateInfo = _dateInfo
         if (dateInfo == null || dateInfo.date != date) {
             close()
@@ -117,7 +113,7 @@ private class LogPublisherImpl(override val directory: File) : DirectoryLogPubli
             _dateInfo = DateInfo(
                 date = date,
                 file = file,
-                store = _storeFactory.create(file).safeStore(),
+                store = storeFactory.create(file).safeStore(),
             )
             fDebug { "lib publisher create date info $date ${this@LogPublisherImpl}" }
         }
@@ -128,11 +124,11 @@ private class LogPublisherImpl(override val directory: File) : DirectoryLogPubli
      * 检查日志大小
      */
     private fun checkLimit(dateInfo: DateInfo) {
-        if (_limit <= 0) {
+        if (limitPerDay <= 0) {
             // 不限制大小
             return
         }
-        if (dateInfo.store.size() > (_limit / 2)) {
+        if (dateInfo.store.size() > (limitPerDay / 2)) {
             dateInfo.store.close()
             val file = dateInfo.file
             val oldFile = file.resolveSibling("${file.name}.old")
@@ -159,28 +155,28 @@ private class LogPublisherImpl(override val directory: File) : DirectoryLogPubli
             }
         }
     }
+}
 
-    private class SafeIdleHandler(private val block: () -> Boolean) {
-        private var _idleHandler: IdleHandler? = null
+private class SafeIdleHandler(private val block: () -> Boolean) {
+    private var _idleHandler: IdleHandler? = null
 
-        fun register(): Boolean {
-            Looper.myLooper() ?: return false
-            synchronized(this@SafeIdleHandler) {
-                _idleHandler?.let { return true }
-                IdleHandler {
-                    block().also { sticky ->
-                        synchronized(this@SafeIdleHandler) {
-                            if (!sticky) {
-                                _idleHandler = null
-                            }
+    fun register(): Boolean {
+        Looper.myLooper() ?: return false
+        synchronized(this@SafeIdleHandler) {
+            _idleHandler?.let { return true }
+            IdleHandler {
+                block().also { sticky ->
+                    synchronized(this@SafeIdleHandler) {
+                        if (!sticky) {
+                            _idleHandler = null
                         }
                     }
-                }.also {
-                    _idleHandler = it
-                    Looper.myQueue().addIdleHandler(it)
                 }
-                return true
+            }.also {
+                _idleHandler = it
+                Looper.myQueue().addIdleHandler(it)
             }
+            return true
         }
     }
 }

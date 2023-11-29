@@ -24,9 +24,6 @@ object FLog {
     /** 日志文件目录 */
     private var _logDirectory: File? = null
 
-    /** 日志文件名 */
-    private var _filename: LogFilename? = null
-
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
 
@@ -38,6 +35,9 @@ object FLog {
 
     /** 异步任务 */
     private val _taskHolder: MutableMap<SafeExecutorTask, String> = WeakHashMap()
+
+    /** [open]的时候是否有未完成的异步任务 */
+    private var _hasPendingTaskWhenOpen = false
 
     /**
      * 日志是否已经打开
@@ -78,15 +78,14 @@ object FLog {
             _level = level
             _logDirectory = directory
             _executor = executor
-
-            val publisher = findPublisherLocked(directory) ?: defaultPublisher(directory)
-            _publisher = publisher.apply {
-                this.setLimitPerDay(limitMBPerDay * 1024 * 1024)
-                this.setFormatter(formatter ?: LogFormatterDefault())
-                this.setFilename(LogFilenameDefault().also { _filename = it })
-                this.setStoreFactory(storeFactory ?: FLogStore.Factory { defaultLogStore(it) })
-            }.safePublisher()
-
+            _hasPendingTaskWhenOpen = _taskHolder.isNotEmpty()
+            _publisher = defaultPublisher(
+                directory = directory,
+                limitPerDay = limitMBPerDay * 1024 * 1024,
+                formatter = formatter ?: LogFormatterDefault(),
+                storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
+                filename = LogFilenameDefault(),
+            ).safePublisher()
             _isOpened = true
         }
     }
@@ -209,7 +208,7 @@ object FLog {
             val files = dir.listFiles()
             if (files.isNullOrEmpty()) return@logDirectory
 
-            val filename = _filename ?: return@logDirectory
+            val filename = _publisher?.filename ?: return@logDirectory
             val today = filename.filenameOf(System.currentTimeMillis()).also { check(it.isNotEmpty()) }
 
             files.forEach { file ->
@@ -253,8 +252,8 @@ object FLog {
                 _level = FLogLevel.Off
                 _enableConsoleLog = false
                 _logDirectory = null
-                _filename = null
                 _configHolder.clear()
+                _hasPendingTaskWhenOpen = false
                 _executor = null
                 _publisher?.also { _publisher = null }?.close()
             }
@@ -270,19 +269,10 @@ object FLog {
             if (task.publisher != _publisher) {
                 task.publisher.close()
             }
-        }
-    }
+            if (_isOpened) {
 
-    /**
-     * 查找[directory]目录的publisher
-     */
-    private fun findPublisherLocked(directory: File): DirectoryLogPublisher? {
-        for ((key, _) in _taskHolder) {
-            if (key.publisher.directory == directory) {
-                return key.publisher
             }
         }
-        return null
     }
 
     //---------- other ----------
