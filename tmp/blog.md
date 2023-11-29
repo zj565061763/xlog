@@ -309,15 +309,17 @@ thread {
 #### 常用方法
 
 ```kotlin
-// 打开日志，默认只打开文件日志
+/**
+ * 打开日志，文件保存目录：[Context.getFilesDir()]/flog，
+ * 默认只打开文件日志，可以调用[FLog.enableConsoleLog()]方法开关控制台日志，
+ */
 FLog.open(
+    context = this,
+    
     //（必传参数）日志等级 All, Verbose, Debug, Info, Warning, Error
     level = FLogLevel.All,
 
-    //（必传参数）日志文件目录，日志文件名称为当天的日期，例如：20231125.log
-    directory = filesDir.resolve("app_log"),
-
-    //（必传参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小
+    //（可选参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认100MB
     limitMBPerDay = 100,
     
     //（可选参数）自定义日志格式
@@ -325,9 +327,6 @@ FLog.open(
     
     //（可选参数）自定义日志存储
     storeFactory = AppLogStoreFactory(),
-    
-    //（可选参数）自定义执行线程，包括日志的格式化和写入，默认在调用线程执行
-    executor = AppLogExecutor(),
 )
 
 
@@ -435,40 +434,6 @@ class AppLogStore(file: File) : FLogStore {
 
     // 关闭
     override fun close() {}
-}
-```
-
-#### 自定义日志线程
-
-打印日志默认在调用线程执行，可以通过`FLogExecutor`接口自定义执行线程
-
-```kotlin
-private val logExecutor = Executors.newSingleThreadExecutor()
-
-class AppLogExecutor(private val debug: Boolean) : FLogExecutor {
-
-    override fun submit(task: Runnable) {
-        if (debug) {
-            // debug模式下直接执行
-            task.run()
-        } else {
-            // release模式下异步执行
-            logExecutor.submit(task)
-        }
-    }
-}
-```
-
-```kotlin
-/**
- * 日志执行器，可以定义执行线程，包括日志的格式化和写入
- */
-interface FLogExecutor {
-    /**
-     * 提交任务，库中可以保证按顺序提交任务，
-     * 开发者应该保证按顺序执行任务，否则会有先后顺序的问题
-     */
-    fun submit(task: Runnable)
 }
 ```
 
