@@ -13,7 +13,7 @@ internal inline fun <R> libTryRun(block: () -> R): Result<R> {
     }
 }
 
-internal fun DirectoryLogPublisher.safePublisher(): DirectoryLogPublisher {
+internal fun LogPublisher.safePublisher(): LogPublisher {
     return if (this is SafeLogPublisher) this else SafeLogPublisher(this)
 }
 
@@ -21,10 +21,7 @@ internal fun FLogStore.safeStore(): FLogStore {
     return if (this is SafeLogStore) this else SafeLogStore(this)
 }
 
-private class SafeLogPublisher(
-    private val instance: DirectoryLogPublisher
-) : DirectoryLogPublisher by instance {
-
+private class SafeLogPublisher(private val instance: LogPublisher) : LogPublisher {
     override fun publish(record: FLogRecord) {
         libTryRun { instance.publish(record) }
     }

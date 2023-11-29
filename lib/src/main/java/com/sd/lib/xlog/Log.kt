@@ -17,20 +17,23 @@ object FLog {
     @Volatile
     private var _level: FLogLevel = FLogLevel.Off
 
+    /** 是否打印控制台日志 */
+    private var _enableConsoleLog: Boolean = false
+
     /** 日志文件目录 */
     private var _logDirectory: File? = null
+
+    /** 日志文件名 */
+    private var _filename: LogFilename? = null
+
+    /** [FLogger]配置信息 */
+    private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
 
     /** 日志写入执行器 */
     private var _executor: FLogExecutor? = null
 
     /** 文件日志 */
-    private var _publisher: DirectoryLogPublisher? = null
-
-    /** 是否打印控制台日志 */
-    private var _enableConsoleLog: Boolean = false
-
-    /** [FLogger]配置信息 */
-    private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
+    private var _publisher: LogPublisher? = null
 
     /**
      * 日志是否已经打开
@@ -74,7 +77,7 @@ object FLog {
                 directory = directory,
                 limitPerDay = limitMBPerDay * 1024 * 1024,
                 formatter = formatter ?: LogFormatterDefault(),
-                filename = LogFilenameDefault(),
+                filename = LogFilenameDefault().also { _filename = it },
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
             ).safePublisher()
             _isOpened = true
@@ -196,7 +199,7 @@ object FLog {
             val files = dir.listFiles()
             if (files.isNullOrEmpty()) return@logDirectory
 
-            val filename = _publisher?.filename ?: return@logDirectory
+            val filename = _filename ?: return@logDirectory
             val today = filename.filenameOf(System.currentTimeMillis()).also { check(it.isNotEmpty()) }
 
             files.forEach { file ->
@@ -237,19 +240,13 @@ object FLog {
         synchronized(FLog) {
             if (_isOpened) {
                 _isOpened = false
-
                 _level = FLogLevel.Off
-                _logDirectory = null
                 _enableConsoleLog = false
+                _logDirectory = null
+                _filename = null
                 _configHolder.clear()
-
-                val publisher = _publisher?.also { _publisher = null }
-                val executor = _executor?.also { _executor = null }
-
-                publisher?.let {
-                    it.close()
-                    executor?.close(it)
-                }
+                _executor = null
+                _publisher?.also { _publisher = null }?.close()
             }
         }
     }

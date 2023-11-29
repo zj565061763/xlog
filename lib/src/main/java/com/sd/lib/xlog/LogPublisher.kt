@@ -4,17 +4,15 @@ import android.os.Looper
 import android.os.MessageQueue.IdleHandler
 import java.io.File
 
-internal interface LogPublisher {
+internal interface LogPublisher : AutoCloseable {
     /**
      * 发布日志记录
      */
     fun publish(record: FLogRecord)
-}
 
-internal interface DirectoryLogPublisher : LogPublisher, AutoCloseable {
-    val formatter: FLogFormatter
-    val filename: LogFilename
-    val storeFactory: FLogStore.Factory
+    /**
+     * 关闭
+     */
     override fun close()
 }
 
@@ -33,32 +31,30 @@ internal fun defaultPublisher(
 
     /** 日志仓库工厂 */
     storeFactory: FLogStore.Factory
-): DirectoryLogPublisher {
-    return LogPublisherImpl(
-        directory = directory,
-        limitPerDay = limitPerDay,
-        formatter = formatter,
-        filename = filename,
-        storeFactory = storeFactory,
-    )
+): LogPublisher {
+    return LogPublisherImpl(directory).apply {
+        this.setLimitPerDay(limitPerDay)
+        this.setFormatter(formatter)
+        this.setFilename(filename)
+        this.setStoreFactory(storeFactory)
+    }
 }
 
-private abstract class AbstractLogPublisher(
-    /** 日志文件目录 */
-    directory: File,
-
-    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
-    limitPerDay: Long,
-) : DirectoryLogPublisher {
-
+private class LogPublisherImpl(directory: File) : LogPublisher {
     private data class DateInfo(
         val date: String,
         val file: File,
         val store: FLogStore,
     )
 
+    /** 日志文件目录 */
     private val _directory = directory
-    private val _limit = limitPerDay
+
+    // 配置信息
+    private var _limit: Long = 0
+    private var _formatter: FLogFormatter = LogFormatterDefault()
+    private var _filename: LogFilename = LogFilenameDefault()
+    private var _storeFactory: FLogStore.Factory = FLogStore.Factory { defaultLogStore(it) }
 
     private var _dateInfo: DateInfo? = null
     private val _logFileChecker = SafeIdleHandler {
@@ -66,8 +62,36 @@ private abstract class AbstractLogPublisher(
         false
     }
 
-    final override fun publish(record: FLogRecord) {
-        val log = formatter.format(record)
+    /**
+     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
+     */
+    fun setLimitPerDay(limit: Long) {
+        _limit = limit
+    }
+
+    /**
+     * 设置日志格式化
+     */
+    fun setFormatter(formatter: FLogFormatter) {
+        _formatter = formatter
+    }
+
+    /**
+     * 设置日志文件名
+     */
+    fun setFilename(filename: LogFilename) {
+        _filename = filename
+    }
+
+    /**
+     * 设置日志仓库工厂
+     */
+    fun setStoreFactory(factory: FLogStore.Factory) {
+        _storeFactory = factory
+    }
+
+    override fun publish(record: FLogRecord) {
+        val log = _formatter.format(record)
         val dateInfo = getDateInfo(record)
 
         // 保存日志
@@ -84,13 +108,13 @@ private abstract class AbstractLogPublisher(
         }
     }
 
-    final override fun close() {
+    override fun close() {
         _dateInfo?.store?.close()
         _dateInfo = null
     }
 
     private fun getDateInfo(record: FLogRecord): DateInfo {
-        val date = filename.filenameOf(record.millis).also { check(it.isNotEmpty()) }
+        val date = _filename.filenameOf(record.millis).also { check(it.isNotEmpty()) }
         val dateInfo = _dateInfo
         if (dateInfo == null || dateInfo.date != date) {
             close()
@@ -98,7 +122,7 @@ private abstract class AbstractLogPublisher(
             _dateInfo = DateInfo(
                 date = date,
                 file = file,
-                store = storeFactory.create(file).safeStore(),
+                store = _storeFactory.create(file).safeStore(),
             )
         }
         return checkNotNull(_dateInfo)
@@ -164,14 +188,3 @@ private abstract class AbstractLogPublisher(
         }
     }
 }
-
-private class LogPublisherImpl(
-    directory: File,
-    limitPerDay: Long,
-    override val formatter: FLogFormatter,
-    override val filename: LogFilename,
-    override val storeFactory: FLogStore.Factory,
-) : AbstractLogPublisher(
-    directory = directory,
-    limitPerDay = limitPerDay,
-)

@@ -9,10 +9,4 @@ interface FLogExecutor {
      * 开发者应该保证按顺序执行任务，否则会有先后顺序的问题
      */
     fun submit(task: Runnable)
-
-    /**
-     * 日志关闭回调，
-     * 如果异步任务还未完成的，需要在任务完成后调用[AutoCloseable.close]关闭[closeable]释放资源
-     */
-    fun close(closeable: AutoCloseable)
 }

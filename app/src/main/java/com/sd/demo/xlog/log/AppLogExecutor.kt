@@ -16,7 +16,4 @@ class AppLogExecutor(private val debug: Boolean) : FLogExecutor {
             logExecutor.submit(task)
         }
     }
-
-    override fun close(closeable: AutoCloseable) {
-    }
 }
