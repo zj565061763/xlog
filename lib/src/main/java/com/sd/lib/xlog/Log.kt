@@ -99,7 +99,7 @@ object FLog {
     fun setLimitMBPerDay(limitMBPerDay: Int) {
         synchronized(FLog) {
             checkInited()
-            // TODO limit
+            _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
         }
     }
 

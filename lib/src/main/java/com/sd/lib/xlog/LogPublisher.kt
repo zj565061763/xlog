@@ -20,8 +20,10 @@ internal interface DirectoryLogPublisher : LogPublisher {
     /** 日志文件目录 */
     val directory: File
 
-    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
-    val limitPerDay: Long
+    /**
+     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
+     */
+    fun setLimitPerDay(limit: Long)
 
     /** 日志格式化 */
     val formatter: FLogFormatter
@@ -51,16 +53,16 @@ internal fun defaultPublisher(
 ): DirectoryLogPublisher {
     return LogPublisherImpl(
         directory = directory,
-        limitPerDay = limitPerDay,
         formatter = formatter,
         storeFactory = storeFactory,
         filename = filename,
-    )
+    ).apply {
+        this.setLimitPerDay(limitPerDay)
+    }
 }
 
 private class LogPublisherImpl(
     override val directory: File,
-    override val limitPerDay: Long,
     override val formatter: FLogFormatter,
     override val storeFactory: FLogStore.Factory,
     override val filename: LogFilename,
@@ -72,10 +74,16 @@ private class LogPublisherImpl(
         val store: FLogStore,
     )
 
+    private var _limitPerDay: Long = 0
+
     private var _dateInfo: DateInfo? = null
     private val _logFileChecker = SafeIdleHandler {
         checkLogFileExist()
         false
+    }
+
+    override fun setLimitPerDay(limit: Long) {
+        _limitPerDay = limit
     }
 
     override fun publish(record: FLogRecord) {
@@ -124,11 +132,11 @@ private class LogPublisherImpl(
      * 检查日志大小
      */
     private fun checkLimit(dateInfo: DateInfo) {
-        if (limitPerDay <= 0) {
+        if (_limitPerDay <= 0) {
             // 不限制大小
             return
         }
-        if (dateInfo.store.size() > (limitPerDay / 2)) {
+        if (dateInfo.store.size() > (_limitPerDay / 2)) {
             dateInfo.store.close()
             val file = dateInfo.file
             val oldFile = file.resolveSibling("${file.name}.1")
