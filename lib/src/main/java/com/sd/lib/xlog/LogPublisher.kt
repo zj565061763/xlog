@@ -131,7 +131,7 @@ private class LogPublisherImpl(
         if (dateInfo.store.size() > (limitPerDay / 2)) {
             dateInfo.store.close()
             val file = dateInfo.file
-            val oldFile = file.resolveSibling("${file.name}.old")
+            val oldFile = file.resolveSibling("${file.name}.1")
             if (file.renameTo(oldFile)) {
                 fDebug { "lib publisher log file rename success ${this@LogPublisherImpl}" }
             } else {

@@ -368,14 +368,14 @@ class AppTest {
         assertEquals(true, dir.exists())
         assertEquals(false, dir.listFiles()?.isEmpty())
 
-        dir.listFiles { _, name -> name.endsWith(".old") }.let { files ->
+        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
             assertEquals(0, files?.size)
         }
 
         val log = "1".repeat(800 * 1024)
         flogI<TestLogger> { log }
 
-        dir.listFiles { _, name -> name.endsWith(".old") }.let { files ->
+        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
             assertEquals(1, files?.size)
         }
     }
