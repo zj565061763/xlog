@@ -49,7 +49,7 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /**
-     * 打开日志，文件保存目录：[Context.getFilesDir]/flog，
+     * 初始化，日志保存目录：[Context.getFilesDir]/flog，
      * 默认只打开文件日志，可以调用[enableConsoleLog]方法开关控制台日志，
      */
     @JvmStatic
