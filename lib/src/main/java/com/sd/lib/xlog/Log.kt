@@ -97,7 +97,10 @@ object FLog {
      * 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小
      */
     fun setLimitMBPerDay(limitMBPerDay: Int) {
-        // TODO limit
+        synchronized(FLog) {
+            checkInited()
+            // TODO limit
+        }
     }
 
     /**
