@@ -11,17 +11,17 @@ class App : Application() {
         super.onCreate()
         /**
          * 初始化，日志保存目录：[Context.getFilesDir]/flog，
-         * 默认只打开文件日志，可以调用[FLog.setConsoleLogEnabled]方法开关控制台日志，
+         * 默认不限制日志大小，可以调用[FLog.setLimitMBPerDay]方法修改，
+         * 默认日志等级：[FLogLevel.All]，可以调用[FLog.setLevel]方法修改，
+         * 默认打开控制台日志，可以调用[FLog.setConsoleLogEnabled]方法修改
          */
-        FLog.init(
-            context = this,
+        FLog.init(this)
 
-            //（可选参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认100MB
-            limitMBPerDay = 100,
-        )
-
-        // 日志等级 All, Verbose, Debug, Info, Warning, Error, Off
+        // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：Info
         FLog.setLevel(FLogLevel.All)
+
+        // 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认不限制大小
+        FLog.setLimitMBPerDay(100)
 
         // 修改某个日志标识的配置信息
         FLog.config<AppLogger> {

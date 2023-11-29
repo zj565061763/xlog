@@ -27,10 +27,10 @@ object FLog {
 
     /** 日志等级 */
     @Volatile
-    private var _level: FLogLevel = FLogLevel.Info
+    private var _level: FLogLevel = FLogLevel.All
 
     /** 是否打印控制台日志 */
-    private var _consoleLogEnabled: Boolean = false
+    private var _consoleLogEnabled: Boolean = true
 
     /** 日志等级是否被[logDirectory]暂时锁定 */
     private var _isLevelLockedByLogDirectory = false
@@ -50,15 +50,14 @@ object FLog {
 
     /**
      * 初始化，日志保存目录：[Context.getFilesDir]/flog，
-     * 默认只打开文件日志，可以调用[setConsoleLogEnabled]方法开关控制台日志，
+     * 默认不限制日志大小，可以调用[setLimitMBPerDay]方法修改，
+     * 默认日志等级：[FLogLevel.All]，可以调用[setLevel]方法修改，
+     * 默认打开控制台日志，可以调用[setConsoleLogEnabled]方法修改
      */
     @JvmStatic
     @JvmOverloads
     fun init(
         context: Context,
-
-        /** 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小 */
-        limitMBPerDay: Long = 100,
 
         /** 日志格式化 */
         formatter: FLogFormatter? = null,
@@ -74,7 +73,7 @@ object FLog {
             _async = async
             _publisher = defaultPublisher(
                 directory = context.filesDir.resolve("flog"),
-                limitPerDay = limitMBPerDay * 1024 * 1024,
+                limitPerDay = 0,
                 formatter = formatter ?: LogFormatterDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
