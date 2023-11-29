@@ -17,15 +17,21 @@ internal class LogFormatterDefault : FLogFormatter {
     private val _logTimeFactory = LogTimeFactory()
     private val _list = mutableListOf<String>()
 
+    /** 上一次打印日志的tag */
+    private var _lastLogTag = ""
+
     override fun format(record: FLogRecord): String {
         val logTime = _logTimeFactory.create(record.millis)
         return buildString {
             append(logTime.timeString)
 
             _list.clear()
-            if (record.tag.isNotEmpty()) {
-                _list.add(record.tag)
+
+            val finalTag = if (record.tag == _lastLogTag) "" else record.tag
+            if (finalTag.isNotEmpty()) {
+                _list.add(finalTag)
             }
+            _lastLogTag = record.tag
 
             if (record.level != FLogLevel.Info) {
                 _list.add(record.level.displayName())

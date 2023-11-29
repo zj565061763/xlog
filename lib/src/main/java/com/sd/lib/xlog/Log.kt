@@ -28,9 +28,6 @@ object FLog {
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
 
-    /** 上一次打印日志的tag */
-    private var _lastLogTag = ""
-
     /**
      * 日志是否已经打开
      */
@@ -154,16 +151,13 @@ object FLog {
 
             val config = getConfig(clazz)
             val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
-            val finalTag = if (tag == _lastLogTag) "" else tag
 
             val record = newLogRecord(
                 logger = clazz,
-                tag = finalTag,
+                tag = tag,
                 msg = msg,
                 level = level,
-            ).also {
-                _lastLogTag = tag
-            }
+            )
 
             val publisher = checkNotNull(_publisher)
 
@@ -238,7 +232,6 @@ object FLog {
             _logDirectory = null
             _enableConsoleLog = false
             _configHolder.clear()
-            _lastLogTag = ""
             _publisher?.close()
             _publisher = null
             _executor?.close()
