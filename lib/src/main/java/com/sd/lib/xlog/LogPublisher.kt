@@ -3,6 +3,7 @@ package com.sd.lib.xlog
 import android.os.Looper
 import android.os.MessageQueue.IdleHandler
 import java.io.File
+import kotlin.properties.Delegates
 
 internal interface LogPublisher : AutoCloseable {
     /**
@@ -16,45 +17,47 @@ internal interface LogPublisher : AutoCloseable {
     override fun close()
 }
 
-internal fun defaultPublisher(
+internal interface DirectoryLogPublisher : LogPublisher {
     /** 日志文件目录 */
-    directory: File,
+    val directory: File
 
-    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
-    limitPerDay: Long,
+    /**
+     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
+     */
+    fun setLimitPerDay(limit: Long)
 
-    /** 日志格式化 */
-    formatter: FLogFormatter,
+    /**
+     * 设置日志格式化
+     */
+    fun setFormatter(formatter: FLogFormatter)
 
-    /** 日志文件名 */
-    filename: LogFilename,
+    /**
+     * 设置日志文件名
+     */
+    fun setFilename(filename: LogFilename)
 
-    /** 日志仓库工厂 */
-    storeFactory: FLogStore.Factory
-): LogPublisher {
-    return LogPublisherImpl(directory).apply {
-        this.setLimitPerDay(limitPerDay)
-        this.setFormatter(formatter)
-        this.setFilename(filename)
-        this.setStoreFactory(storeFactory)
-    }
+    /**
+     * 设置日志仓库工厂
+     */
+    fun setStoreFactory(factory: FLogStore.Factory)
 }
 
-private class LogPublisherImpl(directory: File) : LogPublisher {
+internal fun defaultPublisher(directory: File): DirectoryLogPublisher {
+    return LogPublisherImpl(directory)
+}
+
+private class LogPublisherImpl(override val directory: File) : DirectoryLogPublisher {
     private data class DateInfo(
         val date: String,
         val file: File,
         val store: FLogStore,
     )
 
-    /** 日志文件目录 */
-    private val _directory = directory
-
     // 配置信息
-    private var _limit: Long = 0
-    private var _formatter: FLogFormatter = LogFormatterDefault()
-    private var _filename: LogFilename = LogFilenameDefault()
-    private var _storeFactory: FLogStore.Factory = FLogStore.Factory { defaultLogStore(it) }
+    private var _limit by Delegates.notNull<Long>()
+    private lateinit var _formatter: FLogFormatter
+    private lateinit var _filename: LogFilename
+    private lateinit var _storeFactory: FLogStore.Factory
 
     private var _dateInfo: DateInfo? = null
     private val _logFileChecker = SafeIdleHandler {
@@ -62,35 +65,21 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
         false
     }
 
-    /**
-     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
-     */
-    fun setLimitPerDay(limit: Long) {
+    override fun setLimitPerDay(limit: Long) {
         _limit = limit
     }
 
-    /**
-     * 设置日志格式化
-     */
-    fun setFormatter(formatter: FLogFormatter) {
+    override fun setFormatter(formatter: FLogFormatter) {
         _formatter = formatter
     }
 
-    /**
-     * 设置日志文件名
-     */
-    fun setFilename(filename: LogFilename) {
+    override fun setFilename(filename: LogFilename) {
         _filename = filename
     }
 
-    /**
-     * 设置日志仓库工厂
-     */
-    fun setStoreFactory(factory: FLogStore.Factory) {
-        if (_storeFactory != factory) {
-            close()
-            _storeFactory = factory
-        }
+    override fun setStoreFactory(factory: FLogStore.Factory) {
+        close()
+        _storeFactory = factory
     }
 
     override fun publish(record: FLogRecord) {
@@ -124,7 +113,7 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
         val dateInfo = _dateInfo
         if (dateInfo == null || dateInfo.date != date) {
             close()
-            val file = _directory.resolve("${date}.log")
+            val file = directory.resolve("${date}.log")
             _dateInfo = DateInfo(
                 date = date,
                 file = file,

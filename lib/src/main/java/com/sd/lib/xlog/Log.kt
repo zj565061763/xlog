@@ -34,7 +34,7 @@ object FLog {
     private var _executor: FLogExecutor? = null
 
     /** 文件日志 */
-    private var _publisher: LogPublisher? = null
+    private var _publisher: DirectoryLogPublisher? = null
 
     /** 异步任务 */
     private val _taskHolder: MutableMap<SafeExecutorTask, String> = WeakHashMap()
@@ -74,16 +74,19 @@ object FLog {
         synchronized(FLog) {
             if (_isOpened) return
             if (level == FLogLevel.Off) error("level off")
+
             _level = level
             _logDirectory = directory
             _executor = executor
-            _publisher = defaultPublisher(
-                directory = directory,
-                limitPerDay = limitMBPerDay * 1024 * 1024,
-                formatter = formatter ?: LogFormatterDefault(),
-                filename = LogFilenameDefault().also { _filename = it },
-                storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
-            ).safePublisher()
+
+            val publisher = findPublisherLocked(directory) ?: defaultPublisher(directory)
+            _publisher = publisher.apply {
+                this.setLimitPerDay(limitMBPerDay * 1024 * 1024)
+                this.setFormatter(formatter ?: LogFormatterDefault())
+                this.setFilename(LogFilenameDefault().also { _filename = it })
+                this.setStoreFactory(storeFactory ?: FLogStore.Factory { defaultLogStore(it) })
+            }.safePublisher()
+
             _isOpened = true
         }
     }
@@ -196,20 +199,6 @@ object FLog {
     }
 
     /**
-     * 移除异步任务
-     */
-    internal fun removeTask(task: SafeExecutorTask) {
-        synchronized(FLog) {
-            _taskHolder.remove(task)
-            if (_taskHolder.isEmpty()) {
-                if (task.publisher != _publisher) {
-                    task.publisher.close()
-                }
-            }
-        }
-    }
-
-    /**
      * 删除日志
      * @param saveDays 要保留的日志天数，小于等于0表示删除全部日志
      */
@@ -270,6 +259,30 @@ object FLog {
                 _publisher?.also { _publisher = null }?.close()
             }
         }
+    }
+
+    /**
+     * 移除异步任务
+     */
+    internal fun removeTaskLocked(task: SafeExecutorTask) {
+        _taskHolder.remove(task)
+        if (_taskHolder.isEmpty()) {
+            if (task.publisher != _publisher) {
+                task.publisher.close()
+            }
+        }
+    }
+
+    /**
+     * 查找[directory]目录的publisher
+     */
+    private fun findPublisherLocked(directory: File): DirectoryLogPublisher? {
+        for ((key, _) in _taskHolder) {
+            if (key.publisher.directory == directory) {
+                return key.publisher
+            }
+        }
+        return null
     }
 
     //---------- other ----------
@@ -333,7 +346,7 @@ object FLog {
 }
 
 internal class SafeExecutorTask(
-    val publisher: LogPublisher,
+    val publisher: DirectoryLogPublisher,
     private val record: FLogRecord,
 ) : Runnable {
     private val _published = AtomicBoolean(false)
@@ -342,7 +355,7 @@ internal class SafeExecutorTask(
         if (_published.compareAndSet(false, true)) {
             synchronized(FLog) {
                 publisher.publish(record)
-                FLog.removeTask(this@SafeExecutorTask)
+                FLog.removeTaskLocked(this@SafeExecutorTask)
             }
         }
     }
