@@ -17,9 +17,13 @@ enum class FLogLevel {
 }
 
 object FLog {
-    /** 日志是否已经打开 */
+    /** 是否已经初始化 */
     @Volatile
-    private var _isOpened: Boolean = false
+    private var _isInited: Boolean = false
+        set(value) {
+            require(value)
+            field = value
+        }
 
     /** 日志等级 */
     @Volatile
@@ -27,6 +31,11 @@ object FLog {
 
     /** 是否打印控制台日志 */
     private var _enableConsoleLog: Boolean = false
+
+    /** 日志等级是否被[logDirectory]暂时锁定 */
+    private var _isLevelLockedByLogDirectory = false
+    /** 日志等级被库内部暂时锁定期间，外部暂存的等级 */
+    private var _pendingLevel: FLogLevel? = null
 
     /** 是否异步发布日志 */
     private var _async: Boolean = false
@@ -40,14 +49,6 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /**
-     * 日志是否已经打开
-     */
-    @JvmStatic
-    fun isOpened(): Boolean {
-        return _isOpened
-    }
-
-    /**
      * 打开日志，文件保存目录：[Context.getFilesDir]/flog，
      * 默认只打开文件日志，可以调用[enableConsoleLog]方法开关控制台日志，
      */
@@ -55,9 +56,6 @@ object FLog {
     @JvmOverloads
     fun open(
         context: Context,
-
-        /** 日志等级， */
-        level: FLogLevel,
 
         /** 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小 */
         limitMBPerDay: Long = 100,
@@ -72,8 +70,7 @@ object FLog {
         async: Boolean = false,
     ) {
         synchronized(FLog) {
-            if (_isOpened) return
-            _level = level
+            if (_isInited) return
             _async = async
             _publisher = defaultPublisher(
                 directory = context.filesDir.resolve("flog"),
@@ -82,7 +79,7 @@ object FLog {
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
-            _isOpened = true
+            _isInited = true
         }
     }
 
@@ -92,9 +89,8 @@ object FLog {
     @JvmStatic
     fun enableConsoleLog(enable: Boolean) {
         synchronized(FLog) {
-            if (_isOpened) {
-                _enableConsoleLog = enable
-            }
+            checkInited()
+            _enableConsoleLog = enable
         }
     }
 
@@ -104,10 +100,26 @@ object FLog {
     @JvmStatic
     fun setLevel(level: FLogLevel) {
         synchronized(FLog) {
-            if (_isOpened) {
+            checkInited()
+            if (isLevelLocked()) {
+                _pendingLevel = level
+            } else {
                 _level = level
+                if (level == FLogLevel.Off) {
+                    _publisher.close()
+                }
             }
         }
+    }
+
+    private fun isLevelLocked(): Boolean {
+        return _isLevelLockedByLogDirectory
+    }
+
+    private fun restoreLevel(oldLevel: FLogLevel) {
+        if (isLevelLocked()) return
+        val level = _pendingLevel ?: oldLevel
+        setLevel(level)
     }
 
     /**
@@ -123,14 +135,13 @@ object FLog {
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         synchronized(FLog) {
-            if (_isOpened) {
-                val config = _configHolder[clazz] ?: FLoggerConfig().also {
-                    _configHolder[clazz] = it
-                }
-                block(config)
-                if (config.isEmpty()) {
-                    _configHolder.remove(clazz)
-                }
+            checkInited()
+            val config = _configHolder[clazz] ?: FLoggerConfig().also {
+                _configHolder[clazz] = it
+            }
+            block(config)
+            if (config.isEmpty()) {
+                _configHolder.remove(clazz)
             }
         }
     }
@@ -142,7 +153,7 @@ object FLog {
     @PublishedApi
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
         synchronized(FLog) {
-            if (!_isOpened) return false
+            checkInited()
             if (level == FLogLevel.All) return false
             if (level == FLogLevel.Off) return false
             val limitLevel = getConfig(clazz)?.level ?: _level
@@ -184,7 +195,7 @@ object FLog {
                 AsyncLogTask(_publisher, record) { task ->
                     // finish
                     _taskHolder.remove(task)
-                    if (_taskHolder.isEmpty() && !_isOpened) {
+                    if (_taskHolder.isEmpty() && _level == FLogLevel.Off) {
                         task.publisher.close()
                     }
                 }.let { task ->
@@ -225,33 +236,17 @@ object FLog {
      * 访问日志文件目录，由于在[block]中可能操作文件，所以在[block]执行期间，无法写入日志
      */
     @JvmStatic
-    fun <T> logDirectory(block: (File) -> T): T? {
+    fun <T> logDirectory(block: (File) -> T): T {
         synchronized(FLog) {
-            if (!_isOpened) return null
+            checkInited()
             val oldLevel = _level
-            _level = FLogLevel.Off
-            _publisher.close()
-            return block(_publisher.directory).also {
-                if (_isOpened) {
-                    _level = oldLevel
-                }
-            }
-        }
-    }
-
-    /**
-     * 关闭日志
-     */
-    @JvmStatic
-    fun close() {
-        synchronized(FLog) {
-            if (_isOpened) {
-                _isOpened = false
-                _level = FLogLevel.Off
-                _enableConsoleLog = false
-                _async = false
-                _configHolder.clear()
-                _publisher.close()
+            setLevel(FLogLevel.Off)
+            _isLevelLockedByLogDirectory = true
+            return try {
+                block(_publisher.directory)
+            } finally {
+                _isLevelLockedByLogDirectory = false
+                restoreLevel(oldLevel)
             }
         }
     }
@@ -260,7 +255,7 @@ object FLog {
 
     @PublishedApi
     internal fun isLoggableConsoleDebug(): Boolean {
-        if (!_isOpened) return false
+        checkInited()
         return FLogLevel.Debug >= _level
     }
 
@@ -273,6 +268,10 @@ object FLog {
         if (isLoggableConsoleDebug()) {
             Log.d("DebugLogger", msg)
         }
+    }
+
+    private fun checkInited() {
+        if (!_isInited) error("You should init before this.")
     }
 
     /**

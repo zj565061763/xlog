@@ -16,12 +16,12 @@ class App : Application() {
         FLog.open(
             context = this,
 
-            //（必传参数）日志等级 All, Verbose, Debug, Info, Warning, Error
-            level = FLogLevel.All,
-
             //（可选参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认100MB
             limitMBPerDay = 100,
         )
+
+        // 日志等级 All, Verbose, Debug, Info, Warning, Error, Off
+        FLog.setLevel(FLogLevel.All)
 
         // 修改某个日志标识的配置信息
         FLog.config<AppLogger> {

@@ -26,11 +26,11 @@ class AppTest {
     private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun testOpenClose() {
+    fun testCommon() {
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.All)
-            assertEquals(true, FLog.isOpened())
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.All)
+
             var count = 0
             flogV<TestLogger> { count++ }
             flogD<TestLogger> { count++ }
@@ -39,26 +39,14 @@ class AppTest {
             flogE<TestLogger> { count++ }
             assertEquals(5, count)
         }
-
-        kotlin.run {
-            FLog.close()
-            assertEquals(false, FLog.isOpened())
-            var count = 0
-            flogV<TestLogger> { count++ }
-            flogD<TestLogger> { count++ }
-            flogI<TestLogger> { count++ }
-            flogW<TestLogger> { count++ }
-            flogE<TestLogger> { count++ }
-            assertEquals(0, count)
-        }
     }
 
     @Test
     fun testLogLevel() {
         // All
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.All)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.All)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -85,8 +73,8 @@ class AppTest {
 
         // Verbose
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.Verbose)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.Verbose)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -113,8 +101,8 @@ class AppTest {
 
         // Debug
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.Debug)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.Debug)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -141,8 +129,8 @@ class AppTest {
 
         // Info
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.Info)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.Info)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -169,8 +157,8 @@ class AppTest {
 
         // Warning
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.Warning)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.Warning)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -197,8 +185,8 @@ class AppTest {
 
         // Error
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.Error)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.Error)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -227,16 +215,16 @@ class AppTest {
     @Test
     fun testConsoleDebug() {
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.All)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.All)
             var count = 0
             fDebug { count++ }
             assertEquals(1, count)
         }
 
         kotlin.run {
-            FLog.close()
-            FLog.open(_context, FLogLevel.Warning)
+            FLog.open(_context)
+            FLog.setLevel(FLogLevel.Warning)
             var count = 0
             fDebug { count++ }
             assertEquals(0, count)
@@ -245,8 +233,8 @@ class AppTest {
 
     @Test
     fun testConfig() {
-        FLog.close()
-        FLog.open(_context, FLogLevel.Info)
+        FLog.open(_context)
+        FLog.setLevel(FLogLevel.Info)
 
         kotlin.run {
             var count = 0
@@ -275,10 +263,10 @@ class AppTest {
 
     @Test
     fun testDeleteLogFile() {
-        FLog.close()
-        FLog.open(_context, FLogLevel.All)
+        FLog.open(_context)
+        FLog.setLevel(FLogLevel.All)
 
-        val dir = FLog.logDirectory { it }!!
+        val dir = FLog.logDirectory { it }
 
         dir.deleteRecursively()
         assertEquals(false, dir.exists())
@@ -335,10 +323,10 @@ class AppTest {
 
     @Test
     fun testLogFileDeleted() {
-        FLog.close()
-        FLog.open(_context, FLogLevel.All)
+        FLog.open(_context)
+        FLog.setLevel(FLogLevel.All)
 
-        val dir = FLog.logDirectory { it }!!
+        val dir = FLog.logDirectory { it }
 
         dir.deleteRecursively()
         assertEquals(false, dir.exists())
@@ -358,10 +346,10 @@ class AppTest {
 
     @Test
     fun testLogFileLimit() {
-        FLog.close()
-        FLog.open(_context, FLogLevel.All, limitMBPerDay = 1)
+        FLog.open(_context, limitMBPerDay = 1)
+        FLog.setLevel(FLogLevel.All)
 
-        val dir = FLog.logDirectory { it }!!
+        val dir = FLog.logDirectory { it }
 
         assertEquals(false, dir.exists())
         flogI<TestLogger> { "info" }
