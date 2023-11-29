@@ -25,21 +25,11 @@ import java.text.SimpleDateFormat
 class AppTest {
     private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
-    private fun logDir(): File {
-        return _context.filesDir.resolve("test").also { it.deleteRecursively() }
-    }
-
     @Test
     fun testOpenClose() {
-        val dir = logDir()
-
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.All,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.All)
             assertEquals(true, FLog.isOpened())
             var count = 0
             flogV<TestLogger> { count++ }
@@ -65,16 +55,10 @@ class AppTest {
 
     @Test
     fun testLogLevel() {
-        val dir = logDir()
-
         // All
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.All,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.All)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -102,11 +86,7 @@ class AppTest {
         // Verbose
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.Verbose,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.Verbose)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -134,11 +114,7 @@ class AppTest {
         // Debug
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.Debug,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.Debug)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -166,11 +142,7 @@ class AppTest {
         // Info
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.Info,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.Info)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -198,11 +170,7 @@ class AppTest {
         // Warning
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.Warning,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.Warning)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -230,11 +198,7 @@ class AppTest {
         // Error
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.Error,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.Error)
             var result = ""
             flogV<TestLogger> {
                 result += "v"
@@ -262,14 +226,9 @@ class AppTest {
 
     @Test
     fun testConsoleDebug() {
-        val dir = logDir()
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.All,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.All)
             var count = 0
             fDebug { count++ }
             assertEquals(1, count)
@@ -277,11 +236,7 @@ class AppTest {
 
         kotlin.run {
             FLog.close()
-            FLog.open(
-                level = FLogLevel.Warning,
-                directory = dir,
-                limitMBPerDay = 1,
-            )
+            FLog.open(_context, FLogLevel.Warning)
             var count = 0
             fDebug { count++ }
             assertEquals(0, count)
@@ -290,13 +245,8 @@ class AppTest {
 
     @Test
     fun testConfig() {
-        val dir = logDir()
         FLog.close()
-        FLog.open(
-            level = FLogLevel.Info,
-            directory = dir,
-            limitMBPerDay = 1,
-        )
+        FLog.open(_context, FLogLevel.Info)
 
         kotlin.run {
             var count = 0
@@ -324,70 +274,13 @@ class AppTest {
     }
 
     @Test
-    fun testLogFileDeleted() {
-        val dir = logDir()
-
+    fun testDeleteLogFile() {
         FLog.close()
-        FLog.open(
-            level = FLogLevel.All,
-            directory = dir,
-            limitMBPerDay = 1,
-        )
+        FLog.open(_context, FLogLevel.All)
 
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
+        val dir = FLog.logDirectory { it }!!
 
         dir.deleteRecursively()
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(false, dir.exists())
-
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-    }
-
-    @Test
-    fun testLogFileLimit() {
-        val dir = logDir()
-
-        FLog.close()
-        FLog.open(
-            level = FLogLevel.All,
-            directory = dir,
-            limitMBPerDay = 1,
-        )
-
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-
-        dir.listFiles { _, name -> name.endsWith(".old") }.let { files ->
-            assertEquals(0, files?.size)
-        }
-
-        val log = "1".repeat(800 * 1024)
-        flogI<TestLogger> { log }
-
-        dir.listFiles { _, name -> name.endsWith(".old") }.let { files ->
-            assertEquals(1, files?.size)
-        }
-    }
-
-    @Test
-    fun testDeleteLogFile() {
-        val dir = logDir()
-
-        FLog.close()
-        FLog.open(
-            level = FLogLevel.All,
-            directory = dir,
-            limitMBPerDay = 1,
-        )
-
         assertEquals(false, dir.exists())
         flogI<TestLogger> { "info" }
         assertEquals(true, dir.exists())
@@ -437,6 +330,53 @@ class AppTest {
         kotlin.run {
             FLog.deleteLog(0)
             assertEquals(false, dir.exists())
+        }
+    }
+
+    @Test
+    fun testLogFileDeleted() {
+        FLog.close()
+        FLog.open(_context, FLogLevel.All)
+
+        val dir = FLog.logDirectory { it }!!
+
+        dir.deleteRecursively()
+        assertEquals(false, dir.exists())
+        flogI<TestLogger> { "info" }
+        assertEquals(true, dir.exists())
+        assertEquals(false, dir.listFiles()?.isEmpty())
+
+        dir.deleteRecursively()
+        assertEquals(false, dir.exists())
+        flogI<TestLogger> { "info" }
+        assertEquals(false, dir.exists())
+
+        flogI<TestLogger> { "info" }
+        assertEquals(true, dir.exists())
+        assertEquals(false, dir.listFiles()?.isEmpty())
+    }
+
+    @Test
+    fun testLogFileLimit() {
+        FLog.close()
+        FLog.open(_context, FLogLevel.All, limitMBPerDay = 1)
+
+        val dir = FLog.logDirectory { it }!!
+
+        assertEquals(false, dir.exists())
+        flogI<TestLogger> { "info" }
+        assertEquals(true, dir.exists())
+        assertEquals(false, dir.listFiles()?.isEmpty())
+
+        dir.listFiles { _, name -> name.endsWith(".old") }.let { files ->
+            assertEquals(0, files?.size)
+        }
+
+        val log = "1".repeat(800 * 1024)
+        flogI<TestLogger> { log }
+
+        dir.listFiles { _, name -> name.endsWith(".old") }.let { files ->
+            assertEquals(1, files?.size)
         }
     }
 }

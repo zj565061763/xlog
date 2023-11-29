@@ -1,12 +1,17 @@
 package com.sd.lib.xlog
 
+import android.content.Context
 import android.util.Log
 import java.io.File
-import java.util.WeakHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
-    All, Verbose, Debug, Info, Warning, Error, Off,
+    /** 开启所有日志 */
+    All,
+
+    Verbose, Debug, Info, Warning, Error,
+
+    /** 关闭所有日志 */
+    Off,
 }
 
 object FLog {
@@ -16,28 +21,16 @@ object FLog {
 
     /** 日志等级 */
     @Volatile
-    private var _level: FLogLevel = FLogLevel.Off
+    private var _level: FLogLevel = FLogLevel.Info
 
     /** 是否打印控制台日志 */
     private var _enableConsoleLog: Boolean = false
 
-    /** 日志文件目录 */
-    private var _logDirectory: File? = null
-
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
 
-    /** 日志执行器 */
-    private var _executor: FLogExecutor? = null
-
     /** 文件日志 */
-    private var _publisher: DirectoryLogPublisher? = null
-
-    /** 异步任务 */
-    private val _taskHolder: MutableMap<SafeExecutorTask, String> = WeakHashMap()
-
-    /** [open]的时候是否有未完成的异步任务 */
-    private var _hasPendingTaskWhenOpen = false
+    private lateinit var _publisher: DirectoryLogPublisher
 
     /**
      * 日志是否已经打开
@@ -48,49 +41,37 @@ object FLog {
     }
 
     /**
-     * 打开日志，默认只打开文件日志，可以调用[enableConsoleLog]方法开关控制台日志
+     * 打开日志，文件保存目录：[Context.getFilesDir]/flog，
+     * 默认只打开文件日志，可以调用[enableConsoleLog]方法开关控制台日志，
      */
     @JvmStatic
     @JvmOverloads
     fun open(
-        /** 日志等级 */
+        context: Context,
+
+        /** 日志等级， */
         level: FLogLevel,
 
-        /** 日志文件目录 */
-        directory: File,
-
         /** 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小 */
-        limitMBPerDay: Long,
+        limitMBPerDay: Long = 100,
 
         /** 日志格式化 */
         formatter: FLogFormatter? = null,
 
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
-
-        /** 日志执行器，可以定义执行线程，包括日志的格式化和写入，默认在调用线程执行 */
-        executor: FLogExecutor? = null,
     ) {
         synchronized(FLog) {
             if (_isOpened) return
-            if (level == FLogLevel.Off) error("level off")
-
             _level = level
-            _logDirectory = directory
-            _executor = executor
-            _hasPendingTaskWhenOpen = _taskHolder.isNotEmpty()
             _publisher = defaultPublisher(
-                directory = directory,
+                directory = context.filesDir.resolve("flog"),
                 limitPerDay = limitMBPerDay * 1024 * 1024,
                 formatter = formatter ?: LogFormatterDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
             _isOpened = true
-
-            if (_hasPendingTaskWhenOpen) {
-                fDebug { "lib open pending task size:${_taskHolder.size}" }
-            }
         }
     }
 
@@ -166,7 +147,6 @@ object FLog {
         synchronized(FLog) {
             if (msg.isNullOrEmpty()) return
             if (!isLoggable(clazz, level)) return
-            val publisher = _publisher ?: return
 
             val config = getConfig(clazz)
             val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
@@ -178,16 +158,6 @@ object FLog {
                 level = level,
             )
 
-            val executor = _executor
-            if (executor == null) {
-                publisher.publish(record)
-            } else {
-                SafeExecutorTask(publisher, record).also { task ->
-                    _taskHolder[task] = ""
-                    executor.submit(task)
-                }
-            }
-
             if (_enableConsoleLog) {
                 when (record.level) {
                     FLogLevel.Verbose -> Log.v(tag, msg)
@@ -198,6 +168,8 @@ object FLog {
                     else -> {}
                 }
             }
+
+            _publisher.publish(record)
         }
     }
 
@@ -212,7 +184,7 @@ object FLog {
             val files = dir.listFiles()
             if (files.isNullOrEmpty()) return@logDirectory
 
-            val filename = _publisher?.filename ?: return@logDirectory
+            val filename = _publisher.filename
             val today = filename.filenameOf(System.currentTimeMillis()).also { check(it.isNotEmpty()) }
 
             files.forEach { file ->
@@ -231,17 +203,14 @@ object FLog {
     fun <T> logDirectory(block: (File) -> T): T? {
         synchronized(FLog) {
             if (!_isOpened) return null
-            val dir = _logDirectory ?: return null
-
             val oldLevel = _level
             _level = FLogLevel.Off
-            _publisher?.close()
-            val result = libTryRun { block(dir) }.getOrElse { null }
-
-            if (_isOpened) {
-                _level = oldLevel
+            _publisher.close()
+            return block(_publisher.directory).also {
+                if (_isOpened) {
+                    _level = oldLevel
+                }
             }
-            return result
         }
     }
 
@@ -255,26 +224,8 @@ object FLog {
                 _isOpened = false
                 _level = FLogLevel.Off
                 _enableConsoleLog = false
-                _logDirectory = null
                 _configHolder.clear()
-                _hasPendingTaskWhenOpen = false
-                _executor = null
-                _publisher?.also { _publisher = null }?.close()
-            }
-        }
-    }
-
-    /**
-     * 移除异步任务
-     */
-    internal fun removeTaskLocked(task: SafeExecutorTask) {
-        _taskHolder.remove(task)
-        if (_taskHolder.isEmpty()) {
-            if (task.publisher != _publisher) {
-                task.publisher.close()
-            }
-            if (_isOpened) {
-
+                _publisher.close()
             }
         }
     }
@@ -336,21 +287,5 @@ object FLog {
     @JvmStatic
     fun logE(clazz: Class<out FLogger>, msg: String?) {
         log(clazz, FLogLevel.Error, msg)
-    }
-}
-
-internal class SafeExecutorTask(
-    val publisher: DirectoryLogPublisher,
-    private val record: FLogRecord,
-) : Runnable {
-    private val _published = AtomicBoolean(false)
-
-    override fun run() {
-        if (_published.compareAndSet(false, true)) {
-            synchronized(FLog) {
-                publisher.publish(record)
-                FLog.removeTaskLocked(this@SafeExecutorTask)
-            }
-        }
     }
 }
