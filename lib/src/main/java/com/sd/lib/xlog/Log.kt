@@ -205,6 +205,7 @@ object FLog {
                     // finish
                     _taskHolder.remove(task)
                     if (_taskHolder.isEmpty() && _level == FLogLevel.Off) {
+                        // TODO review
                         task.publisher.close()
                     }
                 }.let { task ->
