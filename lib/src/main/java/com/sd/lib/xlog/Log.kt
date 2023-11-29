@@ -3,6 +3,8 @@ package com.sd.lib.xlog
 import android.content.Context
 import android.util.Log
 import java.io.File
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
     /** 开启所有日志 */
@@ -25,6 +27,11 @@ object FLog {
 
     /** 是否打印控制台日志 */
     private var _enableConsoleLog: Boolean = false
+
+    /** 是否异步发布日志 */
+    private var _async: Boolean = false
+    /** 异步发布日志任务 */
+    private val _asyncTaskHolder: MutableSet<AsyncLogTask> = hashSetOf()
 
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
@@ -60,10 +67,14 @@ object FLog {
 
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
+
+        /** 是否异步发布日志 */
+        async: Boolean = false,
     ) {
         synchronized(FLog) {
             if (_isOpened) return
             _level = level
+            _async = async
             _publisher = defaultPublisher(
                 directory = context.filesDir.resolve("flog"),
                 limitPerDay = limitMBPerDay * 1024 * 1024,
@@ -169,7 +180,18 @@ object FLog {
                 }
             }
 
-            _publisher.publish(record)
+            if (_async || _asyncTaskHolder.isNotEmpty()) {
+                AsyncLogTask(_publisher, record) {
+                    // finish
+                    _asyncTaskHolder.remove(it)
+                }.let {
+                    // submit
+                    _asyncTaskHolder.add(it)
+                    it.submit()
+                }
+            } else {
+                _publisher.publish(record)
+            }
         }
     }
 
@@ -224,6 +246,7 @@ object FLog {
                 _isOpened = false
                 _level = FLogLevel.Off
                 _enableConsoleLog = false
+                _async = false
                 _configHolder.clear()
                 _publisher.close()
             }
@@ -287,5 +310,28 @@ object FLog {
     @JvmStatic
     fun logE(clazz: Class<out FLogger>, msg: String?) {
         log(clazz, FLogLevel.Error, msg)
+    }
+}
+
+private val _logExecutor by lazy { Executors.newSingleThreadExecutor() }
+
+private class AsyncLogTask(
+    private val publisher: LogPublisher,
+    private val record: FLogRecord,
+    private val finish: (AsyncLogTask) -> Unit,
+) : Runnable {
+    private val _hasRun = AtomicBoolean(false)
+
+    fun submit() {
+        _logExecutor.submit(this)
+    }
+
+    override fun run() {
+        if (_hasRun.compareAndSet(false, true)) {
+            synchronized(FLog) {
+                publisher.publish(record)
+                finish(this@AsyncLogTask)
+            }
+        }
     }
 }
