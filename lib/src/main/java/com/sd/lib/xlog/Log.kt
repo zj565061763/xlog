@@ -242,11 +242,12 @@ object FLog {
                 _enableConsoleLog = false
                 _configHolder.clear()
 
-                _publisher?.let { publisher ->
-                    _executor?.close(publisher)
-                    _executor = null
-                    publisher.close()
-                    _publisher = null
+                val publisher = _publisher?.also { _publisher = null }
+                val executor = _executor?.also { _executor = null }
+
+                publisher?.let {
+                    it.close()
+                    executor?.close(it)
                 }
             }
         }
