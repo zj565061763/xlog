@@ -112,6 +112,7 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
         _dateInfo?.let {
             it.store.close()
             _dateInfo = null
+            fDebug { "lib publisher close date info ${it.date} ${this@LogPublisherImpl}" }
         }
     }
 
@@ -126,6 +127,7 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
                 file = file,
                 store = _storeFactory.create(file).safeStore(),
             )
+            fDebug { "lib publisher create date info $date ${this@LogPublisherImpl}" }
         }
         return checkNotNull(_dateInfo)
     }
@@ -143,9 +145,9 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
             val file = dateInfo.file
             val oldFile = file.resolveSibling("${file.name}.old")
             if (file.renameTo(oldFile)) {
-                fDebug { "lib log file rename success" }
+                fDebug { "lib publisher log file rename success ${this@LogPublisherImpl}" }
             } else {
-                fDebug { "lib log file rename failed" }
+                fDebug { "lib publisher log file rename failed ${this@LogPublisherImpl}" }
             }
         }
     }
