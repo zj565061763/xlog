@@ -21,7 +21,7 @@ class App : Application() {
             limitMBPerDay = 100,
 
             //（可选参数）自定义执行线程，包括日志的格式化和写入，默认在调用线程执行
-            executor = AppLogExecutor(debug = false)
+            executor = AppLogExecutor(debug = true)
         )
 
         // 修改某个日志标识的配置信息
