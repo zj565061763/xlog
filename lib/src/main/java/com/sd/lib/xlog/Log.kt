@@ -322,7 +322,9 @@ private class SafeExecutorTask(
 
     override fun run() {
         if (_published.compareAndSet(false, true)) {
-            publisher.publish(record)
+            synchronized(FLog) {
+                publisher.publish(record)
+            }
         }
     }
 }
