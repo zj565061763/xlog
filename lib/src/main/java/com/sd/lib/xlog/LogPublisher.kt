@@ -87,7 +87,10 @@ private class LogPublisherImpl(directory: File) : LogPublisher {
      * 设置日志仓库工厂
      */
     fun setStoreFactory(factory: FLogStore.Factory) {
-        _storeFactory = factory
+        if (_storeFactory != factory) {
+            close()
+            _storeFactory = factory
+        }
     }
 
     override fun publish(record: FLogRecord) {
