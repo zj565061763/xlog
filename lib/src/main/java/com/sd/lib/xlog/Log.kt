@@ -8,6 +8,10 @@ enum class FLogLevel {
 }
 
 object FLog {
+    /** 日志是否已经打开 */
+    @Volatile
+    private var _isOpened: Boolean = false
+
     /** 日志等级 */
     @Volatile
     private var _level: FLogLevel = FLogLevel.Off
@@ -19,7 +23,6 @@ object FLog {
     private var _executor: FLogExecutor? = null
 
     /** 文件日志 */
-    @Volatile
     private var _publisher: DirectoryLogPublisher? = null
 
     /** 是否打印控制台日志 */
@@ -33,7 +36,7 @@ object FLog {
      */
     @JvmStatic
     fun isOpened(): Boolean {
-        return _publisher != null
+        return _isOpened
     }
 
     /**
@@ -61,7 +64,7 @@ object FLog {
         executor: FLogExecutor? = null,
     ) {
         synchronized(FLog) {
-            if (isOpened()) return
+            if (_isOpened) return
             if (level == FLogLevel.Off) error("level off")
             _level = level
             _logDirectory = directory
@@ -73,6 +76,7 @@ object FLog {
                 filename = LogFilenameDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
             ).safePublisher()
+            _isOpened = true
         }
     }
 
@@ -82,7 +86,7 @@ object FLog {
     @JvmStatic
     fun enableConsoleLog(enable: Boolean) {
         synchronized(FLog) {
-            if (isOpened()) {
+            if (_isOpened) {
                 _enableConsoleLog = enable
             }
         }
@@ -94,7 +98,7 @@ object FLog {
     @JvmStatic
     fun setLevel(level: FLogLevel) {
         synchronized(FLog) {
-            if (isOpened()) {
+            if (_isOpened) {
                 _level = level
             }
         }
@@ -113,7 +117,7 @@ object FLog {
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         synchronized(FLog) {
-            if (isOpened()) {
+            if (_isOpened) {
                 val config = _configHolder[clazz] ?: FLoggerConfig().also {
                     _configHolder[clazz] = it
                 }
@@ -132,7 +136,7 @@ object FLog {
     @PublishedApi
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
         synchronized(FLog) {
-            if (!isOpened()) return false
+            if (!_isOpened) return false
             if (level == FLogLevel.All) return false
             if (level == FLogLevel.Off) return false
             val limitLevel = getConfig(clazz)?.level ?: _level
@@ -209,7 +213,7 @@ object FLog {
     @JvmStatic
     fun <T> logDirectory(block: (File) -> T): T? {
         synchronized(FLog) {
-            return if (isOpened()) {
+            return if (_isOpened) {
                 val oldLevel = _level
                 _level = FLogLevel.Off
                 _publisher?.close()
@@ -228,6 +232,7 @@ object FLog {
     @JvmStatic
     fun close() {
         synchronized(FLog) {
+            _isOpened = false
             _level = FLogLevel.Off
             _logDirectory = null
             _enableConsoleLog = false
@@ -243,7 +248,7 @@ object FLog {
 
     @PublishedApi
     internal fun isLoggableConsoleDebug(): Boolean {
-        if (!isOpened()) return false
+        if (!_isOpened) return false
         return FLogLevel.Debug >= _level
     }
 
