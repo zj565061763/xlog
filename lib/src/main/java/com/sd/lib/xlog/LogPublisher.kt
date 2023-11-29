@@ -39,9 +39,6 @@ internal fun defaultPublisher(
     /** 日志文件目录 */
     directory: File,
 
-    /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
-    limitPerDay: Long,
-
     /** 日志格式化 */
     formatter: FLogFormatter,
 
@@ -56,9 +53,7 @@ internal fun defaultPublisher(
         formatter = formatter,
         storeFactory = storeFactory,
         filename = filename,
-    ).apply {
-        this.setLimitPerDay(limitPerDay)
-    }
+    )
 }
 
 private class LogPublisherImpl(

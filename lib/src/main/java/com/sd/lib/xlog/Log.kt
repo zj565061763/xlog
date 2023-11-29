@@ -73,7 +73,6 @@ object FLog {
             _async = async
             _publisher = defaultPublisher(
                 directory = context.filesDir.resolve("flog"),
-                limitPerDay = 0,
                 formatter = formatter ?: LogFormatterDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
