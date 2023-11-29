@@ -195,8 +195,9 @@ object FLog {
             val files = dir.listFiles()
             if (files.isNullOrEmpty()) return@logDirectory
 
-            val filename = checkNotNull(_publisher).filename
+            val filename = _publisher?.filename ?: return@logDirectory
             val today = filename.filenameOf(System.currentTimeMillis()).also { check(it.isNotEmpty()) }
+
             files.forEach { file ->
                 val diffDays = filename.diffDays(today, file.name)
                 if (diffDays == null || diffDays > (saveDays - 1)) {
