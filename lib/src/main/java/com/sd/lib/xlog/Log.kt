@@ -87,6 +87,10 @@ object FLog {
                 filename = LogFilenameDefault(),
             ).safePublisher()
             _isOpened = true
+
+            if (_hasPendingTaskWhenOpen) {
+                fDebug { "lib open pending task size:${_taskHolder.size}" }
+            }
         }
     }
 
