@@ -111,7 +111,9 @@ object FLog {
             checkInited()
             if (isLevelLocked()) {
                 _pendingLevel = level
-            } else {
+                return
+            }
+            if (_level != level) {
                 _level = level
                 if (level == FLogLevel.Off) {
                     _publisher.close()
