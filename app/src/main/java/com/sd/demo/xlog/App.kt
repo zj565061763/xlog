@@ -1,7 +1,6 @@
 package com.sd.demo.xlog
 
 import android.app.Application
-import android.content.Context
 import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
@@ -9,19 +8,20 @@ import com.sd.lib.xlog.FLogLevel
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
-        /**
-         * 初始化，日志保存目录：[Context.getFilesDir]/flog，
-         * 默认不限制日志大小，可以调用[FLog.setLimitMBPerDay]方法修改，
-         * 默认日志等级：[FLogLevel.All]，可以调用[FLog.setLevel]方法修改，
-         * 默认打开控制台日志，可以调用[FLog.setConsoleLogEnabled]方法修改
-         */
-        FLog.init(this)
+        // 初始化
+        FLog.init(
+            // 日志文件目录
+            directory = filesDir.resolve("app_log"),
+        )
 
         // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
         FLog.setLevel(FLogLevel.All)
 
-        // 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认不限制大小
+        // 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认限制每天日志大小100MB
         FLog.setLimitMBPerDay(100)
+
+        // 设置是否打打印控制台日志，默认打开
+        FLog.setConsoleLogEnabled(true)
 
         // 修改某个日志标识的配置信息
         FLog.config<AppLogger> {

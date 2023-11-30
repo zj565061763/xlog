@@ -1,6 +1,5 @@
 package com.sd.lib.xlog
 
-import android.content.Context
 import android.util.Log
 import java.io.File
 import java.util.concurrent.Executors
@@ -49,15 +48,13 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /**
-     * 初始化，日志保存目录：[Context.getFilesDir]/flog，
-     * 默认不限制日志大小，可以调用[setLimitMBPerDay]方法修改，
-     * 默认日志等级：[FLogLevel.All]，可以调用[setLevel]方法修改，
-     * 默认打开控制台日志，可以调用[setConsoleLogEnabled]方法修改
+     * 初始化
      */
     @JvmStatic
     @JvmOverloads
     fun init(
-        context: Context,
+        /** 日志文件目录 */
+        directory: File,
 
         /** 日志格式化 */
         formatter: FLogFormatter? = null,
@@ -72,12 +69,15 @@ object FLog {
             if (_isInited) return
             _async = async
             _publisher = defaultPublisher(
-                directory = context.filesDir.resolve("flog"),
+                directory = directory,
                 formatter = formatter ?: LogFormatterDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
             _isInited = true
+
+            // 设置默认日志大小
+            setLimitMBPerDay(100)
         }
     }
 
