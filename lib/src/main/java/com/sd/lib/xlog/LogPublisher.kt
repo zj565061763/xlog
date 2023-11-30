@@ -82,6 +82,11 @@ private class LogPublisherImpl(
     }
 
     override fun publish(record: FLogRecord) {
+        // 检查日志文件是否存在
+        if (!_logFileChecker.register()) {
+            checkLogFileExist()
+        }
+
         val log = formatter.format(record)
         val dateInfo = getDateInfo(record)
 
@@ -90,13 +95,6 @@ private class LogPublisherImpl(
 
         // 检查日志大小
         checkLimit(dateInfo)
-
-        // 检查日志文件是否存在
-        if (_logFileChecker.register()) {
-            // 任务提交成功
-        } else {
-            checkLogFileExist()
-        }
     }
 
     override fun close() {
