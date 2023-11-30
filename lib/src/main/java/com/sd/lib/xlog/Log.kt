@@ -202,21 +202,27 @@ object FLog {
             }
 
             if (_async || _taskHolder.isNotEmpty()) {
-                AsyncLogTask(_publisher, record) { task ->
-                    // finish
-                    _taskHolder.remove(task)
-                    if (_taskHolder.isEmpty() && _level == FLogLevel.Off) {
-                        check(_publisher === task.publisher)
-                        _publisher.close()
-                    }
-                }.let { task ->
-                    // submit
-                    _taskHolder.add(task)
-                    task.submit()
-                }
+                logAsync(record)
             } else {
                 _publisher.publish(record)
             }
+        }
+    }
+
+    private fun logAsync(record: FLogRecord) {
+        object : AsyncLogTask(_publisher, record) {
+            override fun onFinish(publisher: LogPublisher) {
+                val task = this
+                _taskHolder.remove(task)
+                if (_taskHolder.isEmpty() && _level == FLogLevel.Off) {
+                    check(publisher === _publisher)
+                    publisher.close()
+                }
+            }
+        }.let { task ->
+            // submit
+            _taskHolder.add(task)
+            task.submit()
         }
     }
 
@@ -328,10 +334,9 @@ object FLog {
 
 private val _logExecutor by lazy { Executors.newSingleThreadExecutor() }
 
-private class AsyncLogTask(
-    val publisher: LogPublisher,
+private abstract class AsyncLogTask(
+    private val publisher: LogPublisher,
     private val record: FLogRecord,
-    private val finish: (AsyncLogTask) -> Unit,
 ) : Runnable {
     private val _hasRun = AtomicBoolean(false)
 
@@ -343,8 +348,10 @@ private class AsyncLogTask(
         if (_hasRun.compareAndSet(false, true)) {
             synchronized(FLog) {
                 publisher.publish(record)
-                finish(this@AsyncLogTask)
+                onFinish(publisher)
             }
         }
     }
+
+    abstract fun onFinish(publisher: LogPublisher)
 }
