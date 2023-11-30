@@ -301,47 +301,40 @@ thread {
 
 # API
 
-这一节介绍一下库的API
-
-
+这一节介绍一下库的API，调用`FLog.init()`方法初始化，初始化如果不想打印日志，可以调用`FLog.setLevel(FLogLevel.Off)`关闭日志
 
 #### 常用方法
 
 ```kotlin
-/**
- * 打开日志，文件保存目录：[Context.getFilesDir()]/flog，
- * 默认只打开文件日志，可以调用[FLog.enableConsoleLog()]方法开关控制台日志，
- */
-FLog.open(
-    context = this,
-    
-    //（必传参数）日志等级 All, Verbose, Debug, Info, Warning, Error
-    level = FLogLevel.All,
+// 初始化
+FLog.init(
+    //（必传参数）日志文件目录
+    directory = filesDir.resolve("app_log"),
 
-    //（可选参数）限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认100MB
-    limitMBPerDay = 100,
-    
     //（可选参数）自定义日志格式
     formatter = AppLogFormatter(),
     
     //（可选参数）自定义日志存储
     storeFactory = AppLogStoreFactory(),
+
+    //（可选参数）是否异步发布日志，默认值false
+    async = false,
 )
 
+// 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
+FLog.setLevel(FLogLevel.All)
 
-// 是否打打印控制台日志
-FLog.enableConsoleLog(false)
+// 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小，默认限制每天日志大小100MB
+FLog.setLimitMBPerDay(100)
 
+// 设置是否打打印控制台日志，默认打开
+FLog.setConsoleLogEnabled(true)
 
 /**
  * 删除日志，参数saveDays表示要保留的日志天数，小于等于0表示删除全部日志，
  * 此处saveDays=1表示保留1天的日志，即保留当天的日志
  */
 FLog.deleteLog(1)
-
-
-// 关闭日志
-FLog.close()
 ````
 #### 打印日志
 
