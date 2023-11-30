@@ -10,8 +10,11 @@ class App : Application() {
         super.onCreate()
         // 初始化
         FLog.init(
-            // 日志文件目录
+            //（必传参数）日志文件目录
             directory = filesDir.resolve("app_log"),
+
+            //（可选参数）是否异步发布日志，默认值false
+            async = false,
         )
 
         // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
