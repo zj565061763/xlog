@@ -264,11 +264,11 @@ class AppTest {
 
         val today = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis()).toInt()
 
-        val file1 = dir.resolve("${today - 1}.xlog").apply { fCreateFile() }
-        val file2 = dir.resolve("${today - 2}.xlog").apply { fCreateFile() }
-        val file3 = dir.resolve("${today - 3}.xlog").apply { fCreateFile() }
-        val file4 = dir.resolve("${today - 4}.xlog").apply { fCreateFile() }
-        val file5 = dir.resolve("${today - 5}.xlog").apply { fCreateFile() }
+        val file1 = dir.resolve("${today - 1}.log").apply { fCreateFile() }
+        val file2 = dir.resolve("${today - 2}.log").apply { fCreateFile() }
+        val file3 = dir.resolve("${today - 3}.log").apply { fCreateFile() }
+        val file4 = dir.resolve("${today - 4}.log").apply { fCreateFile() }
+        val file5 = dir.resolve("${today - 5}.log").apply { fCreateFile() }
 
         assertEquals(true, file1.exists())
         assertEquals(true, file2.exists())
@@ -322,9 +322,6 @@ class AppTest {
 
         dir.deleteRecursively()
         assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(false, dir.exists())
-
         flogI<TestLogger> { "info" }
         assertEquals(true, dir.exists())
         assertEquals(false, dir.listFiles()?.isEmpty())
