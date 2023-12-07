@@ -101,7 +101,6 @@ private class LogPublisherImpl(
         _dateInfo?.let {
             it.store.close()
             _dateInfo = null
-            fDebug { "lib publisher close date info ${it.date} ${this@LogPublisherImpl}" }
         }
     }
 
@@ -116,7 +115,6 @@ private class LogPublisherImpl(
                 file = file,
                 store = storeFactory.create(file).safeStore(),
             )
-            fDebug { "lib publisher create date info $date ${this@LogPublisherImpl}" }
         }
         return checkNotNull(_dateInfo)
     }
