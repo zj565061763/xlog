@@ -16,8 +16,8 @@ internal interface LogTime {
 
 internal class LogTimeFactory : LogTime.Factory {
     override fun create(millis: Long): LogTime {
-        _calendar.timeInMillis = millis
-        return _calendar.run {
+        sCalendar.timeInMillis = millis
+        return sCalendar.run {
             LogTimeModel(
                 year = get(Calendar.YEAR),
                 month = get(Calendar.MONTH) + 1,
@@ -31,7 +31,7 @@ internal class LogTimeFactory : LogTime.Factory {
     }
 
     companion object {
-        private val _calendar = Calendar.getInstance()
+        private val sCalendar = Calendar.getInstance()
     }
 }
 
