@@ -29,6 +29,7 @@ object FLog {
     private var _level: FLogLevel = FLogLevel.All
 
     /** 是否打印控制台日志 */
+    @Volatile
     private var _consoleLogEnabled: Boolean = true
 
     /** 日志等级是否被[logDirectory]暂时锁定 */
@@ -87,10 +88,8 @@ object FLog {
      */
     @JvmStatic
     fun setConsoleLogEnabled(enabled: Boolean) {
-        synchronized(FLog) {
-            checkInit()
-            _consoleLogEnabled = enabled
-        }
+        checkInit()
+        _consoleLogEnabled = enabled
     }
 
     /**
