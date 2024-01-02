@@ -76,10 +76,8 @@ object FLog {
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
-            _hasInit = true
 
-            // 设置默认日志大小
-            setLimitMBPerDay(100)
+            _hasInit = true
         }
     }
 
@@ -93,7 +91,7 @@ object FLog {
     }
 
     /**
-     * 限制每天日志文件大小(单位MB)，小于等于0表示不限制大小
+     * 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
      */
     @JvmStatic
     fun setLimitMBPerDay(limitMBPerDay: Int) {
