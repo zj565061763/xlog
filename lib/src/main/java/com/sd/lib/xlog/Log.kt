@@ -87,7 +87,7 @@ object FLog {
     @JvmStatic
     fun setConsoleLogEnabled(enabled: Boolean) {
         synchronized(FLog) {
-            checkInited()
+            checkInit()
             _consoleLogEnabled = enabled
         }
     }
@@ -97,7 +97,7 @@ object FLog {
      */
     fun setLimitMBPerDay(limitMBPerDay: Int) {
         synchronized(FLog) {
-            checkInited()
+            checkInit()
             _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
         }
     }
@@ -108,7 +108,7 @@ object FLog {
     @JvmStatic
     fun setLevel(level: FLogLevel) {
         synchronized(FLog) {
-            checkInited()
+            checkInit()
             if (isLevelLocked()) {
                 _pendingLevel = level
                 return
@@ -145,7 +145,7 @@ object FLog {
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         synchronized(FLog) {
-            checkInited()
+            checkInit()
             val config = _configHolder[clazz] ?: FLoggerConfig().also {
                 _configHolder[clazz] = it
             }
@@ -163,7 +163,7 @@ object FLog {
     @PublishedApi
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
         synchronized(FLog) {
-            checkInited()
+            checkInit()
             if (level == FLogLevel.All) return false
             if (level == FLogLevel.Off) return false
             val limitLevel = getConfig(clazz)?.level ?: _level
@@ -255,7 +255,7 @@ object FLog {
     @JvmStatic
     fun <T> logDirectory(block: (File) -> T): T {
         synchronized(FLog) {
-            checkInited()
+            checkInit()
             val oldLevel = _level
             setLevel(FLogLevel.Off)
             _isLevelLockedByLogDirectory = true
@@ -272,7 +272,7 @@ object FLog {
 
     @PublishedApi
     internal fun isLoggableConsoleDebug(): Boolean {
-        checkInited()
+        checkInit()
         return FLogLevel.Debug >= _level
     }
 
@@ -287,7 +287,7 @@ object FLog {
         }
     }
 
-    private fun checkInited() {
+    private fun checkInit() {
         if (!_isInited) error("You should init before this.")
     }
 
@@ -332,7 +332,7 @@ object FLog {
     }
 }
 
-private val _logExecutor by lazy { Executors.newSingleThreadExecutor() }
+private val LogExecutor by lazy { Executors.newSingleThreadExecutor() }
 
 private abstract class AsyncLogTask(
     private val publisher: LogPublisher,
@@ -341,7 +341,7 @@ private abstract class AsyncLogTask(
     private val _hasRun = AtomicBoolean(false)
 
     fun submit() {
-        _logExecutor.submit(this)
+        LogExecutor.submit(this)
     }
 
     override fun run() {
