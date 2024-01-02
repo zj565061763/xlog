@@ -173,28 +173,28 @@ object FLog {
         if (msg.isNullOrEmpty()) return
         if (!isLoggable(clazz, level)) return
 
-        synchronized(FLog) {
-            val config = getConfig(clazz)
-            val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
+        val config = getConfig(clazz)
+        val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
 
-            val record = newLogRecord(
-                logger = clazz,
-                tag = tag,
-                msg = msg,
-                level = level,
-            )
+        val record = newLogRecord(
+            logger = clazz,
+            tag = tag,
+            msg = msg,
+            level = level,
+        )
 
-            if (_consoleLogEnabled) {
-                when (record.level) {
-                    FLogLevel.Verbose -> Log.v(tag, msg)
-                    FLogLevel.Debug -> Log.d(tag, msg)
-                    FLogLevel.Info -> Log.i(tag, msg)
-                    FLogLevel.Warning -> Log.w(tag, msg)
-                    FLogLevel.Error -> Log.e(tag, msg)
-                    else -> {}
-                }
+        if (_consoleLogEnabled) {
+            when (record.level) {
+                FLogLevel.Verbose -> Log.v(tag, msg)
+                FLogLevel.Debug -> Log.d(tag, msg)
+                FLogLevel.Info -> Log.i(tag, msg)
+                FLogLevel.Warning -> Log.w(tag, msg)
+                FLogLevel.Error -> Log.e(tag, msg)
+                else -> {}
             }
+        }
 
+        synchronized(FLog) {
             if (_async || _taskHolder.isNotEmpty()) {
                 logAsync(record)
             } else {
