@@ -1,6 +1,7 @@
 package com.sd.lib.xlog
 
 import android.os.Looper
+import android.os.MessageQueue.IdleHandler
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -163,6 +164,10 @@ private class LogPublisherImpl(
 private class SafeIdleHandler(private val block: () -> Unit) {
     private val _register = AtomicBoolean(false)
 
+    /**
+     * 注册[IdleHandler]
+     * @return false-当前非主线程，true-主线程或者有[Looper]的子线程
+     */
     fun register(): Boolean {
         Looper.myLooper() ?: return false
         if (_register.compareAndSet(false, true)) {
