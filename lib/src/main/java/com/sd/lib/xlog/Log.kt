@@ -288,7 +288,7 @@ object FLog {
     }
 
     private fun checkInit() {
-        if (!_isInited) error("You should init before this.")
+        check(_isInited) { "You should init before this." }
     }
 
     /**
