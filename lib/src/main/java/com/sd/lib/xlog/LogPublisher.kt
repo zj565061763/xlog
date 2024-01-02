@@ -1,8 +1,8 @@
 package com.sd.lib.xlog
 
 import android.os.Looper
-import android.os.MessageQueue.IdleHandler
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface LogPublisher : AutoCloseable {
     /**
@@ -70,12 +70,9 @@ private class LogPublisherImpl(
     )
 
     private var _limitPerDay: Long = 0
-
     private var _dateInfo: DateInfo? = null
-    private val _logFileChecker = SafeIdleHandler {
-        checkLogFileExist()
-        false
-    }
+
+    private val _logFileChecker = SafeIdleHandler { checkLogFileExist() }
 
     override fun setLimitPerDay(limit: Long) {
         _limitPerDay = limit
@@ -156,26 +153,21 @@ private class LogPublisherImpl(
     }
 }
 
-private class SafeIdleHandler(private val block: () -> Boolean) {
-    private var _idleHandler: IdleHandler? = null
+private class SafeIdleHandler(private val block: () -> Unit) {
+    private val _register = AtomicBoolean(false)
 
     fun register(): Boolean {
         Looper.myLooper() ?: return false
-        synchronized(this@SafeIdleHandler) {
-            _idleHandler?.let { return true }
-            IdleHandler {
-                block().also { sticky ->
-                    synchronized(this@SafeIdleHandler) {
-                        if (!sticky) {
-                            _idleHandler = null
-                        }
-                    }
+        if (_register.compareAndSet(false, true)) {
+            Looper.myQueue().addIdleHandler {
+                try {
+                    block()
+                } finally {
+                    _register.set(false)
                 }
-            }.also {
-                _idleHandler = it
-                Looper.myQueue().addIdleHandler(it)
+                false
             }
-            return true
         }
+        return _register.get()
     }
 }
