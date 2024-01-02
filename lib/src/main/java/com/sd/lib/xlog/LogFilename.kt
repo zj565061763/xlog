@@ -38,6 +38,6 @@ internal class LogFilenameDefault : LogFilename {
     private fun filenameToInt(filename: String): Int? {
         val format = filename.substringBefore(".")
         val intValue = libTryRun { format.toInt() }.getOrElse { null } ?: return null
-        return if (intValue > 0) intValue else null
+        return intValue.takeIf { it > 0 }
     }
 }
