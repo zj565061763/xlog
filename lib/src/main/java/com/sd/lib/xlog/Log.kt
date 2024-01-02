@@ -145,9 +145,7 @@ object FLog {
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         checkInit()
         synchronized(FLog) {
-            val config = _configHolder[clazz] ?: FLoggerConfig().also {
-                _configHolder[clazz] = it
-            }
+            val config = _configHolder.getOrPut(clazz) { FLoggerConfig() }
             block(config)
             if (config.isEmpty()) {
                 _configHolder.remove(clazz)
