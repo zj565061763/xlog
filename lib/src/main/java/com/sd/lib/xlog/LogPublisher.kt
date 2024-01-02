@@ -131,14 +131,16 @@ private class LogPublisherImpl(
             // 不限制大小
             return
         }
-        if (dateInfo.store.size() > (_limitPerDay / 2)) {
-            dateInfo.store.close()
-            val file = dateInfo.file
-            val oldFile = file.resolveSibling("${file.name}.1")
-            if (file.renameTo(oldFile)) {
-                fDebug { "lib publisher log file rename success ${this@LogPublisherImpl}" }
-            } else {
-                fDebug { "lib publisher log file rename failed ${this@LogPublisherImpl}" }
+
+        dateInfo.run {
+            if (store.size() > (_limitPerDay / 2)) {
+                store.close()
+                val oldFile = file.resolveSibling("${file.name}.1")
+                if (file.renameTo(oldFile)) {
+                    fDebug { "lib publisher log file rename success ${this@LogPublisherImpl}" }
+                } else {
+                    fDebug { "lib publisher log file rename failed ${this@LogPublisherImpl}" }
+                }
             }
         }
     }
