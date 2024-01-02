@@ -168,10 +168,10 @@ private class SafeIdleHandler(private val block: () -> Unit) {
 
     /**
      * 注册[IdleHandler]
-     * @return false-当前非主线程，true-当前主线程或者有[Looper]的子线程
+     * @return true-当前主线程，false-当前非主线程
      */
     fun register(): Boolean {
-        Looper.myLooper() ?: return false
+        if (Looper.myLooper() !== Looper.getMainLooper()) return false
         if (_register.compareAndSet(false, true)) {
             Looper.myQueue().addIdleHandler {
                 try {
@@ -182,6 +182,6 @@ private class SafeIdleHandler(private val block: () -> Unit) {
                 false
             }
         }
-        return _register.get()
+        return true
     }
 }
