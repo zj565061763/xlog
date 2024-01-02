@@ -170,10 +170,10 @@ object FLog {
      */
     @JvmStatic
     fun log(clazz: Class<out FLogger>, level: FLogLevel, msg: String?) {
-        synchronized(FLog) {
-            if (msg.isNullOrEmpty()) return
-            if (!isLoggable(clazz, level)) return
+        if (msg.isNullOrEmpty()) return
+        if (!isLoggable(clazz, level)) return
 
+        synchronized(FLog) {
             val config = getConfig(clazz)
             val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
 
