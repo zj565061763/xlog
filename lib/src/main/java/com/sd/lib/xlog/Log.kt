@@ -67,6 +67,7 @@ object FLog {
     ) {
         synchronized(FLog) {
             if (_hasInit) return
+
             _async = async
             _publisher = defaultPublisher(
                 directory = directory,
