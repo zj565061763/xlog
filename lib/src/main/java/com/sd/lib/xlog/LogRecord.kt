@@ -37,7 +37,7 @@ internal fun newLogRecord(
         msg = msg,
         level = level,
         millis = System.currentTimeMillis(),
-        isMainThread = Looper.getMainLooper() === Looper.myLooper(),
+        isMainThread = Looper.myLooper() === Looper.getMainLooper(),
         threadID = Thread.currentThread().id.toString(),
     )
 }
