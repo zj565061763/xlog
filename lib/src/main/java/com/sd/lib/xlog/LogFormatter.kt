@@ -42,7 +42,7 @@ internal class LogFormatterDefault : FLogFormatter {
             }
 
             if (_list.isNotEmpty()) {
-                append(_list.joinToString(prefix = "[", postfix = "]"))
+                append(_list.joinToString(prefix = "[", postfix = "]", separator = "|"))
             }
 
             append(" ")
