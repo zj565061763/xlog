@@ -106,8 +106,8 @@ object FLog {
      */
     @JvmStatic
     fun setLevel(level: FLogLevel) {
+        checkInit()
         synchronized(FLog) {
-            checkInit()
             if (isLevelLocked()) {
                 _pendingLevel = level
                 return
