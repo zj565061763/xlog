@@ -70,6 +70,7 @@ private class LogPublisherImpl(
         val store: FLogStore,
     )
 
+    @Volatile
     private var _limitPerDay: Long = 0
     private var _dateInfo: DateInfo? = null
 
