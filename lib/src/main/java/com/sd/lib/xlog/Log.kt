@@ -157,8 +157,8 @@ object FLog {
 
     @PublishedApi
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
+        checkInit()
         synchronized(FLog) {
-            checkInit()
             if (level == FLogLevel.All) return false
             if (level == FLogLevel.Off) return false
             val limitLevel = getConfig(clazz)?.level ?: _level
