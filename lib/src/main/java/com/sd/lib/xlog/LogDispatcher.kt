@@ -5,7 +5,7 @@ import android.os.HandlerThread
 import android.os.Looper
 
 internal interface LogDispatcher {
-    fun submit(runnable: Runnable)
+    fun dispatch(runnable: Runnable)
 
     companion object {
         val Main: LogDispatcher = LogDispatcherMain()
@@ -16,12 +16,8 @@ internal interface LogDispatcher {
 private class LogDispatcherMain : LogDispatcher {
     private val _handler = Handler(Looper.getMainLooper())
 
-    override fun submit(runnable: Runnable) {
-        if (Looper.myLooper() === Looper.getMainLooper()) {
-            runnable.run()
-        } else {
-            _handler.post(runnable)
-        }
+    override fun dispatch(runnable: Runnable) {
+        _handler.post(runnable)
     }
 }
 
@@ -33,7 +29,7 @@ private class LogDispatcherIO : LogDispatcher {
         _thread.start()
     }
 
-    override fun submit(runnable: Runnable) {
+    override fun dispatch(runnable: Runnable) {
         _handler.post(runnable)
     }
 }

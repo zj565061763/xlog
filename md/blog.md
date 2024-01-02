@@ -313,11 +313,11 @@ FLog.init(
 
     //（可选参数）自定义日志格式
     formatter = AppLogFormatter(),
-    
+
     //（可选参数）自定义日志存储
     storeFactory = AppLogStoreFactory(),
 
-    //（可选参数）是否异步发布日志，默认值false
+    //（可选参数）是否子线程发布日志，默认值false
     async = false,
 )
 
