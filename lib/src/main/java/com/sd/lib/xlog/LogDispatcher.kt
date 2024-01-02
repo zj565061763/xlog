@@ -9,10 +9,7 @@ internal interface LogDispatcher {
     fun dispatch(block: () -> Unit)
 
     companion object {
-        fun create(
-            async: Boolean,
-            onIdle: () -> Unit,
-        ): LogDispatcher {
+        fun create(async: Boolean, onIdle: () -> Unit): LogDispatcher {
             return if (async) {
                 LogDispatcherIO(onIdle)
             } else {
