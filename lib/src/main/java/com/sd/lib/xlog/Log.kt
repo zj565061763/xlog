@@ -18,7 +18,7 @@ enum class FLogLevel {
 object FLog {
     /** 是否已经初始化 */
     @Volatile
-    private var _isInited: Boolean = false
+    private var _hasInit: Boolean = false
         set(value) {
             require(value)
             field = value
@@ -66,7 +66,7 @@ object FLog {
         async: Boolean = false,
     ) {
         synchronized(FLog) {
-            if (_isInited) return
+            if (_hasInit) return
             _async = async
             _publisher = defaultPublisher(
                 directory = directory,
@@ -74,7 +74,7 @@ object FLog {
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
-            _isInited = true
+            _hasInit = true
 
             // 设置默认日志大小
             setLimitMBPerDay(100)
@@ -288,7 +288,7 @@ object FLog {
     }
 
     private fun checkInit() {
-        check(_isInited) { "You should init before this." }
+        check(_hasInit) { "You should init before this." }
     }
 
     /**
