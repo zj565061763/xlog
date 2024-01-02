@@ -10,9 +10,11 @@ interface FLogger
  */
 class FLoggerConfig(
     /** 日志等级 */
+    @Volatile
     var level: FLogLevel? = null,
 
     /** 日志标识 */
+    @Volatile
     var tag: String? = null,
 )
 

@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import android.util.Log
 import java.io.File
+import java.util.Collections
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -43,7 +44,7 @@ object FLog {
     private val _taskHolder: MutableSet<AsyncLogTask> = hashSetOf()
 
     /** [FLogger]配置信息 */
-    private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = hashMapOf()
+    private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = Collections.synchronizedMap(hashMapOf())
 
     /** 文件日志 */
     private lateinit var _publisher: DirectoryLogPublisher
@@ -142,12 +143,12 @@ object FLog {
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         checkInit()
-        synchronized(FLog) {
-            val config = _configHolder.getOrPut(clazz) { FLoggerConfig() }
-            block(config)
-            if (config.isEmpty()) {
-                _configHolder.remove(clazz)
-            }
+        val config = synchronized(FLog) {
+            _configHolder.getOrPut(clazz) { FLoggerConfig() }
+        }
+        block(config)
+        if (config.isEmpty()) {
+            _configHolder.remove(clazz)
         }
     }
 
