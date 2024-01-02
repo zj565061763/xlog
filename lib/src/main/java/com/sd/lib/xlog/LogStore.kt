@@ -17,6 +17,7 @@ interface FLogStore {
     /**
      * 日志大小(单位B)
      */
+    @Throws(Exception::class)
     fun size(): Long
 
     /**
