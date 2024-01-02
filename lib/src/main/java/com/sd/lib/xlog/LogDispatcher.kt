@@ -3,33 +3,57 @@ package com.sd.lib.xlog
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import java.util.concurrent.atomic.AtomicInteger
 
 internal interface LogDispatcher {
-    fun dispatch(runnable: Runnable)
+    fun dispatch(block: () -> Unit)
 
     companion object {
-        val Main: LogDispatcher = LogDispatcherMain()
-        val IO: LogDispatcher = LogDispatcherIO()
+        fun create(
+            async: Boolean,
+            onIdle: () -> Unit,
+        ): LogDispatcher {
+            return if (async) {
+                LogDispatcherIO(onIdle)
+            } else {
+                LogDispatcherMain(onIdle)
+            }
+        }
     }
 }
 
-private class LogDispatcherMain : LogDispatcher {
-    private val _handler = Handler(Looper.getMainLooper())
+private abstract class BaseLogDispatcher(
+    looper: Looper,
+    private val onIdle: () -> Unit,
+) : LogDispatcher {
+    private val _handler = Handler(looper)
+    private val _counter = AtomicInteger(0)
 
-    override fun dispatch(runnable: Runnable) {
-        _handler.post(runnable)
+    final override fun dispatch(block: () -> Unit) {
+        _counter.incrementAndGet()
+        _handler.post {
+            try {
+                block()
+            } finally {
+                val count = _counter.decrementAndGet()
+                check(count >= 0) { "Runnable executed more than once." }
+                if (count == 0) {
+                    onIdle()
+                }
+            }
+        }
     }
 }
 
-private class LogDispatcherIO : LogDispatcher {
-    private val _thread = HandlerThread("FLog")
-    private val _handler = Handler(_thread.looper)
+private class LogDispatcherMain(onIdle: () -> Unit) : BaseLogDispatcher(
+    looper = Looper.getMainLooper(),
+    onIdle = onIdle,
+)
 
-    init {
-        _thread.start()
-    }
-
-    override fun dispatch(runnable: Runnable) {
-        _handler.post(runnable)
-    }
-}
+private class LogDispatcherIO(onIdle: () -> Unit) : BaseLogDispatcher(
+    looper = HandlerThread("FLog").let {
+        it.start()
+        it.looper
+    },
+    onIdle = onIdle,
+)

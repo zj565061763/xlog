@@ -37,15 +37,24 @@ object FLog {
     private var _pendingLevel: FLogLevel? = null
 
     /** 是否子线程发布日志 */
-    private var _async: Boolean = false
-    /** 发布日志调度器 */
-    private lateinit var _dispatcher: LogDispatcher
+    private var _async: Boolean? = null
+        set(value) {
+            check(field == null)
+            field = value
+        }
 
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = Collections.synchronizedMap(hashMapOf())
 
     /** 文件日志 */
     private lateinit var _publisher: DirectoryLogPublisher
+
+    /** 发布日志调度器 */
+    private val _dispatcher: LogDispatcher by lazy {
+        LogDispatcher.create(checkNotNull(_async)) {
+            // TODO check level
+        }
+    }
 
     /**
      * 初始化
@@ -69,7 +78,6 @@ object FLog {
             if (_hasInit) return
 
             _async = async
-            _dispatcher = if (async) LogDispatcher.IO else LogDispatcher.Main
             _publisher = defaultPublisher(
                 directory = directory,
                 formatter = formatter ?: LogFormatterDefault(),
