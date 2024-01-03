@@ -4,7 +4,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
-import com.sd.lib.xlog.fDebug
 import com.sd.lib.xlog.flogD
 import com.sd.lib.xlog.flogI
 import org.junit.Assert.*
@@ -22,23 +21,6 @@ import java.text.SimpleDateFormat
 class AppTest {
     private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val _logDir get() = _context.filesDir.resolve("app_log")
-
-    @Test
-    fun testConsoleDebug() {
-        kotlin.run {
-            FLog.setLevel(FLogLevel.All)
-            var count = 0
-            fDebug { count++ }
-            assertEquals(1, count)
-        }
-
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Warning)
-            var count = 0
-            fDebug { count++ }
-            assertEquals(0, count)
-        }
-    }
 
     @Test
     fun testConfig() {
