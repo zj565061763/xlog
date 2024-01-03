@@ -177,18 +177,19 @@ object FLog {
         val config = getConfig(clazz)
         val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
 
-        val record = newLogRecord(
-            logger = clazz,
-            tag = tag,
-            msg = msg,
-            level = level,
-        )
+        synchronized(FLog) {
+            val record = newLogRecord(
+                logger = clazz,
+                tag = tag,
+                msg = msg,
+                level = level,
+            )
 
-        publishConsoleLog(record)
+            publishConsoleLog(record)
 
-        _dispatcher.dispatch {
-            // TODO sync and check level
-            _publisher.publish(record)
+            _dispatcher.dispatch {
+                _publisher.publish(record)
+            }
         }
     }
 
