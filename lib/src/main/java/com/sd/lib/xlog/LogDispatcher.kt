@@ -38,12 +38,14 @@ private abstract class BaseLogDispatcher(
     protected abstract fun dispatchImpl(block: Runnable)
 }
 
-private class LogDispatcherIO(onIdle: () -> Unit) : BaseLogDispatcher(onIdle) {
-    private val _handler: Handler
+private class LogDispatcherIO(
+    onIdle: () -> Unit,
+) : BaseLogDispatcher(onIdle) {
 
-    init {
+    private val _handler = kotlin.run {
         val thread = HandlerThread("FLog").also { it.start() }
-        _handler = Handler(thread.looper)
+        val looper = checkNotNull(thread.looper)
+        Handler(looper)
     }
 
     override fun dispatchImpl(block: Runnable) {
