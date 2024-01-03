@@ -198,7 +198,11 @@ object FLog {
     @JvmStatic
     fun deleteLog(saveDays: Int) {
         logDirectory { dir ->
-            if (saveDays <= 0) dir.deleteRecursively()
+            if (saveDays <= 0) {
+                dir.deleteRecursively()
+                return@logDirectory
+            }
+
             val files = dir.listFiles()
             if (files.isNullOrEmpty()) return@logDirectory
 
