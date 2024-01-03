@@ -50,6 +50,12 @@ class LogLevelTest {
         FLog.setLevel(FLogLevel.Error)
         assertEquals("e", logResult())
     }
+
+    @Test
+    fun testOff() {
+        FLog.setLevel(FLogLevel.Off)
+        assertEquals("", logResult())
+    }
 }
 
 private fun logResult(): String {
