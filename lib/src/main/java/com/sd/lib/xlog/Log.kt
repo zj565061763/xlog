@@ -71,7 +71,7 @@ object FLog {
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
 
-        /** 是否子线程发布日志 */
+        /** 是否子线程发布日志，true-子线程，false-主线程 */
         async: Boolean = false,
     ) {
         synchronized(FLog) {
