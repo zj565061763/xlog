@@ -4,14 +4,12 @@ import android.os.Handler
 import android.os.HandlerThread
 import java.util.concurrent.atomic.AtomicInteger
 
+internal fun defaultLogDispatcher(onIdle: () -> Unit): LogDispatcher {
+    return LogDispatcherIO(onIdle)
+}
+
 internal interface LogDispatcher {
     fun dispatch(block: Runnable)
-
-    companion object {
-        fun create(onIdle: () -> Unit): LogDispatcher {
-            return LogDispatcherIO(onIdle)
-        }
-    }
 }
 
 private abstract class BaseLogDispatcher(

@@ -34,7 +34,7 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /** 日志调度器 */
-    private val _dispatcher = LogDispatcher.create { handleDispatcherIdle() }
+    private val _dispatcher = defaultLogDispatcher { handleDispatcherIdle() }
 
     /**
      * 初始化
