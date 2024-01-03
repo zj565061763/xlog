@@ -143,7 +143,6 @@ object FLog {
      */
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
-        checkInit()
         synchronized(FLog) {
             _configHolder.getOrPut(clazz) { FLoggerConfig() }
         }.also {
