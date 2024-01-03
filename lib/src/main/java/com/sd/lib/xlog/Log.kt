@@ -27,11 +27,6 @@ object FLog {
     @Volatile
     private var _consoleLogEnabled: Boolean = true
 
-    /** 日志等级是否被[logDirectory]暂时锁定 */
-    private var _isLevelLockedByLogDirectory = false
-    /** 日志等级锁定期间，外部暂存的等级 */
-    private var _pendingLevel: FLogLevel? = null
-
     /** 是否子线程发布日志，true-子线程，false-主线程 */
     private var _async: Boolean? = null
         set(value) {
@@ -105,24 +100,11 @@ object FLog {
      */
     @JvmStatic
     fun setLevel(level: FLogLevel) {
-        checkInit()
-        _dispatcher.dispatch {
-            if (isLevelLocked()) {
-                _pendingLevel = level
-            } else {
-                _level = level
-            }
+        _level = level
+        if (level == FLogLevel.Off) {
+            // 发布一个空消息，等待调度器空闲的时候处理空闲逻辑
+            _dispatcher.dispatch {}
         }
-    }
-
-    private fun isLevelLocked(): Boolean {
-        return _isLevelLockedByLogDirectory
-    }
-
-    private fun restoreLevel(oldLevel: FLogLevel) {
-        if (isLevelLocked()) return
-        val level = _pendingLevel ?: oldLevel
-        setLevel(level)
     }
 
     /**
@@ -240,17 +222,7 @@ object FLog {
     fun logDirectory(block: (File) -> Unit) {
         checkInit()
         _dispatcher.dispatch {
-            _isLevelLockedByLogDirectory = true
-
-            val oldLevel = _level
-            _level = FLogLevel.Off
-
-            try {
-                block(_publisher.directory)
-            } finally {
-                _isLevelLockedByLogDirectory = false
-                restoreLevel(oldLevel)
-            }
+            block(_publisher.directory)
         }
     }
 
