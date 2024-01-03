@@ -91,6 +91,7 @@ object FLog {
      */
     @JvmStatic
     fun setLevel(level: FLogLevel) {
+        checkInit()
         _level = level
         if (level == FLogLevel.Off) {
             dispatch {
@@ -111,6 +112,7 @@ object FLog {
      */
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
+        checkInit()
         synchronized(FLog) {
             val config = _configHolder.getOrPut(clazz) { FLoggerConfig() }
             config.block()
