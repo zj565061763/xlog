@@ -2,6 +2,7 @@ package com.sd.demo.xlog
 
 import android.app.Application
 import com.sd.demo.xlog.log.AppLogger
+import com.sd.demo.xlog.log.TestLogDispatcher
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 
@@ -12,6 +13,8 @@ class App : Application() {
         FLog.init(
             //（必传参数）日志文件目录
             directory = filesDir.resolve("app_log"),
+
+            dispatcher = TestLogDispatcher(),
         )
 
         // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
