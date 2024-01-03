@@ -119,12 +119,10 @@ object FLog {
      */
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
-        _dispatcher.dispatch {
-            val config = _configHolder.getOrPut(clazz) { FLoggerConfig() }
-            config.block()
-            if (config.isEmpty()) {
-                _configHolder.remove(clazz)
-            }
+        synchronized(FLog) {
+            _configHolder.getOrPut(clazz) { FLoggerConfig() }
+        }.also {
+            it.block()
         }
     }
 
@@ -153,13 +151,13 @@ object FLog {
      */
     @JvmStatic
     fun log(clazz: Class<out FLogger>, level: FLogLevel, msg: String?) {
-        if (msg.isNullOrEmpty()) return
-        if (!isLoggable(clazz, level)) return
-
-        val config = getConfig(clazz)
-        val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
-
         synchronized(FLog) {
+            if (msg.isNullOrEmpty()) return
+            if (!isLoggable(clazz, level)) return
+
+            val config = getConfig(clazz)
+            val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
+
             val record = newLogRecord(
                 logger = clazz,
                 tag = tag,
