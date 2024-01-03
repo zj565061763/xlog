@@ -73,6 +73,7 @@ object FLog {
      */
     @JvmStatic
     fun setConsoleLogEnabled(enabled: Boolean) {
+        checkInit()
         _consoleLogEnabled = enabled
     }
 
