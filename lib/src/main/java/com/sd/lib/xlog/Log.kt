@@ -111,10 +111,6 @@ object FLog {
      */
     @JvmStatic
     fun setLevel(level: FLogLevel) {
-        setLevelInternal(level, checkOff = true)
-    }
-
-    private fun setLevelInternal(level: FLogLevel, checkOff: Boolean) {
         checkInit()
         synchronized(FLog) {
             if (isLevelLocked()) {
@@ -124,12 +120,6 @@ object FLog {
 
             if (_level != level) {
                 _level = level
-
-                if (checkOff && level == FLogLevel.Off) {
-                    _dispatcher.dispatch {
-                        _publisher.close()
-                    }
-                }
             }
         }
     }
