@@ -5,7 +5,7 @@ import android.os.HandlerThread
 import java.util.concurrent.atomic.AtomicInteger
 
 internal fun defaultLogDispatcher(onIdle: () -> Unit): LogDispatcher {
-    return LogDispatcherIO(onIdle)
+    return LogDispatcherHandlerThread(onIdle)
 }
 
 internal interface LogDispatcher {
@@ -38,7 +38,7 @@ private abstract class BaseLogDispatcher(
     protected abstract fun dispatchImpl(block: Runnable)
 }
 
-private class LogDispatcherIO(
+private class LogDispatcherHandlerThread(
     onIdle: () -> Unit,
 ) : BaseLogDispatcher(onIdle) {
 
