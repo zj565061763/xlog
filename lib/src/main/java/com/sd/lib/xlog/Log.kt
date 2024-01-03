@@ -225,6 +225,7 @@ object FLog {
     @JvmStatic
     fun logDirectory(block: (File) -> Unit) {
         dispatch {
+            _publisher.close()
             block(_publisher.directory)
         }
     }
