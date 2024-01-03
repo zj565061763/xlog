@@ -18,11 +18,6 @@ internal interface DirectoryLogPublisher : LogPublisher {
     /** 日志文件目录 */
     val directory: File
 
-    /**
-     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
-     */
-    fun setLimitPerDay(limit: Long)
-
     /** 日志格式化 */
     val formatter: FLogFormatter
 
@@ -31,6 +26,16 @@ internal interface DirectoryLogPublisher : LogPublisher {
 
     /** 日志文件名 */
     val filename: LogFilename
+
+    /**
+     * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
+     */
+    fun setLimitPerDay(limit: Long)
+
+    /**
+     * 调度器空闲回调
+     */
+    fun onIdle()
 }
 
 internal fun defaultPublisher(
@@ -75,9 +80,6 @@ private class LogPublisherImpl(
     }
 
     override fun publish(record: FLogRecord) {
-        // 检查日志文件是否存在
-        checkLogFileExist()
-
         val log = formatter.format(record)
         val dateInfo = getDateInfo(record)
 
@@ -131,6 +133,10 @@ private class LogPublisherImpl(
                 }
             }
         }
+    }
+
+    override fun onIdle() {
+        checkLogFileExist()
     }
 
     /**

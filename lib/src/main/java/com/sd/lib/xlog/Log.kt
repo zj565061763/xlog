@@ -240,6 +240,8 @@ object FLog {
     private fun handleDispatcherIdle() {
         if (_level == FLogLevel.Off) {
             _publisher.close()
+        } else {
+            _publisher.onIdle()
         }
     }
 
