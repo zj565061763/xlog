@@ -4,7 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
-import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -20,15 +20,15 @@ class LogFileDeletedTest {
         FLog.setLevel(FLogLevel.All)
 
         dir.deleteRecursively()
-        Assert.assertEquals(false, dir.exists())
+        assertEquals(false, dir.exists())
         flogI<TestLogger> { "info" }
-        Assert.assertEquals(true, dir.exists())
-        Assert.assertEquals(false, dir.listFiles()?.isEmpty())
+        assertEquals(true, dir.exists())
+        assertEquals(false, dir.listFiles()?.isEmpty())
 
         dir.deleteRecursively()
-        Assert.assertEquals(false, dir.exists())
+        assertEquals(false, dir.exists())
         flogI<TestLogger> { "info" }
-        Assert.assertEquals(true, dir.exists())
-        Assert.assertEquals(false, dir.listFiles()?.isEmpty())
+        assertEquals(true, dir.exists())
+        assertEquals(false, dir.listFiles()?.isEmpty())
     }
 }
