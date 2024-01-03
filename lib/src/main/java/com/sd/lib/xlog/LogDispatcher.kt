@@ -61,7 +61,7 @@ private class LogDispatcherIO(onIdle: () -> Unit) : BaseLogDispatcher(
 /**
  * 测试代码使用
  */
-private class LogDispatcherImmediate : LogDispatcher {
+internal class LogDispatcherImmediate : LogDispatcher {
     override fun dispatch(block: Runnable) {
         block.run()
     }
