@@ -36,7 +36,7 @@ private abstract class BaseLogDispatcher(
             block.run()
         } finally {
             val count = _counter.decrementAndGet().also {
-                check(it >= 0) { "Runnable executed more than once." }
+                check(it >= 0) { "block executed more than once." }
             }
             if (count == 0) {
                 onIdle()
