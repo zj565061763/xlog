@@ -12,9 +12,6 @@ class App : Application() {
         FLog.init(
             //（必传参数）日志文件目录
             directory = filesDir.resolve("app_log"),
-
-            //（可选参数）是否子线程发布日志，true-子线程，false-主线程，默认true
-            async = true,
         )
 
         // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All

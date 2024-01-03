@@ -27,13 +27,6 @@ object FLog {
     @Volatile
     private var _consoleLogEnabled: Boolean = true
 
-    /** 是否子线程发布日志，true-子线程，false-主线程 */
-    private var _async: Boolean? = null
-        set(value) {
-            check(field == null)
-            field = value
-        }
-
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = Collections.synchronizedMap(hashMapOf())
 
@@ -41,11 +34,7 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /** 日志调度器 */
-    private val _dispatcher: LogDispatcher by lazy {
-        LogDispatcher.create(checkNotNull(_async)) {
-            handleDispatcherIdle()
-        }
-    }
+    private val _dispatcher = LogDispatcher.create { handleDispatcherIdle() }
 
     /**
      * 初始化
@@ -61,12 +50,8 @@ object FLog {
 
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
-
-        /** 是否子线程发布日志，true-子线程，false-主线程，默认true */
-        async: Boolean = true,
     ) {
         if (_hasInit.compareAndSet(false, true)) {
-            _async = async
             _publisher = defaultPublisher(
                 directory = directory,
                 formatter = formatter ?: LogFormatterDefault(),

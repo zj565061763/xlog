@@ -316,9 +316,6 @@ FLog.init(
 
     //（可选参数）自定义日志存储
     storeFactory = AppLogStoreFactory(),
-
-    //（可选参数）是否子线程发布日志，true-子线程，false-主线程，默认true
-    async = false,
 )
 
 // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All

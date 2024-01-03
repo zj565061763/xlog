@@ -2,33 +2,26 @@ package com.sd.lib.xlog
 
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Looper
 import java.util.concurrent.atomic.AtomicInteger
 
 internal interface LogDispatcher {
     fun dispatch(block: Runnable)
 
     companion object {
-        fun create(async: Boolean, onIdle: () -> Unit): LogDispatcher {
-            return if (async) {
-                LogDispatcherIO(onIdle)
-            } else {
-                LogDispatcherMain(onIdle)
-            }
+        fun create(onIdle: () -> Unit): LogDispatcher {
+            return LogDispatcherIO(onIdle)
         }
     }
 }
 
 private abstract class BaseLogDispatcher(
-    looper: Looper,
     private val onIdle: () -> Unit,
 ) : LogDispatcher {
-    private val _handler = Handler(looper)
     private val _counter = AtomicInteger(0)
 
     final override fun dispatch(block: Runnable) {
         _counter.incrementAndGet()
-        _handler.post { executeBlock(block) }
+        dispatchImpl { executeBlock(block) }
     }
 
     private fun executeBlock(block: Runnable) {
@@ -43,17 +36,19 @@ private abstract class BaseLogDispatcher(
             }
         }
     }
+
+    protected abstract fun dispatchImpl(block: Runnable)
 }
 
-private class LogDispatcherMain(onIdle: () -> Unit) : BaseLogDispatcher(
-    looper = Looper.getMainLooper(),
-    onIdle = onIdle,
-)
+private class LogDispatcherIO(onIdle: () -> Unit) : BaseLogDispatcher(onIdle) {
+    private val _handler: Handler
 
-private class LogDispatcherIO(onIdle: () -> Unit) : BaseLogDispatcher(
-    looper = HandlerThread("FLog").let {
-        it.start()
-        it.looper
-    },
-    onIdle = onIdle,
-)
+    init {
+        val thread = HandlerThread("FLog").also { it.start() }
+        _handler = Handler(thread.looper)
+    }
+
+    override fun dispatchImpl(block: Runnable) {
+        _handler.post(block)
+    }
+}
