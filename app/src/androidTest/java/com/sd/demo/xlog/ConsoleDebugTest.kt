@@ -13,6 +13,7 @@ class ConsoleDebugTest {
 
     @Test
     fun test() {
+        FLog.setConsoleLogEnabled(false)
         kotlin.run {
             FLog.setLevel(FLogLevel.All)
             var count = 0
