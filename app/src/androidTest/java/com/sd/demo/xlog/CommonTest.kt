@@ -13,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class TestCommon {
+class CommonTest {
     @Test
     fun test() {
         kotlin.run {
