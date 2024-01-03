@@ -89,8 +89,7 @@ object FLog {
      */
     @JvmStatic
     fun setLimitMBPerDay(limitMBPerDay: Int) {
-        checkInit()
-        _dispatcher.dispatch {
+        dispatch {
             _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
         }
     }
@@ -102,8 +101,9 @@ object FLog {
     fun setLevel(level: FLogLevel) {
         _level = level
         if (level == FLogLevel.Off) {
-            // 发布一个空消息，等待调度器空闲的时候处理空闲逻辑
-            _dispatcher.dispatch {}
+            dispatch {
+                // 发布一个空消息，等待调度器空闲的时候处理空闲逻辑
+            }
         }
     }
 
@@ -165,9 +165,8 @@ object FLog {
                 level = level,
             )
 
-            publishConsoleLog(record)
-
-            _dispatcher.dispatch {
+            dispatch {
+                publishConsoleLog(record)
                 _publisher.publish(record)
             }
         }
@@ -225,8 +224,7 @@ object FLog {
      */
     @JvmStatic
     fun logDirectory(block: (File) -> Unit) {
-        checkInit()
-        _dispatcher.dispatch {
+        dispatch {
             block(_publisher.directory)
         }
     }
