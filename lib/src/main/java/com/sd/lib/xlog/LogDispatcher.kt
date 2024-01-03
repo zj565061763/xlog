@@ -6,7 +6,7 @@ import android.os.Looper
 import java.util.concurrent.atomic.AtomicInteger
 
 internal interface LogDispatcher {
-    fun dispatch(block: () -> Unit)
+    fun dispatch(block: Runnable)
 
     companion object {
         fun create(async: Boolean, onIdle: () -> Unit): LogDispatcher {
@@ -26,11 +26,11 @@ private abstract class BaseLogDispatcher(
     private val _handler = Handler(looper)
     private val _counter = AtomicInteger(0)
 
-    final override fun dispatch(block: () -> Unit) {
+    final override fun dispatch(block: Runnable) {
         _counter.incrementAndGet()
         _handler.post {
             try {
-                block()
+                block.run()
             } finally {
                 val count = _counter.decrementAndGet().also {
                     check(it >= 0) { "Runnable executed more than once." }

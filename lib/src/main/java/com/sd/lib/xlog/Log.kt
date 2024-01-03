@@ -232,6 +232,15 @@ object FLog {
     }
 
     /**
+     * 在调度器上面执行
+     */
+    @JvmStatic
+    fun dispatch(block: Runnable) {
+        checkInit()
+        _dispatcher.dispatch(block)
+    }
+
+    /**
      * 调度器空闲逻辑
      */
     private fun handleDispatcherIdle() {
