@@ -67,8 +67,8 @@ object FLog {
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
 
-        /** 是否子线程发布日志，true-子线程，false-主线程 */
-        async: Boolean = false,
+        /** 是否子线程发布日志，true-子线程，false-主线程，默认true */
+        async: Boolean = true,
     ) {
         if (_hasInit.compareAndSet(false, true)) {
             _async = async
@@ -238,6 +238,9 @@ object FLog {
     @JvmStatic
     fun <T> logDirectory(block: (File) -> T): T {
         checkInit()
+        _dispatcher.dispatch {
+
+        }
         synchronized(FLog) {
             val oldLevel = _level
             setLevel(FLogLevel.Off)

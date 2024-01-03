@@ -317,7 +317,7 @@ FLog.init(
     //（可选参数）自定义日志存储
     storeFactory = AppLogStoreFactory(),
 
-    //（可选参数）是否子线程发布日志，true-子线程，false-主线程，默认值false
+    //（可选参数）是否子线程发布日志，true-子线程，false-主线程，默认true
     async = false,
 )
 

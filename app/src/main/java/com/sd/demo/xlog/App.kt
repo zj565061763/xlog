@@ -13,7 +13,7 @@ class App : Application() {
             //（必传参数）日志文件目录
             directory = filesDir.resolve("app_log"),
 
-            //（可选参数）是否子线程发布日志，true-子线程，false-主线程，默认值false
+            //（可选参数）是否子线程发布日志，true-子线程，false-主线程，默认true
             async = false,
         )
 
