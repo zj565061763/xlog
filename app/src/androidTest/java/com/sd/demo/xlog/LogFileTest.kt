@@ -17,10 +17,9 @@ import java.text.SimpleDateFormat
  * See [testing documentation](http://d.android.com/tools/testing).
  */
 @RunWith(AndroidJUnit4::class)
-class AppTest {
+class LogFileTest {
     private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val _logDir get() = _context.filesDir.resolve("app_log")
-
 
     @Test
     fun testDeleteLogFile() {
