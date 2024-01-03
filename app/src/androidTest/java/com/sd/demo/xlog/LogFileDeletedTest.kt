@@ -9,7 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * 日志文件被删除，重建测试
+ * 日志文件被删除，自动重建
  */
 @RunWith(AndroidJUnit4::class)
 class LogFileDeletedTest {
