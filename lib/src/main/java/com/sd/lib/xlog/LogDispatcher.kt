@@ -28,16 +28,18 @@ private abstract class BaseLogDispatcher(
 
     final override fun dispatch(block: Runnable) {
         _counter.incrementAndGet()
-        _handler.post {
-            try {
-                block.run()
-            } finally {
-                val count = _counter.decrementAndGet().also {
-                    check(it >= 0) { "Runnable executed more than once." }
-                }
-                if (count == 0) {
-                    onIdle()
-                }
+        _handler.post { executeBlock(block) }
+    }
+
+    private fun executeBlock(block: Runnable) {
+        try {
+            block.run()
+        } finally {
+            val count = _counter.decrementAndGet().also {
+                check(it >= 0) { "Runnable executed more than once." }
+            }
+            if (count == 0) {
+                onIdle()
             }
         }
     }
