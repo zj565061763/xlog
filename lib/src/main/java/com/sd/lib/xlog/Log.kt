@@ -43,7 +43,7 @@ object FLog {
     /** 日志调度器 */
     private val _dispatcher: LogDispatcher by lazy {
         LogDispatcher.create(checkNotNull(_async)) {
-            // TODO check level
+            handleDispatcherIdle()
         }
     }
 
@@ -228,6 +228,15 @@ object FLog {
         checkInit()
         _dispatcher.dispatch {
             block(_publisher.directory)
+        }
+    }
+
+    /**
+     * 调度器空闲逻辑
+     */
+    private fun handleDispatcherIdle() {
+        if (_level == FLogLevel.Off) {
+            _publisher.close()
         }
     }
 
