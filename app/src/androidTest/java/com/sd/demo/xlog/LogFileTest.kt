@@ -1,7 +1,6 @@
 package com.sd.demo.xlog
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
@@ -18,12 +17,10 @@ import java.text.SimpleDateFormat
  */
 @RunWith(AndroidJUnit4::class)
 class LogFileTest {
-    private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
-    private val _logDir get() = _context.filesDir.resolve("app_log")
 
     @Test
     fun testDeleteLogFile() {
-        val dir = _logDir
+        val dir = testLogDir
         FLog.setLevel(FLogLevel.All)
 
         dir.deleteRecursively()
@@ -81,7 +78,7 @@ class LogFileTest {
 
     @Test
     fun testLogFileDeleted() {
-        val dir = _logDir
+        val dir = testLogDir
         FLog.setLevel(FLogLevel.All)
 
         dir.deleteRecursively()
@@ -99,7 +96,7 @@ class LogFileTest {
 
     @Test
     fun testLogFileLimit() {
-        val dir = _logDir
+        val dir = testLogDir
         FLog.setLevel(FLogLevel.All)
         FLog.setLimitMBPerDay(1)
 
