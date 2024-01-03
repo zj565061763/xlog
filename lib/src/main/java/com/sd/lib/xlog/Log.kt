@@ -34,7 +34,7 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /** 日志调度器 */
-    private val _dispatcher = defaultLogDispatcher { handleDispatcherIdle() }
+    private lateinit var _dispatcher: LogDispatcherProxy
 
     /**
      * 初始化
@@ -50,6 +50,9 @@ object FLog {
 
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
+
+        /** 日志调度器 */
+        dispatcher: FLogDispatcher = LogDispatcherDefault(),
     ) {
         if (_hasInit.compareAndSet(false, true)) {
             _publisher = defaultPublisher(
@@ -58,6 +61,10 @@ object FLog {
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
+
+            _dispatcher = dispatcher.toProxy {
+                handleDispatcherIdle()
+            }
         }
     }
 

@@ -2,7 +2,7 @@ package com.sd.lib.xlog
 
 import java.util.concurrent.atomic.AtomicInteger
 
-internal fun FLogDispatcher.toProxy(onIdle: () -> Unit): FLogDispatcher {
+internal fun FLogDispatcher.toProxy(onIdle: () -> Unit): LogDispatcherProxy {
     return if (this is LogDispatcherProxy) {
         this
     } else {
@@ -10,7 +10,7 @@ internal fun FLogDispatcher.toProxy(onIdle: () -> Unit): FLogDispatcher {
     }
 }
 
-private class LogDispatcherProxy(
+internal class LogDispatcherProxy(
     private val dispatcher: FLogDispatcher,
     private val onIdle: () -> Unit,
 ) : FLogDispatcher {

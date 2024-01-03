@@ -9,13 +9,9 @@ interface FLogDispatcher {
     fun dispatch(block: Runnable)
 }
 
-internal fun defaultLogDispatcher(onIdle: () -> Unit): FLogDispatcher {
-    return LogDispatcherDefault().toProxy(onIdle)
-}
-
 private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }
 
-private class LogDispatcherDefault : FLogDispatcher {
+internal class LogDispatcherDefault : FLogDispatcher {
     override fun dispatch(block: Runnable) {
         SingleThreadExecutor.submit(block)
     }
