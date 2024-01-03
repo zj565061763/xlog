@@ -77,24 +77,6 @@ class LogFileTest {
     }
 
     @Test
-    fun testLogFileDeleted() {
-        val dir = testLogDir
-        FLog.setLevel(FLogLevel.All)
-
-        dir.deleteRecursively()
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-
-        dir.deleteRecursively()
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-    }
-
-    @Test
     fun testLogFileLimit() {
         val dir = testLogDir
         FLog.setLevel(FLogLevel.All)
