@@ -42,7 +42,7 @@ private fun log() {
     flogE<AppLogger> { "Error" }
 
     thread {
-        flogI<AppLogger> { "Info in thread" }
+        flogW<AppLogger> { "Info in thread" }
     }
 
     // 打印控制台日志，不会写入到文件中，tag：DebugLogger
