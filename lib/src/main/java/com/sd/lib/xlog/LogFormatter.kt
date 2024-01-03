@@ -20,6 +20,10 @@ internal class LogFormatterDefault : FLogFormatter {
     /** 上一次打印日志的tag */
     private var _lastLogTag = ""
 
+    fun resetLastLogTag() {
+        _lastLogTag = ""
+    }
+
     override fun format(record: FLogRecord): String {
         val logTime = _logTimeFactory.create(record.millis)
         return buildString {

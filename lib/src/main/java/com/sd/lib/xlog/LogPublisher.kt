@@ -149,6 +149,9 @@ private class LogPublisherImpl(
             } else {
                 // 文件不存在，关闭后会重新创建
                 info.store.close()
+                if (formatter is LogFormatterDefault) {
+                    formatter.resetLastLogTag()
+                }
             }
         }
     }
