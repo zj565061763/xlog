@@ -150,12 +150,10 @@ object FLog {
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         checkInit()
-        val config = synchronized(FLog) {
+        synchronized(FLog) {
             _configHolder.getOrPut(clazz) { FLoggerConfig() }
-        }
-        block(config)
-        if (config.isEmpty()) {
-            _configHolder.remove(clazz)
+        }.also {
+            it.block()
         }
     }
 
