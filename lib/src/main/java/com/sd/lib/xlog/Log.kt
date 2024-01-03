@@ -164,6 +164,13 @@ object FLog {
     @PublishedApi
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
         checkInit()
+        if (_level == FLogLevel.Off) {
+            /**
+             * 如果全局等级为[FLogLevel.Off]，则不读取[FLoggerConfig]，不打印日志
+             */
+            return false
+        }
+
         if (level == FLogLevel.All) return false
         if (level == FLogLevel.Off) return false
         val limitLevel = getConfig(clazz)?.level ?: _level
