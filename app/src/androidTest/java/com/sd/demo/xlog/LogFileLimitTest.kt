@@ -9,26 +9,31 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * 日志文件被删除，重建测试
+ * 限制日志文件大小
  */
 @RunWith(AndroidJUnit4::class)
-class LogFileDeletedTest {
+class LogFileLimitTest {
 
     @Test
     fun test() {
         val dir = testLogDir
         FLog.setLevel(FLogLevel.All)
+        FLog.setLimitMBPerDay(1)
 
-        dir.deleteRecursively()
         Assert.assertEquals(false, dir.exists())
         flogI<TestLogger> { "info" }
         Assert.assertEquals(true, dir.exists())
         Assert.assertEquals(false, dir.listFiles()?.isEmpty())
 
-        dir.deleteRecursively()
-        Assert.assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        Assert.assertEquals(true, dir.exists())
-        Assert.assertEquals(false, dir.listFiles()?.isEmpty())
+        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
+            Assert.assertEquals(0, files?.size)
+        }
+
+        val log = "1".repeat(800 * 1024)
+        flogI<TestLogger> { log }
+
+        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
+            Assert.assertEquals(1, files?.size)
+        }
     }
 }

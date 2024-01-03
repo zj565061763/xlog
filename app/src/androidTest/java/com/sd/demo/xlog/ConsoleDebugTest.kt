@@ -10,6 +10,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ConsoleDebugTest {
+
     @Test
     fun test() {
         kotlin.run {

@@ -10,6 +10,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class LoggerConfigTest {
+
     @Test
     fun test() {
         FLog.setLevel(FLogLevel.Info)

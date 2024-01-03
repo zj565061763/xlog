@@ -11,15 +11,13 @@ import java.io.File
 import java.text.SimpleDateFormat
 
 /**
- * Instrumented test, which will execute on an Android device.
- *
- * See [testing documentation](http://d.android.com/tools/testing).
+ * 删除日志文件
  */
 @RunWith(AndroidJUnit4::class)
-class LogFileTest {
+class DeleteLogFileTest {
 
     @Test
-    fun testDeleteLogFile() {
+    fun test() {
         val dir = testLogDir
         FLog.setLevel(FLogLevel.All)
 
@@ -73,29 +71,6 @@ class LogFileTest {
         kotlin.run {
             FLog.deleteLog(0)
             assertEquals(false, dir.exists())
-        }
-    }
-
-    @Test
-    fun testLogFileLimit() {
-        val dir = testLogDir
-        FLog.setLevel(FLogLevel.All)
-        FLog.setLimitMBPerDay(1)
-
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-
-        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
-            assertEquals(0, files?.size)
-        }
-
-        val log = "1".repeat(800 * 1024)
-        flogI<TestLogger> { log }
-
-        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
-            assertEquals(1, files?.size)
         }
     }
 }
