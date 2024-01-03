@@ -16,167 +16,164 @@ import org.junit.runner.RunWith
 class LogLevelTest {
 
     @Test
-    fun test() {
-        // All
-        kotlin.run {
-            FLog.setLevel(FLogLevel.All)
-            var result = ""
-            flogV<TestLogger> {
-                result += "v"
-                Unit
-            }
-            flogD<TestLogger> {
-                result += "d"
-                Unit
-            }
-            flogI<TestLogger> {
-                result += "i"
-                Unit
-            }
-            flogW<TestLogger> {
-                result += "w"
-                Unit
-            }
-            flogE<TestLogger> {
-                result += "e"
-                Unit
-            }
-            assertEquals("vdiwe", result)
+    fun testAll() {
+        FLog.setLevel(FLogLevel.All)
+        var result = ""
+        flogV<TestLogger> {
+            result += "v"
+            Unit
         }
+        flogD<TestLogger> {
+            result += "d"
+            Unit
+        }
+        flogI<TestLogger> {
+            result += "i"
+            Unit
+        }
+        flogW<TestLogger> {
+            result += "w"
+            Unit
+        }
+        flogE<TestLogger> {
+            result += "e"
+            Unit
+        }
+        assertEquals("vdiwe", result)
+    }
 
-        // Verbose
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Verbose)
-            var result = ""
-            flogV<TestLogger> {
-                result += "v"
-                Unit
-            }
-            flogD<TestLogger> {
-                result += "d"
-                Unit
-            }
-            flogI<TestLogger> {
-                result += "i"
-                Unit
-            }
-            flogW<TestLogger> {
-                result += "w"
-                Unit
-            }
-            flogE<TestLogger> {
-                result += "e"
-                Unit
-            }
-            assertEquals("vdiwe", result)
+    @Test
+    fun testVerbose() {
+        FLog.setLevel(FLogLevel.Verbose)
+        var result = ""
+        flogV<TestLogger> {
+            result += "v"
+            Unit
         }
+        flogD<TestLogger> {
+            result += "d"
+            Unit
+        }
+        flogI<TestLogger> {
+            result += "i"
+            Unit
+        }
+        flogW<TestLogger> {
+            result += "w"
+            Unit
+        }
+        flogE<TestLogger> {
+            result += "e"
+            Unit
+        }
+        assertEquals("vdiwe", result)
+    }
 
-        // Debug
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Debug)
-            var result = ""
-            flogV<TestLogger> {
-                result += "v"
-                Unit
-            }
-            flogD<TestLogger> {
-                result += "d"
-                Unit
-            }
-            flogI<TestLogger> {
-                result += "i"
-                Unit
-            }
-            flogW<TestLogger> {
-                result += "w"
-                Unit
-            }
-            flogE<TestLogger> {
-                result += "e"
-                Unit
-            }
-            assertEquals("diwe", result)
+    @Test
+    fun testDebug() {
+        FLog.setLevel(FLogLevel.Debug)
+        var result = ""
+        flogV<TestLogger> {
+            result += "v"
+            Unit
         }
+        flogD<TestLogger> {
+            result += "d"
+            Unit
+        }
+        flogI<TestLogger> {
+            result += "i"
+            Unit
+        }
+        flogW<TestLogger> {
+            result += "w"
+            Unit
+        }
+        flogE<TestLogger> {
+            result += "e"
+            Unit
+        }
+        assertEquals("diwe", result)
+    }
 
-        // Info
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Info)
-            var result = ""
-            flogV<TestLogger> {
-                result += "v"
-                Unit
-            }
-            flogD<TestLogger> {
-                result += "d"
-                Unit
-            }
-            flogI<TestLogger> {
-                result += "i"
-                Unit
-            }
-            flogW<TestLogger> {
-                result += "w"
-                Unit
-            }
-            flogE<TestLogger> {
-                result += "e"
-                Unit
-            }
-            assertEquals("iwe", result)
+    @Test
+    fun testInfo() {
+        FLog.setLevel(FLogLevel.Info)
+        var result = ""
+        flogV<TestLogger> {
+            result += "v"
+            Unit
         }
+        flogD<TestLogger> {
+            result += "d"
+            Unit
+        }
+        flogI<TestLogger> {
+            result += "i"
+            Unit
+        }
+        flogW<TestLogger> {
+            result += "w"
+            Unit
+        }
+        flogE<TestLogger> {
+            result += "e"
+            Unit
+        }
+        assertEquals("iwe", result)
+    }
 
-        // Warning
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Warning)
-            var result = ""
-            flogV<TestLogger> {
-                result += "v"
-                Unit
-            }
-            flogD<TestLogger> {
-                result += "d"
-                Unit
-            }
-            flogI<TestLogger> {
-                result += "i"
-                Unit
-            }
-            flogW<TestLogger> {
-                result += "w"
-                Unit
-            }
-            flogE<TestLogger> {
-                result += "e"
-                Unit
-            }
-            assertEquals("we", result)
+    @Test
+    fun testWarning() {
+        FLog.setLevel(FLogLevel.Warning)
+        var result = ""
+        flogV<TestLogger> {
+            result += "v"
+            Unit
         }
+        flogD<TestLogger> {
+            result += "d"
+            Unit
+        }
+        flogI<TestLogger> {
+            result += "i"
+            Unit
+        }
+        flogW<TestLogger> {
+            result += "w"
+            Unit
+        }
+        flogE<TestLogger> {
+            result += "e"
+            Unit
+        }
+        assertEquals("we", result)
+    }
 
-        // Error
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Error)
-            var result = ""
-            flogV<TestLogger> {
-                result += "v"
-                Unit
-            }
-            flogD<TestLogger> {
-                result += "d"
-                Unit
-            }
-            flogI<TestLogger> {
-                result += "i"
-                Unit
-            }
-            flogW<TestLogger> {
-                result += "w"
-                Unit
-            }
-            flogE<TestLogger> {
-                result += "e"
-                Unit
-            }
-            assertEquals("e", result)
+    @Test
+    fun testError() {
+        FLog.setLevel(FLogLevel.Error)
+        var result = ""
+        flogV<TestLogger> {
+            result += "v"
+            Unit
         }
+        flogD<TestLogger> {
+            result += "d"
+            Unit
+        }
+        flogI<TestLogger> {
+            result += "i"
+            Unit
+        }
+        flogW<TestLogger> {
+            result += "w"
+            Unit
+        }
+        flogE<TestLogger> {
+            result += "e"
+            Unit
+        }
+        assertEquals("e", result)
     }
 }
