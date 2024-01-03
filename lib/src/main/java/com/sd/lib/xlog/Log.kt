@@ -29,7 +29,7 @@ object FLog {
 
     /** 日志等级是否被[logDirectory]暂时锁定 */
     private var _isLevelLockedByLogDirectory = false
-    /** 日志等级被库内部暂时锁定期间，外部暂存的等级 */
+    /** 日志等级锁定期间，外部暂存的等级 */
     private var _pendingLevel: FLogLevel? = null
 
     /** 是否子线程发布日志，true-子线程，false-主线程 */
