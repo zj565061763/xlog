@@ -188,8 +188,21 @@ object FLog {
             level = level,
         )
 
-        if (_consoleLogEnabled) {
-            when (record.level) {
+        publishConsoleLog(record)
+
+        _dispatcher.dispatch {
+            // TODO sync and check level
+            _publisher.publish(record)
+        }
+    }
+
+    /**
+     * 发布控制台日志
+     */
+    private fun publishConsoleLog(record: FLogRecord) {
+        if (!_consoleLogEnabled) return
+        record.run {
+            when (level) {
                 FLogLevel.Verbose -> Log.v(tag, msg)
                 FLogLevel.Debug -> Log.d(tag, msg)
                 FLogLevel.Info -> Log.i(tag, msg)
@@ -197,11 +210,6 @@ object FLog {
                 FLogLevel.Error -> Log.e(tag, msg)
                 else -> {}
             }
-        }
-
-        _dispatcher.dispatch {
-            // TODO sync and check level
-            _publisher.publish(record)
         }
     }
 
