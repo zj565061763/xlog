@@ -3,6 +3,7 @@ package com.sd.lib.xlog
 import android.util.Log
 import java.io.File
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
     /** 开启所有日志 */
@@ -16,12 +17,7 @@ enum class FLogLevel {
 
 object FLog {
     /** 是否已经初始化 */
-    @Volatile
-    private var _hasInit: Boolean = false
-        set(value) {
-            require(value)
-            field = value
-        }
+    private val _hasInit = AtomicBoolean(false)
 
     /** 日志等级 */
     @Volatile
@@ -74,9 +70,7 @@ object FLog {
         /** 是否子线程发布日志，true-子线程，false-主线程 */
         async: Boolean = false,
     ) {
-        synchronized(FLog) {
-            if (_hasInit) return
-
+        if (_hasInit.compareAndSet(false, true)) {
             _async = async
             _publisher = defaultPublisher(
                 directory = directory,
@@ -84,8 +78,6 @@ object FLog {
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
                 filename = LogFilenameDefault(),
             ).safePublisher()
-
-            _hasInit = true
         }
     }
 
@@ -271,7 +263,7 @@ object FLog {
     }
 
     private fun checkInit() {
-        check(_hasInit) { "You should init before this." }
+        check(_hasInit.get()) { "You should init before this." }
     }
 
     /**
