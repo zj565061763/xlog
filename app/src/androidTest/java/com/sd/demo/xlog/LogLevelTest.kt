@@ -18,162 +18,61 @@ class LogLevelTest {
     @Test
     fun testAll() {
         FLog.setLevel(FLogLevel.All)
-        var result = ""
-        flogV<TestLogger> {
-            result += "v"
-            Unit
-        }
-        flogD<TestLogger> {
-            result += "d"
-            Unit
-        }
-        flogI<TestLogger> {
-            result += "i"
-            Unit
-        }
-        flogW<TestLogger> {
-            result += "w"
-            Unit
-        }
-        flogE<TestLogger> {
-            result += "e"
-            Unit
-        }
-        assertEquals("vdiwe", result)
+        assertEquals("vdiwe", logResult())
     }
 
     @Test
     fun testVerbose() {
         FLog.setLevel(FLogLevel.Verbose)
-        var result = ""
-        flogV<TestLogger> {
-            result += "v"
-            Unit
-        }
-        flogD<TestLogger> {
-            result += "d"
-            Unit
-        }
-        flogI<TestLogger> {
-            result += "i"
-            Unit
-        }
-        flogW<TestLogger> {
-            result += "w"
-            Unit
-        }
-        flogE<TestLogger> {
-            result += "e"
-            Unit
-        }
-        assertEquals("vdiwe", result)
+        assertEquals("vdiwe", logResult())
     }
 
     @Test
     fun testDebug() {
         FLog.setLevel(FLogLevel.Debug)
-        var result = ""
-        flogV<TestLogger> {
-            result += "v"
-            Unit
-        }
-        flogD<TestLogger> {
-            result += "d"
-            Unit
-        }
-        flogI<TestLogger> {
-            result += "i"
-            Unit
-        }
-        flogW<TestLogger> {
-            result += "w"
-            Unit
-        }
-        flogE<TestLogger> {
-            result += "e"
-            Unit
-        }
-        assertEquals("diwe", result)
+        assertEquals("diwe", logResult())
     }
 
     @Test
     fun testInfo() {
         FLog.setLevel(FLogLevel.Info)
-        var result = ""
-        flogV<TestLogger> {
-            result += "v"
-            Unit
-        }
-        flogD<TestLogger> {
-            result += "d"
-            Unit
-        }
-        flogI<TestLogger> {
-            result += "i"
-            Unit
-        }
-        flogW<TestLogger> {
-            result += "w"
-            Unit
-        }
-        flogE<TestLogger> {
-            result += "e"
-            Unit
-        }
-        assertEquals("iwe", result)
+        assertEquals("iwe", logResult())
     }
 
     @Test
     fun testWarning() {
         FLog.setLevel(FLogLevel.Warning)
-        var result = ""
-        flogV<TestLogger> {
-            result += "v"
-            Unit
-        }
-        flogD<TestLogger> {
-            result += "d"
-            Unit
-        }
-        flogI<TestLogger> {
-            result += "i"
-            Unit
-        }
-        flogW<TestLogger> {
-            result += "w"
-            Unit
-        }
-        flogE<TestLogger> {
-            result += "e"
-            Unit
-        }
-        assertEquals("we", result)
+        assertEquals("we", logResult())
     }
 
     @Test
     fun testError() {
         FLog.setLevel(FLogLevel.Error)
-        var result = ""
-        flogV<TestLogger> {
-            result += "v"
-            Unit
-        }
-        flogD<TestLogger> {
-            result += "d"
-            Unit
-        }
-        flogI<TestLogger> {
-            result += "i"
-            Unit
-        }
-        flogW<TestLogger> {
-            result += "w"
-            Unit
-        }
-        flogE<TestLogger> {
-            result += "e"
-            Unit
-        }
-        assertEquals("e", result)
+        assertEquals("e", logResult())
     }
+}
+
+private fun logResult(): String {
+    var result = ""
+    flogV<TestLogger> {
+        result += "v"
+        Unit
+    }
+    flogD<TestLogger> {
+        result += "d"
+        Unit
+    }
+    flogI<TestLogger> {
+        result += "i"
+        Unit
+    }
+    flogW<TestLogger> {
+        result += "w"
+        Unit
+    }
+    flogE<TestLogger> {
+        result += "e"
+        Unit
+    }
+    return result
 }
