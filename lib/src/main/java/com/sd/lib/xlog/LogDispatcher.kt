@@ -3,17 +3,20 @@ package com.sd.lib.xlog
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
-internal fun defaultLogDispatcher(onIdle: () -> Unit): LogDispatcher {
-    return LogDispatcherDefault(onIdle)
+/**
+ * 日志调度器，实现类可以在任何线程上执行任务，但必须保证按顺序执行
+ */
+interface FLogDispatcher {
+    fun dispatch(block: Runnable)
 }
 
-internal interface LogDispatcher {
-    fun dispatch(block: Runnable)
+internal fun defaultLogDispatcher(onIdle: () -> Unit): FLogDispatcher {
+    return LogDispatcherDefault(onIdle)
 }
 
 private abstract class BaseLogDispatcher(
     private val onIdle: () -> Unit,
-) : LogDispatcher {
+) : FLogDispatcher {
     private val _counter = AtomicInteger(0)
 
     final override fun dispatch(block: Runnable) {

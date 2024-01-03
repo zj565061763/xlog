@@ -205,7 +205,7 @@ object FLog {
     }
 
     /**
-     * 访问日志文件目录，[block]在[LogDispatcher]调度器上面执行
+     * 访问日志文件目录，[block]在[FLogDispatcher]调度器上面执行
      */
     @JvmStatic
     fun logDirectory(block: (File) -> Unit) {
