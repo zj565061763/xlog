@@ -233,19 +233,18 @@ object FLog {
     }
 
     /**
-     * 访问日志文件目录，由于在[block]中可能操作文件，所以在[block]执行期间，无法写入日志
+     * 访问日志文件目录，[block]在[LogDispatcher]调度器上面执行
      */
     @JvmStatic
-    fun <T> logDirectory(block: (File) -> T): T {
+    fun logDirectory(block: (File) -> Unit) {
         checkInit()
         _dispatcher.dispatch {
-
-        }
-        synchronized(FLog) {
-            val oldLevel = _level
-            setLevel(FLogLevel.Off)
             _isLevelLockedByLogDirectory = true
-            return try {
+
+            val oldLevel = _level
+            _level = FLogLevel.Off
+
+            try {
                 block(_publisher.directory)
             } finally {
                 _isLevelLockedByLogDirectory = false
