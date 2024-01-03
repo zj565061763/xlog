@@ -112,6 +112,9 @@ object FLog {
 
             if (_level != level) {
                 _level = level
+                _dispatcher.dispatch {
+                    // 发送一个空消息，等调度器空闲的时候处理空闲逻辑
+                }
             }
         }
     }
