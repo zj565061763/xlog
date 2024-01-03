@@ -1,11 +1,10 @@
 package com.sd.lib.xlog
 
-import android.os.Handler
-import android.os.HandlerThread
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 internal fun defaultLogDispatcher(onIdle: () -> Unit): LogDispatcher {
-    return LogDispatcherHandlerThread(onIdle)
+    return LogDispatcherDefault(onIdle)
 }
 
 internal interface LogDispatcher {
@@ -38,17 +37,10 @@ private abstract class BaseLogDispatcher(
     protected abstract fun dispatchImpl(block: Runnable)
 }
 
-private class LogDispatcherHandlerThread(
-    onIdle: () -> Unit,
-) : BaseLogDispatcher(onIdle) {
+private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }
 
-    private val _handler = kotlin.run {
-        val thread = HandlerThread("FLog").also { it.start() }
-        val looper = checkNotNull(thread.looper)
-        Handler(looper)
-    }
-
+private class LogDispatcherDefault(onIdle: () -> Unit) : BaseLogDispatcher(onIdle) {
     override fun dispatchImpl(block: Runnable) {
-        _handler.post(block)
+        SingleThreadExecutor.submit(block)
     }
 }
