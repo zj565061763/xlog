@@ -12,6 +12,7 @@ import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
+import kotlin.concurrent.thread
 import kotlin.time.measureTime
 
 class MainActivity : AppCompatActivity() {
@@ -39,6 +40,10 @@ private fun log() {
     flogI<AppLogger> { "Info" }
     flogW<AppLogger> { "Warning" }
     flogE<AppLogger> { "Error" }
+
+    thread {
+        flogI<AppLogger> { "Info in thread" }
+    }
 
     // 打印控制台日志，不会写入到文件中，tag：DebugLogger
     fDebug { "console debug log" }
