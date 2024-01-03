@@ -95,7 +95,9 @@ object FLog {
     @JvmStatic
     fun setLimitMBPerDay(limitMBPerDay: Int) {
         checkInit()
-        _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
+        _dispatcher.dispatch {
+            _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
+        }
     }
 
     /**
@@ -104,20 +106,12 @@ object FLog {
     @JvmStatic
     fun setLevel(level: FLogLevel) {
         checkInit()
-        synchronized(FLog) {
+        _dispatcher.dispatch {
             if (isLevelLocked()) {
                 _pendingLevel = level
-                return
+                return@dispatch
             }
-
-            if (_level != level) {
-                _level = level
-                if (level == FLogLevel.Off) {
-                    _dispatcher.dispatch {
-                        // 发送一个空消息，等调度器空闲的时候处理空闲逻辑
-                    }
-                }
-            }
+            _level = level
         }
     }
 
