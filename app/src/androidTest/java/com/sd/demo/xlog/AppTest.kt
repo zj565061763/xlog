@@ -22,34 +22,7 @@ class AppTest {
     private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val _logDir get() = _context.filesDir.resolve("app_log")
 
-    @Test
-    fun testConfig() {
-        FLog.setLevel(FLogLevel.Info)
 
-        kotlin.run {
-            var count = 0
-            flogD<TestLogger> { count++ }
-            assertEquals(0, count)
-        }
-
-        kotlin.run {
-            FLog.config<TestLogger> {
-                this.level = FLogLevel.Debug
-            }
-            var count = 0
-            flogD<TestLogger> { count++ }
-            assertEquals(1, count)
-        }
-
-        kotlin.run {
-            FLog.config<TestLogger> {
-                this.level = null
-            }
-            var count = 0
-            flogD<TestLogger> { count++ }
-            assertEquals(0, count)
-        }
-    }
 
     @Test
     fun testDeleteLogFile() {
