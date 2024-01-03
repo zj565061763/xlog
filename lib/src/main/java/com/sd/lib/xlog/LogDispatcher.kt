@@ -25,10 +25,10 @@ private class LogDispatcherProxy(
 
     override fun dispatch(block: Runnable) {
         _counter.incrementAndGet()
-        dispatcher.dispatch { executeBlock(block) }
+        dispatcher.dispatch { execute(block) }
     }
 
-    private fun executeBlock(block: Runnable) {
+    private fun execute(block: Runnable) {
         try {
             block.run()
         } finally {
