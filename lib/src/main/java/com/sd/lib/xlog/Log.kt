@@ -42,7 +42,7 @@ object FLog {
     /** [FLogger]配置信息 */
     private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = Collections.synchronizedMap(hashMapOf())
 
-    /** 文件日志 */
+    /** 文件日志发布 */
     private lateinit var _publisher: DirectoryLogPublisher
 
     /** 日志调度器 */
