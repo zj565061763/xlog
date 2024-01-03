@@ -8,7 +8,7 @@ import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
-import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -24,10 +24,7 @@ class CommonTest {
             flogI<TestLogger> { count++ }
             flogW<TestLogger> { count++ }
             flogE<TestLogger> { count++ }
-
-            FLog.dispatch {
-                Assert.assertEquals(5, count)
-            }
+            assertEquals(5, count)
         }
     }
 }

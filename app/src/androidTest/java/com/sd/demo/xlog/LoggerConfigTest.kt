@@ -4,7 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogD
-import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -17,9 +17,7 @@ class LoggerConfigTest {
         kotlin.run {
             var count = 0
             flogD<TestLogger> { count++ }
-            FLog.dispatch {
-                Assert.assertEquals(0, count)
-            }
+            assertEquals(0, count)
         }
 
         kotlin.run {
@@ -28,10 +26,7 @@ class LoggerConfigTest {
             }
             var count = 0
             flogD<TestLogger> { count++ }
-
-            FLog.dispatch {
-                Assert.assertEquals(1, count)
-            }
+            assertEquals(1, count)
         }
 
         kotlin.run {
@@ -40,10 +35,7 @@ class LoggerConfigTest {
             }
             var count = 0
             flogD<TestLogger> { count++ }
-
-            FLog.dispatch {
-                Assert.assertEquals(0, count)
-            }
+            assertEquals(0, count)
         }
     }
 }

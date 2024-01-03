@@ -8,7 +8,7 @@ import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
-import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -40,9 +40,7 @@ class LogLevelTest {
                 result += "e"
                 Unit
             }
-            FLog.dispatch {
-                Assert.assertEquals("vdiwe", result)
-            }
+            assertEquals("vdiwe", result)
         }
 
         // Verbose
@@ -69,9 +67,7 @@ class LogLevelTest {
                 result += "e"
                 Unit
             }
-            FLog.dispatch {
-                Assert.assertEquals("vdiwe", result)
-            }
+            assertEquals("vdiwe", result)
         }
 
         // Debug
@@ -98,9 +94,7 @@ class LogLevelTest {
                 result += "e"
                 Unit
             }
-            FLog.dispatch {
-                Assert.assertEquals("diwe", result)
-            }
+            assertEquals("diwe", result)
         }
 
         // Info
@@ -127,9 +121,7 @@ class LogLevelTest {
                 result += "e"
                 Unit
             }
-            FLog.dispatch {
-                Assert.assertEquals("iwe", result)
-            }
+            assertEquals("iwe", result)
         }
 
         // Warning
@@ -156,9 +148,7 @@ class LogLevelTest {
                 result += "e"
                 Unit
             }
-            FLog.dispatch {
-                Assert.assertEquals("we", result)
-            }
+            assertEquals("we", result)
         }
 
         // Error
@@ -185,9 +175,7 @@ class LogLevelTest {
                 result += "e"
                 Unit
             }
-            FLog.dispatch {
-                Assert.assertEquals("e", result)
-            }
+            assertEquals("e", result)
         }
     }
 }

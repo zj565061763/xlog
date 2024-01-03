@@ -94,7 +94,7 @@ object FLog {
         _level = level
         if (level == FLogLevel.Off) {
             dispatch {
-                // 发布一个空消息，等待调度器空闲的时候处理空闲逻辑
+                // 发送一个空消息，等待调度器空闲的时候处理空闲逻辑
             }
         }
     }
@@ -112,9 +112,11 @@ object FLog {
     @JvmStatic
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         synchronized(FLog) {
-            _configHolder.getOrPut(clazz) { FLoggerConfig() }
-        }.also {
-            it.block()
+            val config = _configHolder.getOrPut(clazz) { FLoggerConfig() }
+            config.block()
+            if (config.isEmpty()) {
+                _configHolder.remove(clazz)
+            }
         }
     }
 
@@ -225,8 +227,7 @@ object FLog {
     /**
      * 在调度器上面执行
      */
-    @JvmStatic
-    fun dispatch(block: Runnable) {
+    private fun dispatch(block: Runnable) {
         checkInit()
         _dispatcher.dispatch(block)
     }
