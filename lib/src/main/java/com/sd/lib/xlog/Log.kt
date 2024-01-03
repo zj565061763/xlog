@@ -253,6 +253,10 @@ object FLog {
 
     //---------- other ----------
 
+    private fun checkInit() {
+        check(_hasInit.get()) { "You should init before this." }
+    }
+
     @PublishedApi
     internal fun isLoggableConsoleDebug(): Boolean {
         checkInit()
@@ -268,10 +272,6 @@ object FLog {
         if (isLoggableConsoleDebug()) {
             Log.d("DebugLogger", msg)
         }
-    }
-
-    private fun checkInit() {
-        check(_hasInit.get()) { "You should init before this." }
     }
 
     /**
