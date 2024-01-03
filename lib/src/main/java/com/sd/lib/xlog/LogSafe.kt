@@ -42,7 +42,10 @@ private class SafeLogStore(private val instance: FLogStore) : FLogStore {
     }
 
     override fun size(): Long {
-        return libTryRun { instance.size() }.getOrElse { 0 }
+        return libTryRun { instance.size() }.getOrElse {
+            close()
+            throw it
+        }
     }
 
     override fun close() {
