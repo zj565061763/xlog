@@ -36,7 +36,7 @@ object FLog {
     /** 日志等级被库内部暂时锁定期间，外部暂存的等级 */
     private var _pendingLevel: FLogLevel? = null
 
-    /** 是否子线程发布日志 */
+    /** 是否子线程发布日志，true-子线程，false-主线程 */
     private var _async: Boolean? = null
         set(value) {
             check(field == null)
