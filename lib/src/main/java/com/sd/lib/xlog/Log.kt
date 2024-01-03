@@ -177,15 +177,16 @@ object FLog {
      * 发布控制台日志
      */
     private fun publishConsoleLog(record: FLogRecord) {
-        if (!_consoleLogEnabled) return
-        record.run {
-            when (level) {
-                FLogLevel.Verbose -> Log.v(tag, msg)
-                FLogLevel.Debug -> Log.d(tag, msg)
-                FLogLevel.Info -> Log.i(tag, msg)
-                FLogLevel.Warning -> Log.w(tag, msg)
-                FLogLevel.Error -> Log.e(tag, msg)
-                else -> {}
+        if (_consoleLogEnabled) {
+            record.run {
+                when (level) {
+                    FLogLevel.Verbose -> Log.v(tag, msg)
+                    FLogLevel.Debug -> Log.d(tag, msg)
+                    FLogLevel.Info -> Log.i(tag, msg)
+                    FLogLevel.Warning -> Log.w(tag, msg)
+                    FLogLevel.Error -> Log.e(tag, msg)
+                    else -> {}
+                }
             }
         }
     }
