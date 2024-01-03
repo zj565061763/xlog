@@ -45,7 +45,7 @@ object FLog {
     /** 文件日志 */
     private lateinit var _publisher: DirectoryLogPublisher
 
-    /** 发布日志调度器 */
+    /** 日志调度器 */
     private val _dispatcher: LogDispatcher by lazy {
         LogDispatcher.create(checkNotNull(_async)) {
             // TODO check level
