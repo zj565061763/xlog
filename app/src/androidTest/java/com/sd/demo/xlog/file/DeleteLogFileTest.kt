@@ -1,6 +1,9 @@
-package com.sd.demo.xlog
+package com.sd.demo.xlog.file
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.sd.demo.xlog.TestLogger
+import com.sd.demo.xlog.fCreateFile
+import com.sd.demo.xlog.testLogDir
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
