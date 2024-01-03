@@ -94,7 +94,6 @@ object FLog {
      */
     @JvmStatic
     fun setConsoleLogEnabled(enabled: Boolean) {
-        checkInit()
         _consoleLogEnabled = enabled
     }
 
@@ -112,16 +111,24 @@ object FLog {
      */
     @JvmStatic
     fun setLevel(level: FLogLevel) {
+        setLevelInternal(level, checkOff = true)
+    }
+
+    private fun setLevelInternal(level: FLogLevel, checkOff: Boolean) {
         checkInit()
         synchronized(FLog) {
             if (isLevelLocked()) {
                 _pendingLevel = level
                 return
             }
+
             if (_level != level) {
                 _level = level
-                if (level == FLogLevel.Off) {
-                    _publisher.close()
+
+                if (checkOff && level == FLogLevel.Off) {
+                    _dispatcher.dispatch {
+                        _publisher.close()
+                    }
                 }
             }
         }
@@ -240,8 +247,8 @@ object FLog {
      */
     @JvmStatic
     fun <T> logDirectory(block: (File) -> T): T {
+        checkInit()
         synchronized(FLog) {
-            checkInit()
             val oldLevel = _level
             setLevel(FLogLevel.Off)
             _isLevelLockedByLogDirectory = true
