@@ -81,9 +81,8 @@ object FLog {
      */
     @JvmStatic
     fun setLimitMBPerDay(limitMBPerDay: Int) {
-        dispatch {
-            _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
-        }
+        checkInit()
+        _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
     }
 
     /**
