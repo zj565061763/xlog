@@ -1,9 +1,6 @@
 package com.sd.lib.xlog
 
-import android.os.Looper
-import android.os.MessageQueue.IdleHandler
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface LogPublisher : AutoCloseable {
     /**
@@ -73,20 +70,13 @@ private class LogPublisherImpl(
     private var _limitPerDay: Long = 0
     private var _dateInfo: DateInfo? = null
 
-    private val _logFileChecker = SafeIdleHandler { checkLogFileExist() }
-
     override fun setLimitPerDay(limit: Long) {
         _limitPerDay = limit
     }
 
     override fun publish(record: FLogRecord) {
         // 检查日志文件是否存在
-        if (_logFileChecker.register()) {
-            // 主线程，等待检查
-        } else {
-            // 非主线程，直接检查
-            checkLogFileExist()
-        }
+        checkLogFileExist()
 
         val log = formatter.format(record)
         val dateInfo = getDateInfo(record)
@@ -155,28 +145,5 @@ private class LogPublisherImpl(
                 info.store.close()
             }
         }
-    }
-}
-
-private class SafeIdleHandler(private val block: () -> Unit) {
-    private val _register = AtomicBoolean(false)
-
-    /**
-     * 注册[IdleHandler]
-     * @return true-当前主线程，false-当前非主线程
-     */
-    fun register(): Boolean {
-        if (Looper.myLooper() !== Looper.getMainLooper()) return false
-        if (_register.compareAndSet(false, true)) {
-            Looper.myQueue().addIdleHandler {
-                try {
-                    block()
-                } finally {
-                    _register.set(false)
-                }
-                false
-            }
-        }
-        return true
     }
 }
