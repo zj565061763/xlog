@@ -73,11 +73,7 @@ private class LogPublisherImpl(
     private var _limitPerDay: Long = 0
     private var _dateInfo: DateInfo? = null
 
-    private val _logFileChecker = SafeIdleHandler {
-        synchronized(FLog) {
-            checkLogFileExist()
-        }
-    }
+    private val _logFileChecker = SafeIdleHandler { checkLogFileExist() }
 
     override fun setLimitPerDay(limit: Long) {
         _limitPerDay = limit
@@ -86,7 +82,7 @@ private class LogPublisherImpl(
     override fun publish(record: FLogRecord) {
         // 检查日志文件是否存在
         if (_logFileChecker.register()) {
-            // 等待检查
+            // 主线程，等待检查
         } else {
             // 非主线程，直接检查
             checkLogFileExist()
