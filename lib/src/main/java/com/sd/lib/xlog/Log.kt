@@ -52,7 +52,7 @@ object FLog {
         storeFactory: FLogStore.Factory? = null,
 
         /** 日志调度器 */
-        dispatcher: FLogDispatcher = LogDispatcherDefault(),
+        dispatcher: FLogDispatcher? = null,
     ) {
         if (_hasInit.compareAndSet(false, true)) {
             _publisher = defaultPublisher(
@@ -62,7 +62,7 @@ object FLog {
                 filename = LogFilenameDefault(),
             ).safePublisher()
 
-            _dispatcher = dispatcher.toProxy {
+            _dispatcher = (dispatcher ?: LogDispatcherDefault()).toProxy {
                 handleDispatcherIdle()
             }
         }
