@@ -109,9 +109,9 @@ object FLog {
         _dispatcher.dispatch {
             if (isLevelLocked()) {
                 _pendingLevel = level
-                return@dispatch
+            } else {
+                _level = level
             }
-            _level = level
         }
     }
 
