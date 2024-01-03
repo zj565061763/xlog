@@ -11,17 +11,21 @@ interface FLogDispatcher {
 }
 
 internal fun defaultLogDispatcher(onIdle: () -> Unit): FLogDispatcher {
-    return LogDispatcherDefault(onIdle)
+    return LogDispatcherProxy(
+        dispatcher = LogDispatcherDefault(),
+        onIdle = onIdle,
+    )
 }
 
-private abstract class BaseLogDispatcher(
+private class LogDispatcherProxy(
+    private val dispatcher: FLogDispatcher,
     private val onIdle: () -> Unit,
 ) : FLogDispatcher {
     private val _counter = AtomicInteger(0)
 
-    final override fun dispatch(block: Runnable) {
+    override fun dispatch(block: Runnable) {
         _counter.incrementAndGet()
-        dispatchImpl { executeBlock(block) }
+        dispatcher.dispatch { executeBlock(block) }
     }
 
     private fun executeBlock(block: Runnable) {
@@ -36,14 +40,12 @@ private abstract class BaseLogDispatcher(
             }
         }
     }
-
-    protected abstract fun dispatchImpl(block: Runnable)
 }
 
 private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }
 
-private class LogDispatcherDefault(onIdle: () -> Unit) : BaseLogDispatcher(onIdle) {
-    override fun dispatchImpl(block: Runnable) {
+private class LogDispatcherDefault : FLogDispatcher {
+    override fun dispatch(block: Runnable) {
         SingleThreadExecutor.submit(block)
     }
 }
