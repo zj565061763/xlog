@@ -204,7 +204,9 @@ object FLog {
             }
 
             val files = dir.listFiles()
-            if (files.isNullOrEmpty()) return@logDirectory
+            if (files.isNullOrEmpty()) {
+                return@logDirectory
+            }
 
             val filename = _publisher.filename
             val today = filename.filenameOf(System.currentTimeMillis()).also { check(it.isNotEmpty()) }
