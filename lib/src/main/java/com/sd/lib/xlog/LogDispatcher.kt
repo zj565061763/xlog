@@ -16,6 +16,6 @@ private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }
  */
 internal class LogDispatcherDefault : FLogDispatcher {
     override fun dispatch(block: Runnable) {
-        SingleThreadExecutor.submit(block)
+        SingleThreadExecutor.execute(block)
     }
 }
