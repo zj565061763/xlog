@@ -2,6 +2,9 @@ package com.sd.lib.xlog
 
 import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * [onIdle]回调在[FLogDispatcher]上面执行
+ */
 internal fun FLogDispatcher.toProxy(onIdle: () -> Unit): LogDispatcherProxy {
     return if (this is LogDispatcherProxy) {
         this
