@@ -16,10 +16,3 @@ fun File?.fCreateFile(): Boolean {
     this.parentFile?.mkdirs()
     return this.createNewFile()
 }
-
-fun File?.fMakeDirs(): Boolean {
-    if (this == null) return false
-    if (this.isDirectory) return true
-    if (this.isFile) this.delete()
-    return this.mkdirs()
-}
