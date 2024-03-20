@@ -16,43 +16,25 @@ import org.junit.runner.RunWith
 class LogLevelTest {
 
     @Test
-    fun testAll() {
+    fun test() {
         FLog.setLevel(FLogLevel.All)
         assertEquals("vdiwe", logResult())
-    }
 
-    @Test
-    fun testVerbose() {
         FLog.setLevel(FLogLevel.Verbose)
         assertEquals("vdiwe", logResult())
-    }
 
-    @Test
-    fun testDebug() {
         FLog.setLevel(FLogLevel.Debug)
         assertEquals("diwe", logResult())
-    }
 
-    @Test
-    fun testInfo() {
         FLog.setLevel(FLogLevel.Info)
         assertEquals("iwe", logResult())
-    }
 
-    @Test
-    fun testWarning() {
         FLog.setLevel(FLogLevel.Warning)
         assertEquals("we", logResult())
-    }
 
-    @Test
-    fun testError() {
         FLog.setLevel(FLogLevel.Error)
         assertEquals("e", logResult())
-    }
 
-    @Test
-    fun testOff() {
         FLog.setLevel(FLogLevel.Off)
         assertEquals("", logResult())
     }

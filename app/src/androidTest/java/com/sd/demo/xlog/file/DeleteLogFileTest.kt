@@ -7,7 +7,7 @@ import com.sd.demo.xlog.testLogDir
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.text.SimpleDateFormat
