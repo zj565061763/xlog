@@ -11,19 +11,19 @@ interface FLogStore {
     /**
      * 添加日志
      */
-    @Throws(Exception::class)
+    @Throws(Throwable::class)
     fun append(log: String)
 
     /**
      * 日志大小(单位B)
      */
-    @Throws(Exception::class)
+    @Throws(Throwable::class)
     fun size(): Long
 
     /**
      * 关闭
      */
-    @Throws(Exception::class)
+    @Throws(Throwable::class)
     fun close()
 
     /**
