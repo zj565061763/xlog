@@ -252,20 +252,34 @@ object FLog {
     }
 
     @PublishedApi
-    internal fun isLoggableConsoleDebug(): Boolean {
+    internal fun isLoggableConsoleDebug(level: FLogLevel): Boolean {
         checkInit()
-        return FLogLevel.Debug >= _level
+        if (level == FLogLevel.All) return false
+        if (level == FLogLevel.Off) return false
+        return level >= _level
     }
 
     /**
      * 打印控制台日志，不会写入到文件中，tag：DebugLogger，
-     * 注意：此方法不受[_consoleLogEnabled]开关限制，只受日志等级限制
+     * 注意：此方法不受[setConsoleLogEnabled]开关限制，只受日志等级限制
      */
     @JvmStatic
-    fun debug(msg: String?) {
+    @JvmOverloads
+    fun debug(
+        level: FLogLevel = FLogLevel.Debug,
+        msg: String?,
+    ) {
         if (msg.isNullOrEmpty()) return
-        if (isLoggableConsoleDebug()) {
-            Log.d("DebugLogger", msg)
+        if (isLoggableConsoleDebug(level)) {
+            val tag = "DebugLogger"
+            when (level) {
+                FLogLevel.Verbose -> Log.v(tag, msg)
+                FLogLevel.Debug -> Log.d(tag, msg)
+                FLogLevel.Info -> Log.i(tag, msg)
+                FLogLevel.Warning -> Log.w(tag, msg)
+                FLogLevel.Error -> Log.e(tag, msg)
+                else -> {}
+            }
         }
     }
 

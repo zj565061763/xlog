@@ -18,11 +18,15 @@ class SampleDebug : AppCompatActivity() {
         }
     }
 
+    /**
+     * 打印控制台日志，不会写入到文件中，tag：DebugLogger，
+     * 注意：此方法不受[FLog.setConsoleLogEnabled]开关限制，只受日志等级限制
+     */
     private fun log() {
-        /**
-         * 打印控制台日志，不会写入到文件中，tag：DebugLogger，
-         * 注意：此方法不受[FLog.setConsoleLogEnabled]开关限制，只受日志等级限制
-         */
-        fDebug { "console debug log" }
+        fDebug(FLogLevel.Verbose) { "Verbose" }
+        fDebug(FLogLevel.Debug) { "Debug" }
+        fDebug(FLogLevel.Info) { "Info" }
+        fDebug(FLogLevel.Warning) { "Warning" }
+        fDebug(FLogLevel.Error) { "Error" }
     }
 }

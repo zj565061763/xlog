@@ -24,7 +24,7 @@ class SampleLog : AppCompatActivity() {
     }
 
     private fun log() {
-        // 打印控制台日志
+        // 打开控制台日志
         FLog.setConsoleLogEnabled(true)
 
         flogV<AppLogger> { "Verbose" }
