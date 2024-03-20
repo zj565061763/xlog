@@ -229,9 +229,9 @@ object FLog {
     /**
      * 在调度器上面执行
      */
-    private fun dispatch(block: Runnable) {
+    private fun dispatch(task: Runnable) {
         checkInit()
-        _dispatcher.dispatch(block)
+        _dispatcher.dispatch(task)
     }
 
     /**
