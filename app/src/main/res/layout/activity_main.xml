@@ -6,17 +6,24 @@
     android:orientation="vertical">
 
     <Button
-        android:id="@+id/btn_log"
+        android:id="@+id/btn_SampleLog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="log"
+        android:text="SampleLog"
         android:textAllCaps="false" />
 
     <Button
-        android:id="@+id/btn_performance"
+        android:id="@+id/btn_SampleDebug"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="performance"
+        android:text="SampleDebug"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/btn_SamplePerformance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SamplePerformance"
         android:textAllCaps="false" />
 
 </LinearLayout>

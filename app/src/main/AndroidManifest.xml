@@ -23,6 +23,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".SampleLog" />
+        <activity android:name=".SampleDebug" />
+        <activity android:name=".SamplePerformance" />
+
     </application>
 
 </manifest>
