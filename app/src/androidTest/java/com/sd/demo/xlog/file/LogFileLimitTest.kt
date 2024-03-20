@@ -22,7 +22,9 @@ class LogFileLimitTest {
         FLog.setLevel(FLogLevel.All)
         FLog.setLimitMBPerDay(1)
 
+        dir.deleteRecursively()
         assertEquals(false, dir.exists())
+        flogI<TestLogger> { "info" }
         flogI<TestLogger> { "info" }
         assertEquals(true, dir.exists())
         assertEquals(false, dir.listFiles()?.isEmpty())

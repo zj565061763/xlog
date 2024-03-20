@@ -26,6 +26,7 @@ class DeleteLogFileTest {
         dir.deleteRecursively()
         assertEquals(false, dir.exists())
         flogI<TestLogger> { "info" }
+        flogI<TestLogger> { "info" }
         assertEquals(true, dir.exists())
         assertEquals(false, dir.listFiles()?.isEmpty())
 

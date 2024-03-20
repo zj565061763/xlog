@@ -23,16 +23,9 @@ class LogFileDeletedTest {
 
         dir.deleteRecursively()
         assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-
-        dir.deleteRecursively()
-        assertEquals(false, dir.exists())
 
         // 触发store.close()
         flogI<TestLogger> { "info" }
-
         // 触发创建新文件
         flogI<TestLogger> { "info" }
 
