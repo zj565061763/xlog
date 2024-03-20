@@ -19,11 +19,11 @@ internal class LogDispatcherProxy(
 ) : FLogDispatcher {
     private val _counter = AtomicInteger(0)
 
-    override fun dispatch(block: Runnable) {
+    override fun dispatch(task: Runnable) {
         _counter.incrementAndGet()
         dispatcher.dispatch {
             try {
-                block.run()
+                task.run()
             } finally {
                 val count = _counter.decrementAndGet().also {
                     check(it >= 0) { "block executed more than once." }
