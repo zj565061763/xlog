@@ -14,18 +14,51 @@ class ConsoleDebugTest {
     @Test
     fun test() {
         FLog.setConsoleLogEnabled(false)
-        kotlin.run {
-            FLog.setLevel(FLogLevel.All)
-            var count = 0
-            fDebug { count++ }
-            assertEquals(1, count)
-        }
 
-        kotlin.run {
-            FLog.setLevel(FLogLevel.Warning)
-            var count = 0
-            fDebug { count++ }
-            assertEquals(0, count)
-        }
+        FLog.setLevel(FLogLevel.All)
+        assertEquals("vdiwe", logResult())
+
+        FLog.setLevel(FLogLevel.Verbose)
+        assertEquals("vdiwe", logResult())
+
+        FLog.setLevel(FLogLevel.Debug)
+        assertEquals("diwe", logResult())
+
+        FLog.setLevel(FLogLevel.Info)
+        assertEquals("iwe", logResult())
+
+        FLog.setLevel(FLogLevel.Warning)
+        assertEquals("we", logResult())
+
+        FLog.setLevel(FLogLevel.Error)
+        assertEquals("e", logResult())
+
+        FLog.setLevel(FLogLevel.Off)
+        assertEquals("", logResult())
     }
+}
+
+private fun logResult(): String {
+    var result = ""
+    fDebug(FLogLevel.Verbose) {
+        result += "v"
+        Unit
+    }
+    fDebug(FLogLevel.Debug) {
+        result += "d"
+        Unit
+    }
+    fDebug(FLogLevel.Info) {
+        result += "i"
+        Unit
+    }
+    fDebug(FLogLevel.Warning) {
+        result += "w"
+        Unit
+    }
+    fDebug(FLogLevel.Error) {
+        result += "e"
+        Unit
+    }
+    return result
 }
