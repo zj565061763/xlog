@@ -3,7 +3,6 @@ package com.sd.demo.xlog
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sd.lib.xlog.FLogger
 import java.io.File
-import java.io.IOException
 
 interface TestLogger : FLogger
 
@@ -11,16 +10,11 @@ private val _context get() = InstrumentationRegistry.getInstrumentation().target
 val testLogDir get() = _context.filesDir.resolve("app_log")
 
 fun File?.fCreateFile(): Boolean {
-    try {
-        if (this == null) return false
-        if (this.isFile) return true
-        if (this.isDirectory) this.deleteRecursively()
-        this.parentFile?.mkdirs()
-        return this.createNewFile()
-    } catch (e: IOException) {
-        e.printStackTrace()
-        return false
-    }
+    if (this == null) return false
+    if (this.isFile) return true
+    if (this.isDirectory) this.deleteRecursively()
+    this.parentFile?.mkdirs()
+    return this.createNewFile()
 }
 
 fun File?.fMakeDirs(): Boolean {

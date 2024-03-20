@@ -108,7 +108,8 @@ private fun File?.fCreateFile(): Boolean {
     if (this == null) return false
     if (this.isFile) return true
     if (this.isDirectory) this.deleteRecursively()
-    return this.parentFile.fMakeDirs() && this.createNewFile()
+    this.parentFile?.mkdirs()
+    return this.createNewFile()
 }
 
 private fun File?.fMakeDirs(): Boolean {
