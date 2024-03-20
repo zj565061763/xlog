@@ -1,13 +1,11 @@
 package com.sd.lib.xlog
 
 import android.util.Log
-import kotlin.coroutines.cancellation.CancellationException
 
 internal inline fun <R> libTryRun(block: () -> R): Result<R> {
     return try {
         Result.success(block())
-    } catch (e: Exception) {
-        if (e is CancellationException) throw e
+    } catch (e: Throwable) {
         fDebug { Log.getStackTraceString(e) }
         Result.failure(e)
     }
