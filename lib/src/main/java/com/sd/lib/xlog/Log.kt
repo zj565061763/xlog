@@ -258,7 +258,8 @@ object FLog {
     }
 
     /**
-     * 打印控制台日志，不会写入到文件中，tag：DebugLogger
+     * 打印控制台日志，不会写入到文件中，tag：DebugLogger，
+     * 注意：此方法不受[_consoleLogEnabled]开关限制，只受日志等级限制
      */
     @JvmStatic
     fun debug(msg: String?) {

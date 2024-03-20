@@ -46,7 +46,7 @@ internal inline fun <reified T : FLogger> logInternal(level: FLogLevel, block: (
 }
 
 /**
- * 打印控制台日志，不会写入到文件中，tag：DebugLogger
+ * [FLog.debug]
  */
 inline fun fDebug(block: () -> Any) {
     with(FLog) {
