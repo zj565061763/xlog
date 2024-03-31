@@ -16,7 +16,7 @@ FLog.init(
     // 日志文件目录(必传参数)
     directory = filesDir.resolve("app_log"),
 
-    // 日志个时候(可选参数)
+    // 日志格式化(可选参数)
     formatter = AppLogFormatter(),
 
     // 日志仓库工厂(可选参数)
