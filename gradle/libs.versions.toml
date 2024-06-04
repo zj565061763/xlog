@@ -2,12 +2,12 @@
 
 androidCompileSdk = "34"
 
-androidGradlePlugin = "8.3.1"
-kotlin = "1.9.23"
+androidGradlePlugin = "8.4.1"
+kotlin = "1.9.24"
 
 [libraries]
 
-androidx-appcompat = "androidx.appcompat:appcompat:1.6.1"
+androidx-appcompat = "androidx.appcompat:appcompat:1.7.0"
 
 androidx-test-ext-junit = "androidx.test.ext:junit:1.1.5"
 androidx-test-espresso-core = "androidx.test.espresso:espresso-core:3.5.1"
