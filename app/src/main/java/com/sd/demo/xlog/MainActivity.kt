@@ -17,6 +17,9 @@ class MainActivity : AppCompatActivity() {
         _binding.btnSampleDebug.setOnClickListener {
             startActivity(Intent(this, SampleDebug::class.java))
         }
+        _binding.btnSampleLoggerApi.setOnClickListener {
+            startActivity(Intent(this, SampleLoggerApi::class.java))
+        }
         _binding.btnSamplePerformance.setOnClickListener {
             startActivity(Intent(this, SamplePerformance::class.java))
         }
