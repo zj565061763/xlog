@@ -44,7 +44,7 @@ flogE<AppLogger> { "Error" }
 
 ```kotlin
 /**
- * 打印控制台日志，不会写入到文件中，固定tag：DebugLogger，
+ * 打印控制台日志，不会写入到文件中，默认tag：DebugLogger，
  * 注意：此方法不受[FLog.setConsoleLogEnabled]开关限制，只受日志等级限制
  */
 private fun log() {

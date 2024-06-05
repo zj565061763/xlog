@@ -69,7 +69,7 @@ object FLog {
     }
 
     /**
-     * 是否打打印控制台日志，[debug]方法不受此开关的限制
+     * 是否打打印控制台日志，[FLog.debug]方法不受此开关的限制
      */
     @JvmStatic
     fun setConsoleLogEnabled(enabled: Boolean) {
@@ -260,18 +260,18 @@ object FLog {
     }
 
     /**
-     * 打印控制台日志，不会写入到文件中，tag：DebugLogger，
+     * 打印控制台日志，不会写入到文件中，默认tag为[DefaultDebugTag]，
      * 注意：此方法不受[setConsoleLogEnabled]开关限制，只受日志等级限制
      */
     @JvmStatic
     @JvmOverloads
     fun debug(
+        tag: String = DefaultDebugTag,
         level: FLogLevel = FLogLevel.Debug,
         msg: String?,
     ) {
         if (msg.isNullOrEmpty()) return
         if (isLoggableConsoleDebug(level)) {
-            val tag = "DebugLogger"
             when (level) {
                 FLogLevel.Verbose -> Log.v(tag, msg)
                 FLogLevel.Debug -> Log.d(tag, msg)
@@ -323,3 +323,6 @@ object FLog {
         log(clazz, FLogLevel.Error, msg)
     }
 }
+
+@PublishedApi
+internal const val DefaultDebugTag = "DebugLogger"

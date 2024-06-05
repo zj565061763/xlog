@@ -34,3 +34,17 @@ inline fun FLogger.lw(block: () -> Any) {
 inline fun FLogger.le(block: () -> Any) {
     logInternal(javaClass, FLogLevel.Error, block)
 }
+
+/**
+ * 打印控制台日志，不会写入到文件中
+ */
+inline fun FLogger.debug(
+    level: FLogLevel = FLogLevel.Debug,
+    block: () -> Any,
+) {
+    fDebug(
+        tag = javaClass.simpleName,
+        level = level,
+        block = block,
+    )
+}

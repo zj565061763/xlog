@@ -53,11 +53,16 @@ internal inline fun <T : FLogger> logInternal(
  */
 inline fun fDebug(
     level: FLogLevel = FLogLevel.Debug,
+    tag: String = DefaultDebugTag,
     block: () -> Any,
 ) {
     with(FLog) {
         if (isLoggableConsoleDebug(level)) {
-            debug(level, msg = block().toString())
+            debug(
+                tag = tag,
+                level = level,
+                msg = block().toString(),
+            )
         }
     }
 }
