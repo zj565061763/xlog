@@ -1,0 +1,1 @@
+-keep class * extends com.sd.lib.xlog.FLogger
