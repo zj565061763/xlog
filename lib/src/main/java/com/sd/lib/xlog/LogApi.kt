@@ -69,6 +69,6 @@ inline fun fDebug(
     }
 }
 
-fun Throwable?.fStackTraceString(): String {
+fun Throwable?.stackTraceString(): String {
     return Log.getStackTraceString(this)
 }
