@@ -1,5 +1,7 @@
 package com.sd.lib.xlog
 
+import android.util.Log
+
 /**
  * 打印[FLogLevel.Verbose]日志
  */
@@ -65,4 +67,8 @@ inline fun fDebug(
             )
         }
     }
+}
+
+fun Throwable?.fStackTraceString(): String {
+    return Log.getStackTraceString(this)
 }
