@@ -2,7 +2,7 @@
 
 androidCompileSdk = "34"
 
-androidGradlePlugin = "8.4.1"
+androidGradlePlugin = "8.4.2"
 kotlin = "1.9.24"
 
 [libraries]
