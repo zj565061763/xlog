@@ -19,9 +19,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("template.jks")
+            storePassword = "template"
+            keyAlias = "template"
+            keyPassword = "template"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            signingConfig = signingConfigs["release"]
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
