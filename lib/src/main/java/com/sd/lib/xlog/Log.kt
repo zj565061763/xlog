@@ -53,8 +53,8 @@ object FLog {
 
         /** 日志调度器 */
         dispatcher: FLogDispatcher? = null,
-    ) {
-        if (_hasInit.compareAndSet(false, true)) {
+    ): Boolean {
+        return if (_hasInit.compareAndSet(false, true)) {
             _publisher = defaultPublisher(
                 directory = directory,
                 formatter = formatter ?: LogFormatterDefault(),
@@ -65,6 +65,9 @@ object FLog {
             _dispatcher = (dispatcher ?: LogDispatcherDefault()).toProxy {
                 handleDispatcherIdle()
             }
+            true
+        } else {
+            false
         }
     }
 
