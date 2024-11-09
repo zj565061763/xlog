@@ -94,7 +94,7 @@ private class LogPublisherImpl(
             _dateInfo = DateInfo(
                 date = date,
                 file = file,
-                store = storeFactory.create(file).safeStore(),
+                store = SafeLogStore(storeFactory.create(file)),
             )
         }
         return checkNotNull(_dateInfo)
@@ -142,5 +142,29 @@ private class LogPublisherImpl(
                 }
             }
         }
+    }
+}
+
+private class SafeLogStore(
+    private val instance: FLogStore,
+) : FLogStore {
+    override fun append(log: String) {
+        libRunCatching { instance.append(log) }
+            .onFailure {
+                close()
+                throw it
+            }
+    }
+
+    override fun size(): Long {
+        return libRunCatching { instance.size() }
+            .getOrElse {
+                close()
+                throw it
+            }
+    }
+
+    override fun close() {
+        libRunCatching { instance.close() }
     }
 }
