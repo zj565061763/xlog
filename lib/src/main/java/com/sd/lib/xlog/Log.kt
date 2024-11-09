@@ -2,7 +2,6 @@ package com.sd.lib.xlog
 
 import android.util.Log
 import java.io.File
-import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
@@ -28,7 +27,7 @@ object FLog {
     private var _consoleLogEnabled: Boolean = true
 
     /** [FLogger]配置信息 */
-    private val _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = Collections.synchronizedMap(hashMapOf())
+    private var _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig>? = null
 
     /** 文件日志发布 */
     private lateinit var _publisher: DirectoryLogPublisher
@@ -118,16 +117,22 @@ object FLog {
     fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
         checkInit()
         synchronized(FLog) {
-            val config = _configHolder.getOrPut(clazz) { FLoggerConfig() }
+            val holder = _configHolder ?: mutableMapOf<Class<out FLogger>, FLoggerConfig>().also { _configHolder = it }
+            val config = holder.getOrPut(clazz) { FLoggerConfig() }
             config.block()
             if (config.isEmpty()) {
-                _configHolder.remove(clazz)
+                holder.remove(clazz)
+                if (holder.isEmpty()) {
+                    _configHolder = null
+                }
             }
         }
     }
 
     private fun getConfig(clazz: Class<out FLogger>): FLoggerConfig? {
-        return _configHolder[clazz]
+        synchronized(FLog) {
+            return _configHolder?.get(clazz)
+        }
     }
 
     @PublishedApi
