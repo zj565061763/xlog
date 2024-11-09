@@ -11,12 +11,19 @@ import com.sd.lib.xlog.flogW
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
-class LogLevelTest {
+class LogTest {
 
     @Test
-    fun test() {
+    fun testReInit() {
+        val init = FLog.init(directory = File("abc"))
+        assertEquals(false, init)
+    }
+
+    @Test
+    fun testLevel() {
         FLog.setLevel(FLogLevel.All)
         assertEquals("vdiwe", logResult())
 
