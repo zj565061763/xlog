@@ -147,7 +147,7 @@ private class SafeLogStore(
     private val instance: FLogStore,
 ) : FLogStore {
     override fun append(log: String) {
-        libRunCatching { instance.append(log) }
+        runCatching { instance.append(log) }
             .onFailure {
                 close()
                 throw it
@@ -155,7 +155,7 @@ private class SafeLogStore(
     }
 
     override fun size(): Long {
-        return libRunCatching { instance.size() }
+        return runCatching { instance.size() }
             .getOrElse {
                 close()
                 throw it
