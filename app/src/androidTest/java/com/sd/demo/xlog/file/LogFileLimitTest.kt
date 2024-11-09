@@ -39,5 +39,8 @@ class LogFileLimitTest {
         dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
             assertEquals(1, files?.size)
         }
+
+        flogI<TestLogger> { "info" }
+        assertEquals(2, dir.listFiles()!!.size)
     }
 }
