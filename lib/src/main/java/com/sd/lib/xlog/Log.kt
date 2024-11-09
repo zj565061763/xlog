@@ -165,26 +165,8 @@ object FLog {
             )
         }.let { record ->
             dispatch {
-                publishConsoleLog(record)
+                if (_consoleLogEnabled) record.consoleLog()
                 _publisher.publish(record)
-            }
-        }
-    }
-
-    /**
-     * 发布控制台日志
-     */
-    private fun publishConsoleLog(record: FLogRecord) {
-        if (_consoleLogEnabled) {
-            with(record) {
-                when (level) {
-                    FLogLevel.Verbose -> Log.v(tag, msg)
-                    FLogLevel.Debug -> Log.d(tag, msg)
-                    FLogLevel.Info -> Log.i(tag, msg)
-                    FLogLevel.Warning -> Log.w(tag, msg)
-                    FLogLevel.Error -> Log.e(tag, msg)
-                    else -> {}
-                }
             }
         }
     }
@@ -336,4 +318,15 @@ internal const val DefaultDebugTag = "DebugLogger"
 private fun checkLoggable(level: FLogLevel) {
     require(level != FLogLevel.All)
     require(level != FLogLevel.Off)
+}
+
+private fun FLogRecord.consoleLog() {
+    when (level) {
+        FLogLevel.Verbose -> Log.v(tag, msg)
+        FLogLevel.Debug -> Log.d(tag, msg)
+        FLogLevel.Info -> Log.i(tag, msg)
+        FLogLevel.Warning -> Log.w(tag, msg)
+        FLogLevel.Error -> Log.e(tag, msg)
+        else -> {}
+    }
 }
