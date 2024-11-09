@@ -64,18 +64,19 @@ private class LogPublisherImpl(
     private var _dateInfo: DateInfo? = null
 
     override fun setLimitPerDay(limit: Long) {
-        _limitPerDay = limit.coerceAtLeast(0)
+        _limitPerDay = limit
     }
 
     override fun publish(record: FLogRecord) {
-        val log = formatter.format(record)
         val dateInfo = getDateInfo(record)
 
         // 保存日志
-        dateInfo.store.append(log)
+        dateInfo.store.append(
+            formatter.format(record)
+        )
 
         // 检查日志大小
-        checkLimit(dateInfo)
+        dateInfo.checkLimit()
     }
 
     override fun close() {
@@ -103,21 +104,19 @@ private class LogPublisherImpl(
     /**
      * 检查日志大小
      */
-    private fun checkLimit(dateInfo: DateInfo) {
+    private fun DateInfo.checkLimit() {
         if (_limitPerDay <= 0) {
             // 不限制大小
             return
         }
 
-        dateInfo.run {
-            if (store.size() > (_limitPerDay / 2)) {
-                store.close()
-                val partFile = file.resolveSibling("${file.name}.1")
-                file.renameTo(partFile).also { rename ->
-                    fDebug {
-                        val res = if (rename) "success" else "failed"
-                        "lib publisher log file rename $res ${this@LogPublisherImpl}"
-                    }
+        if (store.size() > (_limitPerDay / 2)) {
+            store.close()
+            val partFile = file.resolveSibling("${file.name}.1")
+            file.renameTo(partFile).also { rename ->
+                fDebug {
+                    val res = if (rename) "success" else "failed"
+                    "lib publisher log file rename $res ${this@LogPublisherImpl}"
                 }
             }
         }
