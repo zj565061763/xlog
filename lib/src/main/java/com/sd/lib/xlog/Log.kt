@@ -34,7 +34,7 @@ object FLog {
     private lateinit var _publisher: DirectoryLogPublisher
 
     /** 日志调度器 */
-    private lateinit var _dispatcher: LogDispatcherProxy
+    private lateinit var _dispatcher: FLogDispatcher
 
     /**
      * 初始化
@@ -62,9 +62,10 @@ object FLog {
                 filename = defaultLogFilename(),
             ).safePublisher()
 
-            _dispatcher = (dispatcher ?: defaultLogDispatcher()).toProxy {
-                handleDispatcherIdle()
-            }
+            _dispatcher = defaultLogDispatcher(
+                dispatcher = dispatcher,
+                onIdle = { handleDispatcherIdle() },
+            )
             true
         } else {
             false
