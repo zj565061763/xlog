@@ -177,7 +177,7 @@ object FLog {
      */
     private fun publishConsoleLog(record: FLogRecord) {
         if (_consoleLogEnabled) {
-            record.run {
+            with(record) {
                 when (level) {
                     FLogLevel.Verbose -> Log.v(tag, msg)
                     FLogLevel.Debug -> Log.d(tag, msg)

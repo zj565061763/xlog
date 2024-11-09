@@ -45,7 +45,7 @@ private class FileLogStore(file: File) : FLogStore {
 
     override fun append(log: String) {
         val data = log.toByteArray()
-        getOutput().run {
+        with(getOutput()) {
             write(data)
             flush()
         }
