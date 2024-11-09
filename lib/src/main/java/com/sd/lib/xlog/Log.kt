@@ -145,7 +145,7 @@ object FLog {
     }
 
     /**
-     * 打印日志
+     * 打印日志，如果[level]等于[FLogLevel.All]或者[FLogLevel.Off]则跑异常[IllegalArgumentException]
      */
     @JvmStatic
     fun log(clazz: Class<out FLogger>, level: FLogLevel, msg: String?) {
@@ -262,6 +262,7 @@ object FLog {
 
     /**
      * 打印控制台日志，不会写入到文件中，默认tag为[DefaultDebugTag]，
+     * 如果[level]等于[FLogLevel.All]或者[FLogLevel.Off]则跑异常[IllegalArgumentException]，
      * 注意：此方法不受[setConsoleLogEnabled]开关限制，只受日志等级限制
      */
     @JvmStatic
