@@ -64,7 +64,7 @@ private class LogPublisherImpl(
     private var _dateInfo: DateInfo? = null
 
     override fun setLimitPerDay(limit: Long) {
-        _limitPerDay = limit
+        _limitPerDay = limit.coerceAtLeast(0)
     }
 
     override fun publish(record: FLogRecord) {
