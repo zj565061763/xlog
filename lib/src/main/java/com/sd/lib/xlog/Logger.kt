@@ -22,6 +22,5 @@ class FLoggerConfig(
  * 配置信息是否为空
  */
 internal fun FLoggerConfig.isEmpty(): Boolean {
-    return this.level == null &&
-            this.tag.isNullOrEmpty()
+    return level == null && tag.isNullOrEmpty()
 }
