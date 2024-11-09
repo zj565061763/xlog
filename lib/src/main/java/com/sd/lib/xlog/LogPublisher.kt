@@ -137,8 +137,8 @@ private class LogPublisherImpl(
 
     private fun DateInfo.closeStore() {
         store.close()
-        if (formatter is LogFormatterDefault) {
-            formatter.resetLastLogTag()
+        if (formatter is AutoCloseable) {
+            formatter.close()
         }
     }
 }

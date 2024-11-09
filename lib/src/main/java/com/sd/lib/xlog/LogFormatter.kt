@@ -4,24 +4,16 @@ package com.sd.lib.xlog
  * 日志格式化
  */
 interface FLogFormatter {
-    /**
-     * 格式化
-     */
     fun format(record: FLogRecord): String
 }
 
-/**
- * 默认的日志格式化
- */
-internal class LogFormatterDefault : FLogFormatter {
+internal fun defaultLogFormatter(): FLogFormatter = LogFormatterImpl()
+
+private class LogFormatterImpl : FLogFormatter, AutoCloseable {
     private val _list = mutableListOf<String>()
 
     /** 上一次打印日志的tag */
     private var _lastLogTag = ""
-
-    fun resetLastLogTag() {
-        _lastLogTag = ""
-    }
 
     override fun format(record: FLogRecord): String {
         val logTime = LogTime.create(record.millis)
@@ -52,6 +44,10 @@ internal class LogFormatterDefault : FLogFormatter {
             append(record.msg)
             append("\n")
         }
+    }
+
+    override fun close() {
+        _lastLogTag = ""
     }
 }
 

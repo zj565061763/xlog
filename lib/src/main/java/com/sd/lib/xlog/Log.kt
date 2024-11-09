@@ -58,7 +58,7 @@ object FLog {
             _publisher = defaultPublisher(
                 directory = directory,
                 filename = defaultLogFilename(),
-                formatter = formatter ?: LogFormatterDefault(),
+                formatter = formatter ?: defaultLogFormatter(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
             ).safePublisher()
 
