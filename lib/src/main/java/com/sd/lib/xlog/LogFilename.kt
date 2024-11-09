@@ -33,8 +33,8 @@ private class LogFilenameImpl : LogFilename {
     }
 
     private fun filenameToInt(filename: String): Int? {
-        val format = filename.substringBefore(".")
-        val intValue = libTryRun { format.toInt() }.getOrElse { null } ?: return null
+        val dateString = filename.substringBefore(".")
+        val intValue = libTryRun { dateString.toInt() }.getOrElse { null } ?: return null
         return intValue.takeIf { it > 0 }
     }
 }
