@@ -2,17 +2,16 @@ package com.sd.demo.xlog
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sd.lib.xlog.FLogger
+import com.sd.lib.xlog.fLogDir
 import java.io.File
 
 interface TestLogger : FLogger
 
-private val _context get() = InstrumentationRegistry.getInstrumentation().targetContext
-val testLogDir get() = _context.filesDir.resolve("app_log")
+val testLogDir get() = InstrumentationRegistry.getInstrumentation().targetContext.fLogDir()
 
-fun File?.fCreateFile(): Boolean {
-    if (this == null) return false
-    if (this.isFile) return true
-    if (this.isDirectory) this.deleteRecursively()
-    this.parentFile?.mkdirs()
-    return this.createNewFile()
+fun File.fCreateFile(): Boolean {
+    if (isFile) return true
+    if (isDirectory) deleteRecursively()
+    parentFile?.mkdirs()
+    return createNewFile()
 }
