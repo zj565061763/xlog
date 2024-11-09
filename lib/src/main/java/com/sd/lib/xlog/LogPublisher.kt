@@ -136,15 +136,14 @@ private class LogPublisherImpl(
      * 检查日志文件是否存在
      */
     private fun checkLogFileExist() {
-        _dateInfo?.let { info ->
-            if (info.file.isFile) {
-                // 文件存在
-            } else {
-                // 文件不存在，关闭后会重新创建
-                info.store.close()
-                if (formatter is LogFormatterDefault) {
-                    formatter.resetLastLogTag()
-                }
+        val info = _dateInfo ?: return
+        if (info.file.isFile) {
+            // 文件存在
+        } else {
+            // 文件不存在，关闭后会重新创建
+            info.store.close()
+            if (formatter is LogFormatterDefault) {
+                formatter.resetLastLogTag()
             }
         }
     }
