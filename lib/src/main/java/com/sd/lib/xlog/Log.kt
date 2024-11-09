@@ -2,7 +2,6 @@ package com.sd.lib.xlog
 
 import android.util.Log
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FLogLevel {
     /** 开启所有日志 */
@@ -16,15 +15,15 @@ enum class FLogLevel {
 
 object FLog {
     /** 是否已经初始化 */
-    private val _hasInit = AtomicBoolean(false)
+    private var _hasInit = false
 
     /** 日志等级 */
     @Volatile
-    private var _level: FLogLevel = FLogLevel.All
+    private var _level = FLogLevel.All
 
     /** 是否打印控制台日志 */
     @Volatile
-    private var _consoleLogEnabled: Boolean = true
+    private var _consoleLogEnabled = true
 
     /** [FLogger]配置信息 */
     private var _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig>? = null
@@ -37,6 +36,7 @@ object FLog {
 
     /**
      * 初始化
+     * @return true-初始化成功；false-已经初始化过了
      */
     @JvmStatic
     @JvmOverloads
@@ -50,7 +50,8 @@ object FLog {
         /** 日志调度器 */
         dispatcher: FLogDispatcher? = null,
     ): Boolean {
-        return if (_hasInit.compareAndSet(false, true)) {
+        synchronized(FLog) {
+            if (_hasInit) return false
             _publisher = defaultLogPublisher(
                 directory = directory,
                 filename = defaultLogFilename(),
@@ -61,9 +62,8 @@ object FLog {
                 dispatcher = dispatcher,
                 onIdle = { handleDispatcherIdle() },
             )
-            true
-        } else {
-            false
+            _hasInit = true
+            return true
         }
     }
 
@@ -251,7 +251,10 @@ object FLog {
     //---------- other ----------
 
     private fun checkInit() {
-        check(_hasInit.get()) { "You should init before this." }
+        if (_hasInit) return
+        synchronized(FLog) {
+            check(_hasInit) { "You should init before this." }
+        }
     }
 
     @PublishedApi
