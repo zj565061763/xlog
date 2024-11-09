@@ -137,7 +137,7 @@ object FLog {
         checkLoggable(level)
 
         if (_level == FLogLevel.Off) {
-            /** 如果全局等级为[FLogLevel.Off]，则不读取[FLoggerConfig]，不打印日志 */
+            /** 如果全局等级为[FLogLevel.Off]，不读取[FLoggerConfig]，不打印日志 */
             return false
         }
 
