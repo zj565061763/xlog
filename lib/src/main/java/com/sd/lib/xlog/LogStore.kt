@@ -104,10 +104,9 @@ private class CounterOutputStream(output: OutputStream, length: Long) : OutputSt
     }
 }
 
-private fun File?.fCreateFile(): Boolean {
-    if (this == null) return false
-    if (this.isFile) return true
-    if (this.isDirectory) this.deleteRecursively()
-    this.parentFile?.mkdirs()
-    return this.createNewFile()
+private fun File.fCreateFile(): Boolean {
+    if (isFile) return true
+    if (isDirectory) deleteRecursively()
+    parentFile?.mkdirs()
+    return createNewFile()
 }
