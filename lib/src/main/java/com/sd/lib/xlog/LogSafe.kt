@@ -1,12 +1,10 @@
 package com.sd.lib.xlog
 
-import android.util.Log
-
 internal inline fun <R> libTryRun(block: () -> R): Result<R> {
     return try {
         Result.success(block())
     } catch (e: Throwable) {
-        fDebug { Log.getStackTraceString(e) }
+        fDebug { e.stackTraceToString() }
         Result.failure(e)
     }
 }
@@ -20,7 +18,7 @@ internal fun FLogStore.safeStore(): FLogStore {
 }
 
 private class SafeLogPublisher(
-    private val instance: DirectoryLogPublisher
+    private val instance: DirectoryLogPublisher,
 ) : DirectoryLogPublisher by instance {
     override fun publish(record: FLogRecord) {
         libTryRun { instance.publish(record) }
