@@ -28,9 +28,7 @@ private class LogFormatterImpl : FLogFormatter, AutoCloseable {
             }
             _lastLogTag = record.tag
 
-            if (record.level != FLogLevel.Info) {
-                _list.add(record.level.displayName())
-            }
+            _list.add(record.level.displayName())
 
             if (!record.isMainThread) {
                 _list.add(record.threadID)
@@ -53,12 +51,11 @@ private class LogFormatterImpl : FLogFormatter, AutoCloseable {
 
 private fun FLogLevel.displayName(): String {
     return when (this) {
-        FLogLevel.All -> "A"
         FLogLevel.Verbose -> "V"
         FLogLevel.Debug -> "D"
         FLogLevel.Info -> "I"
         FLogLevel.Warning -> "W"
         FLogLevel.Error -> "E"
-        FLogLevel.Off -> "O"
+        else -> toString()
     }
 }
