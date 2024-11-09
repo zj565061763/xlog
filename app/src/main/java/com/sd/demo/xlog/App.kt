@@ -16,7 +16,7 @@ class App : Application() {
             directory = fLogDir(),
 
             // 单元测试使用的调度器
-            dispatcher = TestLogDispatcher(),
+//            dispatcher = TestLogDispatcher(),
         )
 
         // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
