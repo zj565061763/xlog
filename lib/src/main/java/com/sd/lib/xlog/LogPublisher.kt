@@ -111,9 +111,6 @@ private class LogPublisherImpl(
         }
     }
 
-    /**
-     * 检查日志大小
-     */
     private fun DateInfo.checkLimit() {
         val limit = _limitPerDay
         if (limit <= 0) {
