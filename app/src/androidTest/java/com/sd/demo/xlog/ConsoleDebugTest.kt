@@ -42,23 +42,23 @@ private fun logResult(): String {
     var result = ""
     fDebug(FLogLevel.Verbose) {
         result += "v"
-        Unit
+        ""
     }
     fDebug(FLogLevel.Debug) {
         result += "d"
-        Unit
+        ""
     }
     fDebug(FLogLevel.Info) {
         result += "i"
-        Unit
+        ""
     }
     fDebug(FLogLevel.Warning) {
         result += "w"
-        Unit
+        ""
     }
     fDebug(FLogLevel.Error) {
         result += "e"
-        Unit
+        ""
     }
     return result
 }
