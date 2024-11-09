@@ -59,7 +59,7 @@ object FLog {
                 directory = directory,
                 formatter = formatter ?: LogFormatterDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
-                filename = LogFilenameDefault(),
+                filename = defaultLogFilename(),
             ).safePublisher()
 
             _dispatcher = (dispatcher ?: LogDispatcherDefault()).toProxy {

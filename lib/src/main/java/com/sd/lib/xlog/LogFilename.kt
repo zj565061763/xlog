@@ -19,10 +19,9 @@ internal interface LogFilename {
     fun diffDays(filename1: String, filename2: String): Int?
 }
 
-/**
- * 默认的日志文件名
- */
-internal class LogFilenameDefault : LogFilename {
+internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
+
+private class LogFilenameImpl : LogFilename {
     override fun filenameOf(millis: Long): String {
         return LogTime.create(millis).dateString
     }
