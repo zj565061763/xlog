@@ -189,7 +189,7 @@ object FLog {
             }
 
             val filename = _publisher.filename
-            val today = filename.filenameOf(System.currentTimeMillis()).also { check(it.isNotEmpty()) }
+            val today = filename.filenameOf(System.currentTimeMillis())
 
             files.forEach { file ->
                 val diffDays = filename.diffDays(today, file.name)
