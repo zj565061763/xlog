@@ -64,7 +64,6 @@ private class FileLogStore(file: File) : FLogStore {
         return _output ?: kotlin.run {
             _file.fCreateFile()
             FileOutputStream(_file, true)
-                .buffered()
                 .let { CounterOutputStream(it, _file.length()) }
                 .also { _output = it }
         }
