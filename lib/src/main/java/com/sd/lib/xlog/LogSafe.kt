@@ -1,6 +1,6 @@
 package com.sd.lib.xlog
 
-internal inline fun <R> libTryRun(block: () -> R): Result<R> {
+internal inline fun <R> libRunCatching(block: () -> R): Result<R> {
     return try {
         Result.success(block())
     } catch (e: Throwable) {
@@ -21,30 +21,30 @@ private class SafeLogPublisher(
     private val instance: DirectoryLogPublisher,
 ) : DirectoryLogPublisher by instance {
     override fun publish(record: FLogRecord) {
-        libTryRun { instance.publish(record) }
+        libRunCatching { instance.publish(record) }
     }
 
     override fun close() {
-        libTryRun { instance.close() }
+        libRunCatching { instance.close() }
     }
 }
 
 private class SafeLogStore(private val instance: FLogStore) : FLogStore {
     override fun append(log: String) {
-        libTryRun { instance.append(log) }.getOrElse {
+        libRunCatching { instance.append(log) }.getOrElse {
             close()
             throw it
         }
     }
 
     override fun size(): Long {
-        return libTryRun { instance.size() }.getOrElse {
+        return libRunCatching { instance.size() }.getOrElse {
             close()
             throw it
         }
     }
 
     override fun close() {
-        libTryRun { instance.close() }
+        libRunCatching { instance.close() }
     }
 }

@@ -34,7 +34,6 @@ private class LogFilenameImpl : LogFilename {
 
     private fun filenameToInt(filename: String): Int? {
         val dateString = filename.substringBefore(".")
-        val intValue = libTryRun { dateString.toInt() }.getOrElse { null } ?: return null
-        return intValue.takeIf { it > 0 }
+        return libRunCatching { dateString.toInt() }.getOrNull()?.takeIf { it > 0 }
     }
 }
