@@ -26,9 +26,6 @@ interface FLogStore {
     @Throws(Throwable::class)
     fun close()
 
-    /**
-     * 日志仓库工厂
-     */
     fun interface Factory {
         /**
          * 创建[file]对应的日志仓库
