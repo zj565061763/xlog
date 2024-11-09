@@ -22,18 +22,14 @@ class LoggerConfigTest {
         }
 
         kotlin.run {
-            FLog.config<TestLogger> {
-                this.level = FLogLevel.Debug
-            }
+            FLog.config<TestLogger> { level = FLogLevel.Debug }
             var count = 0
             flogD<TestLogger> { count++ }
             assertEquals(1, count)
         }
 
         kotlin.run {
-            FLog.config<TestLogger> {
-                this.level = null
-            }
+            FLog.config<TestLogger> { level = null }
             var count = 0
             flogD<TestLogger> { count++ }
             assertEquals(0, count)

@@ -51,23 +51,23 @@ private fun logResult(): String {
     var result = ""
     flogV<TestLogger> {
         result += "v"
-        Unit
+        ""
     }
     flogD<TestLogger> {
         result += "d"
-        Unit
+        ""
     }
     flogI<TestLogger> {
         result += "i"
-        Unit
+        ""
     }
     flogW<TestLogger> {
         result += "w"
-        Unit
+        ""
     }
     flogE<TestLogger> {
         result += "e"
-        Unit
+        ""
     }
     return result
 }
