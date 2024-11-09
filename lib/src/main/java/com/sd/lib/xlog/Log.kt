@@ -54,7 +54,7 @@ object FLog {
         dispatcher: FLogDispatcher? = null,
     ): Boolean {
         return if (_hasInit.compareAndSet(false, true)) {
-            _publisher = defaultPublisher(
+            _publisher = defaultLogPublisher(
                 directory = directory,
                 filename = defaultLogFilename(),
                 formatter = formatter ?: defaultLogFormatter(),

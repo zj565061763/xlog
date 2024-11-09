@@ -32,7 +32,7 @@ internal interface DirectoryLogPublisher : LogPublisher {
     fun onIdle()
 }
 
-internal fun defaultPublisher(
+internal fun defaultLogPublisher(
     directory: File,
     filename: LogFilename,
     formatter: FLogFormatter,
