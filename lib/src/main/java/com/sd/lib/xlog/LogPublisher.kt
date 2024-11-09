@@ -105,19 +105,25 @@ private class LogPublisherImpl(
      * 检查日志大小
      */
     private fun DateInfo.checkLimit() {
-        if (_limitPerDay <= 0) {
+        val limit = _limitPerDay
+        if (limit <= 0) {
             // 不限制大小
             return
         }
 
-        if (store.size() > (_limitPerDay / 2)) {
-            store.close()
-            val partFile = file.resolveSibling("${file.name}.1")
-            file.renameTo(partFile).also { rename ->
-                fDebug {
-                    val res = if (rename) "success" else "failed"
-                    "lib publisher log file rename $res ${this@LogPublisherImpl}"
-                }
+        val partLimit = limit / 2
+        if (store.size() < partLimit) {
+            // 还未超过限制
+            return
+        }
+
+        // 关闭并重命名
+        store.close()
+        val partFile = file.resolveSibling("${file.name}.1")
+        file.renameTo(partFile).also { rename ->
+            fDebug {
+                val res = if (rename) "success" else "failed"
+                "lib publisher log file rename $res ${this@LogPublisherImpl}"
             }
         }
     }
