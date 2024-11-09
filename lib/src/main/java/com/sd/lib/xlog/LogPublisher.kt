@@ -18,12 +18,6 @@ internal interface DirectoryLogPublisher : LogPublisher {
     /** 日志文件目录 */
     val directory: File
 
-    /** 日志格式化 */
-    val formatter: FLogFormatter
-
-    /** 日志仓库工厂 */
-    val storeFactory: FLogStore.Factory
-
     /** 日志文件名 */
     val filename: LogFilename
 
@@ -39,31 +33,24 @@ internal interface DirectoryLogPublisher : LogPublisher {
 }
 
 internal fun defaultPublisher(
-    /** 日志文件目录 */
     directory: File,
-
-    /** 日志格式化 */
-    formatter: FLogFormatter,
-
-    /** 日志仓库工厂 */
-    storeFactory: FLogStore.Factory,
-
-    /** 日志文件名 */
     filename: LogFilename,
+    formatter: FLogFormatter,
+    storeFactory: FLogStore.Factory,
 ): DirectoryLogPublisher {
     return LogPublisherImpl(
         directory = directory,
+        filename = filename,
         formatter = formatter,
         storeFactory = storeFactory,
-        filename = filename,
     )
 }
 
 private class LogPublisherImpl(
     override val directory: File,
-    override val formatter: FLogFormatter,
-    override val storeFactory: FLogStore.Factory,
     override val filename: LogFilename,
+    private val formatter: FLogFormatter,
+    private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
 
     private data class DateInfo(

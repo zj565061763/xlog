@@ -57,9 +57,9 @@ object FLog {
         return if (_hasInit.compareAndSet(false, true)) {
             _publisher = defaultPublisher(
                 directory = directory,
+                filename = defaultLogFilename(),
                 formatter = formatter ?: LogFormatterDefault(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
-                filename = defaultLogFilename(),
             ).safePublisher()
 
             _dispatcher = defaultLogDispatcher(
