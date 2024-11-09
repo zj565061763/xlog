@@ -156,13 +156,13 @@ object FLog {
             val config = getConfig(clazz)
             val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
 
-            val record = newLogRecord(
+            newLogRecord(
                 logger = clazz,
                 tag = tag,
                 msg = msg,
                 level = level,
             )
-
+        }.let { record ->
             dispatch {
                 publishConsoleLog(record)
                 _publisher.publish(record)
