@@ -82,7 +82,7 @@ private class LogPublisherImpl(
     override fun close() {
         _dateInfo?.let {
             _dateInfo = null
-            it.store.close()
+            it.closeStore()
         }
     }
 
@@ -99,6 +99,17 @@ private class LogPublisherImpl(
             )
         }
         return checkNotNull(_dateInfo)
+    }
+
+    override fun onIdle() {
+        _dateInfo?.let { info ->
+            if (info.file.isFile) {
+                // 文件存在
+            } else {
+                // 文件不存在，关闭后会重新创建
+                info.closeStore()
+            }
+        }
     }
 
     /**
@@ -118,7 +129,7 @@ private class LogPublisherImpl(
         }
 
         // 关闭并重命名
-        store.close()
+        closeStore()
         val partFile = file.resolveSibling("${file.name}.1")
         file.renameTo(partFile).also { rename ->
             fDebug {
@@ -128,23 +139,10 @@ private class LogPublisherImpl(
         }
     }
 
-    override fun onIdle() {
-        checkLogFileExist()
-    }
-
-    /**
-     * 检查日志文件是否存在
-     */
-    private fun checkLogFileExist() {
-        val info = _dateInfo ?: return
-        if (info.file.isFile) {
-            // 文件存在
-        } else {
-            // 文件不存在，关闭后会重新创建
-            info.store.close()
-            if (formatter is LogFormatterDefault) {
-                formatter.resetLastLogTag()
-            }
+    private fun DateInfo.closeStore() {
+        store.close()
+        if (formatter is LogFormatterDefault) {
+            formatter.resetLastLogTag()
         }
     }
 }
