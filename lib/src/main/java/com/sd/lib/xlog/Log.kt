@@ -43,13 +43,10 @@ object FLog {
     fun init(
         /** 日志文件目录 */
         directory: File,
-
         /** 日志格式化 */
         formatter: FLogFormatter? = null,
-
         /** 日志仓库工厂 */
         storeFactory: FLogStore.Factory? = null,
-
         /** 日志调度器 */
         dispatcher: FLogDispatcher? = null,
     ): Boolean {
@@ -60,7 +57,6 @@ object FLog {
                 formatter = formatter ?: defaultLogFormatter(),
                 storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
             ).safePublisher()
-
             _dispatcher = defaultLogDispatcher(
                 dispatcher = dispatcher,
                 onIdle = { handleDispatcherIdle() },
