@@ -23,10 +23,8 @@ internal interface LogFilename {
  * 默认的日志文件名
  */
 internal class LogFilenameDefault : LogFilename {
-    private val _logTimeFactory = LogTimeFactory()
-
     override fun filenameOf(millis: Long): String {
-        return _logTimeFactory.create(millis).dateString
+        return LogTime.create(millis).dateString
     }
 
     override fun diffDays(filename1: String, filename2: String): Int? {

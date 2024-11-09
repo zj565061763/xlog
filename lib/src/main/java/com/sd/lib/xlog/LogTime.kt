@@ -9,29 +9,23 @@ internal interface LogTime {
     /** HH:mm:ss.SSS，例如：18:18:18.888 */
     val timeString: String
 
-    interface Factory {
-        fun create(millis: Long): LogTime
-    }
-}
-
-internal class LogTimeFactory : LogTime.Factory {
-    override fun create(millis: Long): LogTime {
-        sCalendar.timeInMillis = millis
-        return sCalendar.run {
-            LogTimeModel(
-                year = get(Calendar.YEAR),
-                month = get(Calendar.MONTH) + 1,
-                dayOfMonth = get(Calendar.DAY_OF_MONTH),
-                hourOfDay = get(Calendar.HOUR_OF_DAY),
-                minute = get(Calendar.MINUTE),
-                second = get(Calendar.SECOND),
-                millisecond = get(Calendar.MILLISECOND),
-            )
-        }
-    }
-
     companion object {
         private val sCalendar = Calendar.getInstance()
+
+        fun create(millis: Long): LogTime {
+            return with(sCalendar) {
+                timeInMillis = millis
+                LogTimeModel(
+                    year = get(Calendar.YEAR),
+                    month = get(Calendar.MONTH) + 1,
+                    dayOfMonth = get(Calendar.DAY_OF_MONTH),
+                    hourOfDay = get(Calendar.HOUR_OF_DAY),
+                    minute = get(Calendar.MINUTE),
+                    second = get(Calendar.SECOND),
+                    millisecond = get(Calendar.MILLISECOND),
+                )
+            }
+        }
     }
 }
 

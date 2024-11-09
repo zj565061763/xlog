@@ -14,7 +14,6 @@ interface FLogFormatter {
  * 默认的日志格式化
  */
 internal class LogFormatterDefault : FLogFormatter {
-    private val _logTimeFactory = LogTimeFactory()
     private val _list = mutableListOf<String>()
 
     /** 上一次打印日志的tag */
@@ -25,7 +24,7 @@ internal class LogFormatterDefault : FLogFormatter {
     }
 
     override fun format(record: FLogRecord): String {
-        val logTime = _logTimeFactory.create(record.millis)
+        val logTime = LogTime.create(record.millis)
         return buildString {
             append(logTime.timeString)
 
