@@ -33,7 +33,7 @@ private class LogDispatcher(
                 task.run()
             } finally {
                 val count = _counter.decrementAndGet().also {
-                    check(it >= 0) { "block executed more than once." }
+                    check(it >= 0) { "task executed more than once." }
                 }
                 if (count == 0) {
                     onIdle()
