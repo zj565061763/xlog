@@ -62,7 +62,7 @@ object FLog {
                 filename = defaultLogFilename(),
             ).safePublisher()
 
-            _dispatcher = (dispatcher ?: LogDispatcherDefault()).toProxy {
+            _dispatcher = (dispatcher ?: defaultLogDispatcher()).toProxy {
                 handleDispatcherIdle()
             }
             true

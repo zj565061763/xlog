@@ -9,13 +9,12 @@ interface FLogDispatcher {
     fun dispatch(task: Runnable)
 }
 
-private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }
+internal fun defaultLogDispatcher(): FLogDispatcher = LogDispatcherImpl()
 
-/**
- * 默认日志调度器
- */
-internal class LogDispatcherDefault : FLogDispatcher {
+private class LogDispatcherImpl : FLogDispatcher {
     override fun dispatch(task: Runnable) {
         SingleThreadExecutor.execute(task)
     }
 }
+
+private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }
