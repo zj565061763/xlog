@@ -29,19 +29,23 @@ private class SafeLogPublisher(
     }
 }
 
-private class SafeLogStore(private val instance: FLogStore) : FLogStore {
+private class SafeLogStore(
+    private val instance: FLogStore,
+) : FLogStore {
     override fun append(log: String) {
-        libRunCatching { instance.append(log) }.getOrElse {
-            close()
-            throw it
-        }
+        libRunCatching { instance.append(log) }
+            .onFailure {
+                close()
+                throw it
+            }
     }
 
     override fun size(): Long {
-        return libRunCatching { instance.size() }.getOrElse {
-            close()
-            throw it
-        }
+        return libRunCatching { instance.size() }
+            .getOrElse {
+                close()
+                throw it
+            }
     }
 
     override fun close() {
