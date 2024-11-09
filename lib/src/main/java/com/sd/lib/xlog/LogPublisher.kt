@@ -80,9 +80,9 @@ private class LogPublisherImpl(
     }
 
     override fun close() {
-        _dateInfo?.let {
+        _dateInfo?.let { info ->
             _dateInfo = null
-            it.closeStore()
+            info.closeStore()
         }
     }
 
