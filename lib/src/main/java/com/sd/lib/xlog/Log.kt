@@ -133,14 +133,13 @@ object FLog {
     @PublishedApi
     internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
         checkInit()
+        checkLoggable(level)
 
         if (_level == FLogLevel.Off) {
             /** 如果全局等级为[FLogLevel.Off]，则不读取[FLoggerConfig]，不打印日志 */
             return false
         }
 
-        if (level == FLogLevel.All) return false
-        if (level == FLogLevel.Off) return false
         val limitLevel = getConfig(clazz)?.level ?: _level
         return level >= limitLevel
     }
@@ -257,8 +256,7 @@ object FLog {
     @PublishedApi
     internal fun isLoggableConsoleDebug(level: FLogLevel): Boolean {
         checkInit()
-        if (level == FLogLevel.All) return false
-        if (level == FLogLevel.Off) return false
+        checkLoggable(level)
         return level >= _level
     }
 
@@ -329,3 +327,8 @@ object FLog {
 
 @PublishedApi
 internal const val DefaultDebugTag = "DebugLogger"
+
+private fun checkLoggable(level: FLogLevel) {
+    require(level != FLogLevel.All)
+    require(level != FLogLevel.Off)
+}
