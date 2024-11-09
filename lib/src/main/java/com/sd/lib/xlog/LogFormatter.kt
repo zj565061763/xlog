@@ -15,23 +15,19 @@ private class LogFormatterImpl : FLogFormatter, AutoCloseable {
     /** 上一次打印日志的tag */
     private var _lastLogTag = ""
 
-    override fun format(record: FLogRecord): String {
-        val logTime = LogTime.create(record.millis)
-        return buildString {
-            append(logTime.timeString)
+    override fun format(record: FLogRecord): String = with(record) {
+        _list.clear()
+        buildString {
+            append(LogTime.create(millis).timeString)
 
-            _list.clear()
+            val logTag = if (tag == _lastLogTag) "" else tag
+            if (logTag.isNotEmpty()) _list.add(logTag)
+            _lastLogTag = tag
 
-            val finalTag = if (record.tag == _lastLogTag) "" else record.tag
-            if (finalTag.isNotEmpty()) {
-                _list.add(finalTag)
-            }
-            _lastLogTag = record.tag
+            _list.add(level.displayName())
 
-            _list.add(record.level.displayName())
-
-            if (!record.isMainThread) {
-                _list.add(record.threadID)
+            if (!isMainThread) {
+                _list.add(threadID)
             }
 
             if (_list.isNotEmpty()) {
@@ -39,7 +35,7 @@ private class LogFormatterImpl : FLogFormatter, AutoCloseable {
             }
 
             append(" ")
-            append(record.msg)
+            append(msg)
             append("\n")
         }
     }
