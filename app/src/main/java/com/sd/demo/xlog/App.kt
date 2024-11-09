@@ -5,6 +5,7 @@ import com.sd.demo.xlog.log.AppLogger
 import com.sd.demo.xlog.log.TestLogDispatcher
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
+import com.sd.lib.xlog.fLogDir
 
 class App : Application() {
     override fun onCreate() {
@@ -12,7 +13,7 @@ class App : Application() {
         // 初始化
         FLog.init(
             //（必传参数）日志文件目录
-            directory = filesDir.resolve("app_log"),
+            directory = fLogDir(),
 
             // 单元测试使用的调度器
 //            dispatcher = TestLogDispatcher(),
