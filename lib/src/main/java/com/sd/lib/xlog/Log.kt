@@ -145,11 +145,8 @@ object FLog {
         return level >= limitLevel
     }
 
-    /**
-     * 打印日志，如果[level]等于[FLogLevel.All]或者[FLogLevel.Off]则抛异常[IllegalArgumentException]
-     */
-    @JvmStatic
-    fun log(clazz: Class<out FLogger>, level: FLogLevel, msg: String?) {
+    @PublishedApi
+    internal fun log(clazz: Class<out FLogger>, level: FLogLevel, msg: String?) {
         synchronized(FLog) {
             if (msg.isNullOrEmpty()) return
             if (!isLoggable(clazz, level)) return
