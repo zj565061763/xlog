@@ -1,12 +1,10 @@
 package com.sd.lib.xlog
 
 internal inline fun <R> libRunCatching(block: () -> R): Result<R> {
-    return try {
-        Result.success(block())
-    } catch (e: Throwable) {
-        fDebug { e.stackTraceToString() }
-        Result.failure(e)
-    }
+    return runCatching(block)
+        .onFailure { e ->
+            fDebug { e.stackTraceToString() }
+        }
 }
 
 internal fun DirectoryLogPublisher.safePublisher(): DirectoryLogPublisher {
