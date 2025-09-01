@@ -13,27 +13,27 @@ import com.sd.lib.xlog.flogW
 import kotlin.concurrent.thread
 
 class SampleLog : AppCompatActivity() {
-    private val _binding by lazy { SampleLogBinding.inflate(layoutInflater) }
+  private val _binding by lazy { SampleLogBinding.inflate(layoutInflater) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(_binding.root)
-        _binding.btnLog.setOnClickListener {
-            log()
-        }
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(_binding.root)
+    _binding.btnLog.setOnClickListener {
+      log()
     }
+  }
 
-    private fun log() {
-        // 打开控制台日志
-        FLog.setConsoleLogEnabled(true)
+  private fun log() {
+    // 打开控制台日志
+    FLog.setConsoleLogEnabled(true)
 
-        flogV<AppLogger> { "Verbose" }
-        flogD<AppLogger> { "Debug" }
-        flogI<AppLogger> { "Info" }
-        flogW<AppLogger> { "Warning" }
-        flogE<AppLogger> { "Error" }
-        thread {
-            flogW<AppLogger> { "in thread" }
-        }
+    flogV<AppLogger> { "Verbose" }
+    flogD<AppLogger> { "Debug" }
+    flogI<AppLogger> { "Info" }
+    flogW<AppLogger> { "Warning" }
+    flogE<AppLogger> { "Error" }
+    thread {
+      flogW<AppLogger> { "in thread" }
     }
+  }
 }

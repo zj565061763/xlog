@@ -10,8 +10,8 @@ interface TestLogger : FLogger
 val testLogDir get() = InstrumentationRegistry.getInstrumentation().targetContext.fLogDir()
 
 fun File.fCreateFile(): Boolean {
-    if (isFile) return true
-    if (isDirectory) deleteRecursively()
-    parentFile?.mkdirs()
-    return createNewFile()
+  if (isFile) return true
+  if (isDirectory) deleteRecursively()
+  parentFile?.mkdirs()
+  return createNewFile()
 }

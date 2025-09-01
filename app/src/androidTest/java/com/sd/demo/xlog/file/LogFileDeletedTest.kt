@@ -16,20 +16,20 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LogFileDeletedTest {
 
-    @Test
-    fun test() {
-        val dir = testLogDir
-        FLog.setLevel(FLogLevel.All)
+  @Test
+  fun test() {
+    val dir = testLogDir
+    FLog.setLevel(FLogLevel.All)
 
-        dir.deleteRecursively()
-        assertEquals(false, dir.exists())
+    dir.deleteRecursively()
+    assertEquals(false, dir.exists())
 
-        // 触发store.close()
-        flogI<TestLogger> { "info" }
-        // 触发创建新文件
-        flogI<TestLogger> { "info" }
+    // 触发store.close()
+    flogI<TestLogger> { "info" }
+    // 触发创建新文件
+    flogI<TestLogger> { "info" }
 
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
-    }
+    assertEquals(true, dir.exists())
+    assertEquals(false, dir.listFiles()?.isEmpty())
+  }
 }

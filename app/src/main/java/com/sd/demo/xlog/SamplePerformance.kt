@@ -10,30 +10,30 @@ import com.sd.lib.xlog.flogI
 import kotlin.time.measureTime
 
 class SamplePerformance : AppCompatActivity() {
-    private val _binding by lazy { SamplePerformanceBinding.inflate(layoutInflater) }
+  private val _binding by lazy { SamplePerformanceBinding.inflate(layoutInflater) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(_binding.root)
-        _binding.btnLog.setOnClickListener {
-            log()
-        }
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(_binding.root)
+    _binding.btnLog.setOnClickListener {
+      log()
     }
+  }
 
-    /**
-     * 日志性能测试，需要关闭控制台日志后测试
-     */
-    private fun log(repeat: Int = 1_0000) {
-        // 关闭控制台日志
-        FLog.setConsoleLogEnabled(false)
+  /**
+   * 日志性能测试，需要关闭控制台日志后测试
+   */
+  private fun log(repeat: Int = 1_0000) {
+    // 关闭控制台日志
+    FLog.setConsoleLogEnabled(false)
 
-        val log = "1".repeat(500)
-        measureTime {
-            repeat(repeat) {
-                flogI<AppLogger> { log }
-            }
-        }.let {
-            fDebug { "time:${it.inWholeMilliseconds}" }
-        }
+    val log = "1".repeat(500)
+    measureTime {
+      repeat(repeat) {
+        flogI<AppLogger> { log }
+      }
+    }.let {
+      fDebug { "time:${it.inWholeMilliseconds}" }
     }
+  }
 }

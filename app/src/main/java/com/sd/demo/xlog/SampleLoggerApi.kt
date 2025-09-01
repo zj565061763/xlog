@@ -14,35 +14,35 @@ import com.sd.lib.xlog.lv
 import com.sd.lib.xlog.lw
 
 class SampleLoggerApi : AppCompatActivity(), FLogger {
-    private val _binding by lazy { SampleLoggerApiBinding.inflate(layoutInflater) }
+  private val _binding by lazy { SampleLoggerApiBinding.inflate(layoutInflater) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(_binding.root)
-        _binding.btnLog.setOnClickListener {
-            printLog()
-        }
-        _binding.btnDebug.setOnClickListener {
-            printDebug()
-        }
-
-        // 打开控制台日志
-        FLog.setConsoleLogEnabled(true)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(_binding.root)
+    _binding.btnLog.setOnClickListener {
+      printLog()
+    }
+    _binding.btnDebug.setOnClickListener {
+      printDebug()
     }
 
-    private fun printLog() {
-        lv { "Verbose" }
-        ld { "Debug" }
-        li { "Info" }
-        lw { "Warning" }
-        le { "Error" }
-    }
+    // 打开控制台日志
+    FLog.setConsoleLogEnabled(true)
+  }
 
-    private fun printDebug() {
-        debug(FLogLevel.Verbose) { "Verbose" }
-        debug(FLogLevel.Debug) { "Debug" }
-        debug(FLogLevel.Info) { "Info" }
-        debug(FLogLevel.Warning) { "Warning" }
-        debug(FLogLevel.Error) { "Error" }
-    }
+  private fun printLog() {
+    lv { "Verbose" }
+    ld { "Debug" }
+    li { "Info" }
+    lw { "Warning" }
+    le { "Error" }
+  }
+
+  private fun printDebug() {
+    debug(FLogLevel.Verbose) { "Verbose" }
+    debug(FLogLevel.Debug) { "Debug" }
+    debug(FLogLevel.Info) { "Info" }
+    debug(FLogLevel.Warning) { "Warning" }
+    debug(FLogLevel.Error) { "Error" }
+  }
 }

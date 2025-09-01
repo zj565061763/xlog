@@ -8,101 +8,101 @@ import java.io.OutputStream
  * 日志仓库
  */
 interface FLogStore {
-    /**
-     * 添加日志
-     */
-    @Throws(Throwable::class)
-    fun append(log: String)
+  /**
+   * 添加日志
+   */
+  @Throws(Throwable::class)
+  fun append(log: String)
 
-    /**
-     * 日志大小(单位B)
-     */
-    @Throws(Throwable::class)
-    fun size(): Long
+  /**
+   * 日志大小(单位B)
+   */
+  @Throws(Throwable::class)
+  fun size(): Long
 
-    /**
-     * 关闭
-     */
-    @Throws(Throwable::class)
-    fun close()
+  /**
+   * 关闭
+   */
+  @Throws(Throwable::class)
+  fun close()
 
-    fun interface Factory {
-        /**
-         * 创建[file]对应的日志仓库
-         */
-        fun create(file: File): FLogStore
-    }
+  fun interface Factory {
+    /**
+     * 创建[file]对应的日志仓库
+     */
+    fun create(file: File): FLogStore
+  }
 }
 
 internal fun defaultLogStore(file: File): FLogStore = FileLogStore(file)
 
 private class FileLogStore(file: File) : FLogStore {
-    private val _file = file
-    private var _output: CounterOutputStream? = null
+  private val _file = file
+  private var _output: CounterOutputStream? = null
 
-    override fun append(log: String) {
-        val data = log.toByteArray()
-        with(getOutput()) {
-            write(data)
-            flush()
-        }
+  override fun append(log: String) {
+    val data = log.toByteArray()
+    with(getOutput()) {
+      write(data)
+      flush()
     }
+  }
 
-    override fun size(): Long {
-        return getOutput().written
-    }
+  override fun size(): Long {
+    return getOutput().written
+  }
 
-    override fun close() {
-        try {
-            _output?.close()
-        } finally {
-            _output = null
-        }
+  override fun close() {
+    try {
+      _output?.close()
+    } finally {
+      _output = null
     }
+  }
 
-    private fun getOutput(): CounterOutputStream {
-        return _output ?: kotlin.run {
-            _file.fCreateFile()
-            FileOutputStream(_file, true)
-                .let { CounterOutputStream(it, _file.length()) }
-                .also { _output = it }
-        }
+  private fun getOutput(): CounterOutputStream {
+    return _output ?: kotlin.run {
+      _file.fCreateFile()
+      FileOutputStream(_file, true)
+        .let { CounterOutputStream(it, _file.length()) }
+        .also { _output = it }
     }
+  }
 }
 
 private class CounterOutputStream(output: OutputStream, length: Long) : OutputStream() {
-    private val _output = output
-    private var _written = length
+  private val _output = output
+  private var _written = length
 
-    val written: Long get() = _written
+  val written: Long get() = _written
 
-    override fun write(b: Int) {
-        _output.write(b)
-        _written++
-    }
+  override fun write(b: Int) {
+    _output.write(b)
+    _written++
+  }
 
-    override fun write(buff: ByteArray) {
-        _output.write(buff)
-        _written += buff.size
-    }
+  override fun write(buff: ByteArray) {
+    _output.write(buff)
+    _written += buff.size
+  }
 
-    override fun write(buff: ByteArray, off: Int, len: Int) {
-        _output.write(buff, off, len)
-        _written += len
-    }
+  override fun write(buff: ByteArray, off: Int, len: Int) {
+    _output.write(buff, off, len)
+    _written += len
+  }
 
-    override fun flush() {
-        _output.flush()
-    }
+  override fun flush() {
+    _output.flush()
+  }
 
-    override fun close() {
-        _output.close()
-    }
+  override fun close() {
+    _output.close()
+  }
 }
 
 private fun File.fCreateFile(): Boolean {
-    if (isFile) return true
-    if (isDirectory) deleteRecursively()
-    parentFile?.mkdirs()
-    return createNewFile()
+  if (isFile) return true
+  if (isDirectory) deleteRecursively()
+  parentFile?.mkdirs()
+  return createNewFile()
 }

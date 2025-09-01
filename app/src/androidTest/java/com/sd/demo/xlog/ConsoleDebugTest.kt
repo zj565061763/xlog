@@ -11,54 +11,54 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ConsoleDebugTest {
 
-    @Test
-    fun test() {
-        FLog.setConsoleLogEnabled(false)
+  @Test
+  fun test() {
+    FLog.setConsoleLogEnabled(false)
 
-        FLog.setLevel(FLogLevel.All)
-        assertEquals("vdiwe", logResult())
+    FLog.setLevel(FLogLevel.All)
+    assertEquals("vdiwe", logResult())
 
-        FLog.setLevel(FLogLevel.Verbose)
-        assertEquals("vdiwe", logResult())
+    FLog.setLevel(FLogLevel.Verbose)
+    assertEquals("vdiwe", logResult())
 
-        FLog.setLevel(FLogLevel.Debug)
-        assertEquals("diwe", logResult())
+    FLog.setLevel(FLogLevel.Debug)
+    assertEquals("diwe", logResult())
 
-        FLog.setLevel(FLogLevel.Info)
-        assertEquals("iwe", logResult())
+    FLog.setLevel(FLogLevel.Info)
+    assertEquals("iwe", logResult())
 
-        FLog.setLevel(FLogLevel.Warning)
-        assertEquals("we", logResult())
+    FLog.setLevel(FLogLevel.Warning)
+    assertEquals("we", logResult())
 
-        FLog.setLevel(FLogLevel.Error)
-        assertEquals("e", logResult())
+    FLog.setLevel(FLogLevel.Error)
+    assertEquals("e", logResult())
 
-        FLog.setLevel(FLogLevel.Off)
-        assertEquals("", logResult())
-    }
+    FLog.setLevel(FLogLevel.Off)
+    assertEquals("", logResult())
+  }
 }
 
 private fun logResult(): String {
-    var result = ""
-    fDebug(FLogLevel.Verbose) {
-        result += "v"
-        ""
-    }
-    fDebug(FLogLevel.Debug) {
-        result += "d"
-        ""
-    }
-    fDebug(FLogLevel.Info) {
-        result += "i"
-        ""
-    }
-    fDebug(FLogLevel.Warning) {
-        result += "w"
-        ""
-    }
-    fDebug(FLogLevel.Error) {
-        result += "e"
-        ""
-    }
-    return result
+  var result = ""
+  fDebug(FLogLevel.Verbose) {
+    result += "v"
+    ""
+  }
+  fDebug(FLogLevel.Debug) {
+    result += "d"
+    ""
+  }
+  fDebug(FLogLevel.Info) {
+    result += "i"
+    ""
+  }
+  fDebug(FLogLevel.Warning) {
+    result += "w"
+    ""
+  }
+  fDebug(FLogLevel.Error) {
+    result += "e"
+    ""
+  }
+  return result
 }

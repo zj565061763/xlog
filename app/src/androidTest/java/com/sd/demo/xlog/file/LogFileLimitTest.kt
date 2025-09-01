@@ -16,31 +16,31 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LogFileLimitTest {
 
-    @Test
-    fun test() {
-        val dir = testLogDir
-        FLog.setLevel(FLogLevel.All)
-        FLog.setLimitMBPerDay(1)
+  @Test
+  fun test() {
+    val dir = testLogDir
+    FLog.setLevel(FLogLevel.All)
+    FLog.setLimitMBPerDay(1)
 
-        dir.deleteRecursively()
-        assertEquals(false, dir.exists())
-        flogI<TestLogger> { "info" }
-        flogI<TestLogger> { "info" }
-        assertEquals(true, dir.exists())
-        assertEquals(false, dir.listFiles()?.isEmpty())
+    dir.deleteRecursively()
+    assertEquals(false, dir.exists())
+    flogI<TestLogger> { "info" }
+    flogI<TestLogger> { "info" }
+    assertEquals(true, dir.exists())
+    assertEquals(false, dir.listFiles()?.isEmpty())
 
-        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
-            assertEquals(0, files?.size)
-        }
-
-        val log = "1".repeat(800 * 1024)
-        flogI<TestLogger> { log }
-
-        dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
-            assertEquals(1, files?.size)
-        }
-
-        flogI<TestLogger> { "info" }
-        assertEquals(2, dir.listFiles()!!.size)
+    dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
+      assertEquals(0, files?.size)
     }
+
+    val log = "1".repeat(800 * 1024)
+    flogI<TestLogger> { log }
+
+    dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
+      assertEquals(1, files?.size)
+    }
+
+    flogI<TestLogger> { "info" }
+    assertEquals(2, dir.listFiles()!!.size)
+  }
 }

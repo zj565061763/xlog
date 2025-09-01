@@ -11,28 +11,28 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LoggerConfigTest {
 
-    @Test
-    fun test() {
-        FLog.setLevel(FLogLevel.Info)
+  @Test
+  fun test() {
+    FLog.setLevel(FLogLevel.Info)
 
-        kotlin.run {
-            var count = 0
-            flogD<TestLogger> { count++ }
-            assertEquals(0, count)
-        }
-
-        kotlin.run {
-            FLog.config<TestLogger> { level = FLogLevel.Debug }
-            var count = 0
-            flogD<TestLogger> { count++ }
-            assertEquals(1, count)
-        }
-
-        kotlin.run {
-            FLog.config<TestLogger> { level = null }
-            var count = 0
-            flogD<TestLogger> { count++ }
-            assertEquals(0, count)
-        }
+    kotlin.run {
+      var count = 0
+      flogD<TestLogger> { count++ }
+      assertEquals(0, count)
     }
+
+    kotlin.run {
+      FLog.config<TestLogger> { level = FLogLevel.Debug }
+      var count = 0
+      flogD<TestLogger> { count++ }
+      assertEquals(1, count)
+    }
+
+    kotlin.run {
+      FLog.config<TestLogger> { level = null }
+      var count = 0
+      flogD<TestLogger> { count++ }
+      assertEquals(0, count)
+    }
+  }
 }

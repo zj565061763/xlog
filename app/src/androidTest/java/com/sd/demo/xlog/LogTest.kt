@@ -16,58 +16,58 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class LogTest {
 
-    @Test
-    fun testReInit() {
-        val init = FLog.init(directory = File("abc"))
-        assertEquals(false, init)
-    }
+  @Test
+  fun testReInit() {
+    val init = FLog.init(directory = File("abc"))
+    assertEquals(false, init)
+  }
 
-    @Test
-    fun testLevel() {
-        FLog.setLevel(FLogLevel.All)
-        assertEquals("vdiwe", logResult())
+  @Test
+  fun testLevel() {
+    FLog.setLevel(FLogLevel.All)
+    assertEquals("vdiwe", logResult())
 
-        FLog.setLevel(FLogLevel.Verbose)
-        assertEquals("vdiwe", logResult())
+    FLog.setLevel(FLogLevel.Verbose)
+    assertEquals("vdiwe", logResult())
 
-        FLog.setLevel(FLogLevel.Debug)
-        assertEquals("diwe", logResult())
+    FLog.setLevel(FLogLevel.Debug)
+    assertEquals("diwe", logResult())
 
-        FLog.setLevel(FLogLevel.Info)
-        assertEquals("iwe", logResult())
+    FLog.setLevel(FLogLevel.Info)
+    assertEquals("iwe", logResult())
 
-        FLog.setLevel(FLogLevel.Warning)
-        assertEquals("we", logResult())
+    FLog.setLevel(FLogLevel.Warning)
+    assertEquals("we", logResult())
 
-        FLog.setLevel(FLogLevel.Error)
-        assertEquals("e", logResult())
+    FLog.setLevel(FLogLevel.Error)
+    assertEquals("e", logResult())
 
-        FLog.setLevel(FLogLevel.Off)
-        assertEquals("", logResult())
-    }
+    FLog.setLevel(FLogLevel.Off)
+    assertEquals("", logResult())
+  }
 }
 
 private fun logResult(): String {
-    var result = ""
-    flogV<TestLogger> {
-        result += "v"
-        ""
-    }
-    flogD<TestLogger> {
-        result += "d"
-        ""
-    }
-    flogI<TestLogger> {
-        result += "i"
-        ""
-    }
-    flogW<TestLogger> {
-        result += "w"
-        ""
-    }
-    flogE<TestLogger> {
-        result += "e"
-        ""
-    }
-    return result
+  var result = ""
+  flogV<TestLogger> {
+    result += "v"
+    ""
+  }
+  flogD<TestLogger> {
+    result += "d"
+    ""
+  }
+  flogI<TestLogger> {
+    result += "i"
+    ""
+  }
+  flogW<TestLogger> {
+    result += "w"
+    ""
+  }
+  flogE<TestLogger> {
+    result += "e"
+    ""
+  }
+  return result
 }

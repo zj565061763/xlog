@@ -9,18 +9,18 @@ interface FLogger
  * [FLogger]配置信息
  */
 class FLoggerConfig(
-    /** 日志等级 */
-    @Volatile
-    var level: FLogLevel? = null,
+  /** 日志等级 */
+  @Volatile
+  var level: FLogLevel? = null,
 
-    /** 日志标识 */
-    @Volatile
-    var tag: String? = null,
+  /** 日志标识 */
+  @Volatile
+  var tag: String? = null,
 )
 
 /**
  * 配置信息是否为空
  */
 internal fun FLoggerConfig.isEmpty(): Boolean {
-    return level == null && tag.isNullOrEmpty()
+  return level == null && tag.isNullOrEmpty()
 }
