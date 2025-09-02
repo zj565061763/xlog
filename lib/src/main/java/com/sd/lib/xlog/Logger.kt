@@ -8,14 +8,11 @@ interface FLogger
 /**
  * [FLogger]配置信息
  */
-class FLoggerConfig(
+data class FLoggerConfig(
   /** 日志等级 */
-  @Volatile
-  var level: FLogLevel? = null,
-
+  val level: FLogLevel? = null,
   /** 日志标识 */
-  @Volatile
-  var tag: String? = null,
+  val tag: String? = null,
 )
 
 /**

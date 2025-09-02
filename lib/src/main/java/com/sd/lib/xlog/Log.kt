@@ -102,7 +102,7 @@ object FLog {
   /**
    * 修改[FLogger]配置信息
    */
-  inline fun <reified T : FLogger> config(noinline block: FLoggerConfig.() -> Unit) {
+  inline fun <reified T : FLogger> config(noinline block: (FLoggerConfig) -> FLoggerConfig) {
     config(T::class.java, block)
   }
 
@@ -110,17 +110,16 @@ object FLog {
    * 修改[FLogger]配置信息
    */
   @JvmStatic
-  fun config(clazz: Class<out FLogger>, block: FLoggerConfig.() -> Unit) {
+  fun config(clazz: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig) {
     checkInit()
     synchronized(FLog) {
       val holder = _configHolder ?: mutableMapOf<Class<out FLogger>, FLoggerConfig>().also { _configHolder = it }
-      val config = holder.getOrPut(clazz) { FLoggerConfig() }
-      config.block()
+      val config = block(holder.getOrPut(clazz) { FLoggerConfig() })
       if (config.isEmpty()) {
         holder.remove(clazz)
-        if (holder.isEmpty()) {
-          _configHolder = null
-        }
+        if (holder.isEmpty()) _configHolder = null
+      } else {
+        holder[clazz] = config
       }
     }
   }
