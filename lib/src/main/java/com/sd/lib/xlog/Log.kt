@@ -149,13 +149,9 @@ object FLog {
     synchronized(FLog) {
       if (msg.isNullOrEmpty()) return
       if (!isLoggable(clazz, level)) return
-
-      val config = getConfig(clazz)
-      val tag = config?.tag?.takeIf { it.isNotEmpty() } ?: clazz.simpleName
-
       newLogRecord(
         logger = clazz,
-        tag = tag,
+        tag = (getConfig(clazz)?.tag ?: "").ifEmpty { clazz.simpleName },
         msg = msg,
         level = level,
       )
