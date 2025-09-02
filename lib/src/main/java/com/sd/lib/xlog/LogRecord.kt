@@ -31,7 +31,7 @@ internal fun newLogRecord(
   msg: String,
   level: FLogLevel,
 ): FLogRecord {
-  return LogRecordModel(
+  return LogRecordImpl(
     logger = logger,
     tag = tag,
     msg = msg,
@@ -42,7 +42,7 @@ internal fun newLogRecord(
   )
 }
 
-private data class LogRecordModel(
+private data class LogRecordImpl(
   override val logger: Class<out FLogger>,
   override val tag: String,
   override val msg: String,
