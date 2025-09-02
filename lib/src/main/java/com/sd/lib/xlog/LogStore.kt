@@ -41,9 +41,8 @@ private class FileLogStore(file: File) : FLogStore {
   private var _output: CounterOutputStream? = null
 
   override fun append(log: String) {
-    val data = log.toByteArray()
     with(getOutput()) {
-      write(data)
+      write(log.toByteArray())
       flush()
     }
   }
