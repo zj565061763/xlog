@@ -13,20 +13,6 @@
         android:textAllCaps="false" />
 
     <Button
-        android:id="@+id/btn_SampleDebug"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="SampleDebug"
-        android:textAllCaps="false" />
-
-    <Button
-        android:id="@+id/btn_SampleLoggerApi"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="SampleLoggerApi"
-        android:textAllCaps="false" />
-
-    <Button
         android:id="@+id/btn_SamplePerformance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
