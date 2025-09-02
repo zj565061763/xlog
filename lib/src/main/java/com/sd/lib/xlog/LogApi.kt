@@ -43,11 +43,7 @@ internal inline fun <T : FLogger> logInternal(
 ) {
   with(FLog) {
     if (isLoggable(clazz, level)) {
-      log(
-        clazz = clazz,
-        level = level,
-        msg = block().toString()
-      )
+      log(clazz = clazz, level = level, msg = block().toString())
     }
   }
 }
@@ -62,11 +58,7 @@ inline fun fDebug(
 ) {
   with(FLog) {
     if (isLoggableConsoleDebug(level)) {
-      debug(
-        tag = tag,
-        level = level,
-        msg = block().toString(),
-      )
+      debug(tag = tag, level = level, msg = block().toString())
     }
   }
 }
