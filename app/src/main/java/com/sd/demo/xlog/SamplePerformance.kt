@@ -5,7 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.sd.demo.xlog.databinding.SamplePerformanceBinding
 import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
-import com.sd.lib.xlog.fDebug
+import com.sd.lib.xlog.flogConsole
 import com.sd.lib.xlog.flogI
 import kotlin.time.measureTime
 
@@ -33,7 +33,7 @@ class SamplePerformance : AppCompatActivity() {
         flogI<AppLogger> { log }
       }
     }.let {
-      fDebug { "time:${it.inWholeMilliseconds}" }
+      flogConsole { "time:${it.inWholeMilliseconds}" }
     }
   }
 }

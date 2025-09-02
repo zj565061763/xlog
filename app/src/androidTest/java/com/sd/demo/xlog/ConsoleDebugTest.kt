@@ -3,7 +3,7 @@ package com.sd.demo.xlog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
-import com.sd.lib.xlog.fDebug
+import com.sd.lib.xlog.flogConsole
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,23 +40,23 @@ class ConsoleDebugTest {
 
 private fun logResult(): String {
   var result = ""
-  fDebug(FLogLevel.Verbose) {
+  flogConsole(FLogLevel.Verbose) {
     result += "v"
     ""
   }
-  fDebug(FLogLevel.Debug) {
+  flogConsole(FLogLevel.Debug) {
     result += "d"
     ""
   }
-  fDebug(FLogLevel.Info) {
+  flogConsole(FLogLevel.Info) {
     result += "i"
     ""
   }
-  fDebug(FLogLevel.Warning) {
+  flogConsole(FLogLevel.Warning) {
     result += "w"
     ""
   }
-  fDebug(FLogLevel.Error) {
+  flogConsole(FLogLevel.Error) {
     result += "e"
     ""
   }

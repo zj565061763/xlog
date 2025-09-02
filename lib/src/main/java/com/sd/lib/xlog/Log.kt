@@ -68,7 +68,7 @@ object FLog {
   }
 
   /**
-   * 是否打打印控制台日志，[FLog.debug]方法不受此开关的限制
+   * 是否打打印控制台日志，[FLog.logConsole]方法不受此开关的限制
    */
   @JvmStatic
   fun setConsoleLogEnabled(enabled: Boolean) {
@@ -237,7 +237,7 @@ object FLog {
   }
 
   @PublishedApi
-  internal fun isLoggableConsoleDebug(level: FLogLevel): Boolean {
+  internal fun isLoggableConsole(level: FLogLevel): Boolean {
     checkInit()
     checkLoggable(level)
     return level >= _level
@@ -250,13 +250,13 @@ object FLog {
    */
   @JvmStatic
   @JvmOverloads
-  fun debug(
+  fun logConsole(
     tag: String = DefaultDebugTag,
     level: FLogLevel = FLogLevel.Debug,
     msg: String?,
   ) {
     if (msg.isNullOrEmpty()) return
-    if (isLoggableConsoleDebug(level)) {
+    if (isLoggableConsole(level)) {
       when (level) {
         FLogLevel.Verbose -> Log.v(tag, msg)
         FLogLevel.Debug -> Log.d(tag, msg)

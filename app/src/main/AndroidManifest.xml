@@ -24,7 +24,6 @@
         </activity>
 
         <activity android:name=".SampleLog" />
-        <activity android:name=".SampleDebug" />
         <activity android:name=".SampleLoggerApi" />
         <activity android:name=".SamplePerformance" />
 

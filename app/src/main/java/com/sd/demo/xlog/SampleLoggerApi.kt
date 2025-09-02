@@ -6,7 +6,7 @@ import com.sd.demo.xlog.databinding.SampleLoggerApiBinding
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogger
-import com.sd.lib.xlog.debug
+import com.sd.lib.xlog.logConsole
 import com.sd.lib.xlog.ld
 import com.sd.lib.xlog.le
 import com.sd.lib.xlog.li
@@ -39,10 +39,10 @@ class SampleLoggerApi : AppCompatActivity(), FLogger {
   }
 
   private fun printDebug() {
-    debug(FLogLevel.Verbose) { "Verbose" }
-    debug(FLogLevel.Debug) { "Debug" }
-    debug(FLogLevel.Info) { "Info" }
-    debug(FLogLevel.Warning) { "Warning" }
-    debug(FLogLevel.Error) { "Error" }
+    logConsole(FLogLevel.Verbose) { "Verbose" }
+    logConsole(FLogLevel.Debug) { "Debug" }
+    logConsole(FLogLevel.Info) { "Info" }
+    logConsole(FLogLevel.Warning) { "Warning" }
+    logConsole(FLogLevel.Error) { "Error" }
   }
 }
