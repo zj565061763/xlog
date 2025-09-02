@@ -1,12 +1,10 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+
 plugins {
   alias(libs.plugins.android.library)
   alias(libs.plugins.kotlin.android)
-  `maven-publish`
+  alias(libs.plugins.mavenPublish)
 }
-
-val libGroupId = "com.sd.lib.android"
-val libArtifactId = "xlog"
-val libVersionName = "1.1.0"
 
 android {
   namespace = "com.sd.lib.xlog"
@@ -23,28 +21,18 @@ android {
 
   kotlinOptions {
     jvmTarget = "1.8"
-    freeCompilerArgs += "-module-name=$libGroupId.$libArtifactId"
-  }
-
-  publishing {
-    singleVariant("release") {
-      withSourcesJar()
-    }
   }
 }
 
 dependencies {
 }
 
-publishing {
-  publications {
-    create<MavenPublication>("release") {
-      groupId = libGroupId
-      artifactId = libArtifactId
-      version = libVersionName
-      afterEvaluate {
-        from(components["release"])
-      }
-    }
-  }
+mavenPublishing {
+  configure(
+    AndroidSingleVariantLibrary(
+      variant = "release",
+      sourcesJar = true,
+      publishJavadocJar = true,
+    )
+  )
 }

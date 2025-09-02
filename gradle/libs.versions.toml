@@ -5,6 +5,8 @@ androidCompileSdk = "35"
 androidGradlePlugin = "8.7.3"
 kotlin = "1.9.25"
 
+maven-publish = "0.32.0"
+
 [libraries]
 
 androidx-appcompat = "androidx.appcompat:appcompat:1.7.1"
@@ -17,3 +19,4 @@ androidx-test-espresso-core = "androidx.test.espresso:espresso-core:3.7.0"
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
