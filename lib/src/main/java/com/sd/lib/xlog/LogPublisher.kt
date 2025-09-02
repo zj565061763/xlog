@@ -67,15 +67,10 @@ private class LogPublisherImpl(
   }
 
   override fun publish(record: FLogRecord) {
-    val dateInfo = getDateInfo(record)
-
-    // 保存日志
-    dateInfo.store.append(
-      formatter.format(record)
-    )
-
-    // 检查日志大小
-    dateInfo.checkLimit()
+    with(getDateInfo(record)) {
+      store.append(formatter.format(record))
+      checkLimit()
+    }
   }
 
   override fun close() {
