@@ -74,7 +74,7 @@ private class LogPublisherImpl(
   }
 
   override fun close() {
-    _dateInfo?.let { info ->
+    _dateInfo?.also { info ->
       _dateInfo = null
       info.closeStore()
     }

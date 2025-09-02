@@ -160,7 +160,7 @@ object FLog {
         msg = msg,
         level = level,
       )
-    }.let { record ->
+    }.also { record ->
       dispatch {
         if (_consoleLogEnabled) record.consoleLog()
         _publisher.publish(record)
