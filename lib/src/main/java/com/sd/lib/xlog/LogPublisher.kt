@@ -96,7 +96,7 @@ private class LogPublisherImpl(
   }
 
   override fun onIdle() {
-    _dateInfo?.let { info ->
+    _dateInfo?.also { info ->
       if (info.file.isFile) {
         // 文件存在
       } else {
