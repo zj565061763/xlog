@@ -1,4 +1,10 @@
-[![](https://jitpack.io/v/zj565061763/xlog.svg)](https://jitpack.io/#zj565061763/xlog)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.zj565061763.android/xlog)](https://central.sonatype.com/search?q=g:io.github.zj565061763.android+xlog)
+
+# Gradle
+
+```kotlin
+implementation("io.github.zj565061763.android:xlog:$version")
+```
 
 # About
 
@@ -10,19 +16,8 @@
 
 ```kotlin
 // 初始化
-FLog.init(
-    // 日志文件目录(必传参数)
-    directory = filesDir.resolve("app_log"),
-
-    // 日志格式化(可选参数)
-    formatter = AppLogFormatter(),
-
-    // 日志仓库工厂(可选参数)
-    storeFactory = AppLogStoreFactory(),
-
-    // 日志调度器(可选参数)
-    dispatcher = AppLogDispatcher(),
-)
+val directory = filesDir.resolve("app_log")
+FLog.init(directory)
 ```
 
 #### 打印日志
@@ -42,20 +37,6 @@ flogW<AppLogger> { "Warning" }
 flogE<AppLogger> { "Error" }
 ```
 
-```kotlin
-/**
- * 打印控制台日志，不会写入到文件中，默认tag：DebugLogger，
- * 注意：此方法不受[FLog.setConsoleLogEnabled]开关限制，只受日志等级限制
- */
-private fun log() {
-    fDebug(FLogLevel.Verbose) { "Verbose" }
-    fDebug { "Debug" }
-    fDebug(FLogLevel.Info) { "Info" }
-    fDebug(FLogLevel.Warning) { "Warning" }
-    fDebug(FLogLevel.Error) { "Error" }
-}
-```
-
 #### 常用配置
 
 ```kotlin
@@ -63,15 +44,17 @@ private fun log() {
 FLog.setLevel(FLogLevel.All)
 
 // 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
-FLog.setLimitMBPerDay(100)
+FLog.setMaxMBPerDay(100)
 
 // 设置是否打打印控制台日志，默认打开
 FLog.setConsoleLogEnabled(true)
 
 // 修改某个日志标识的配置信息
 FLog.config<AppLogger> {
-    this.level = FLogLevel.All
-    this.tag = "AppLoggerAppLogger"
+  it.copy(
+    level = FLogLevel.All,
+    tag = "AppLoggerAppLogger",
+  )
 }
 
 /**
