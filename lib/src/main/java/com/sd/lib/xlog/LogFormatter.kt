@@ -9,18 +9,31 @@ interface FLogFormatter {
 
 internal fun defaultLogFormatter(): FLogFormatter = LogFormatterImpl()
 
-private class LogFormatterImpl : FLogFormatter {
+private class LogFormatterImpl : FLogFormatter, AutoCloseable {
+  /** 上一次打印日志的tag */
+  private var _lastLogTag = ""
+
   override fun format(record: FLogRecord): String = with(record) {
     buildString {
       append(LogTime.create(millis).timeString)
       append("[")
+
+      val logTag = if (tag == _lastLogTag) "" else tag
+      _lastLogTag = tag
+
+      if (logTag.isNotEmpty()) append(logTag).append("|")
       append(level.displayName())
       if (!isMainThread) append("|").append(threadID)
+
       append("]")
       append(" ")
       append(msg)
       append("\n")
     }
+  }
+
+  override fun close() {
+    _lastLogTag = ""
   }
 }
 
