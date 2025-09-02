@@ -10,7 +10,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ConsoleDebugTest {
-
   @Test
   fun test() {
     FLog.setConsoleLogEnabled(false)
@@ -40,23 +39,23 @@ class ConsoleDebugTest {
 
 private fun logResult(): String {
   var result = ""
-  flogConsole(FLogLevel.Verbose) {
+  flogConsole(level = FLogLevel.Verbose) {
     result += "v"
     ""
   }
-  flogConsole(FLogLevel.Debug) {
+  flogConsole(level = FLogLevel.Debug) {
     result += "d"
     ""
   }
-  flogConsole(FLogLevel.Info) {
+  flogConsole(level = FLogLevel.Info) {
     result += "i"
     ""
   }
-  flogConsole(FLogLevel.Warning) {
+  flogConsole(level = FLogLevel.Warning) {
     result += "w"
     ""
   }
-  flogConsole(FLogLevel.Error) {
+  flogConsole(level = FLogLevel.Error) {
     result += "e"
     ""
   }
