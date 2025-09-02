@@ -14,30 +14,25 @@ internal fun defaultLogDispatcher(
   dispatcher: FLogDispatcher?,
   onIdle: () -> Unit,
 ): FLogDispatcher {
-  return LogDispatcher(
+  return LogDispatcherWrapper(
     dispatcher = dispatcher ?: FLogDispatcher { SingleThreadExecutor.execute(it) },
     onIdle = onIdle,
   )
 }
 
-private class LogDispatcher(
+private class LogDispatcherWrapper(
   private val dispatcher: FLogDispatcher,
   private val onIdle: () -> Unit,
 ) : FLogDispatcher {
-  private val _counter = AtomicInteger(0)
-
+  private val _counter = AtomicInteger()
   override fun dispatch(task: Runnable) {
     _counter.incrementAndGet()
     dispatcher.dispatch {
       try {
         task.run()
       } finally {
-        val count = _counter.decrementAndGet().also {
-          check(it >= 0) { "task executed more than once." }
-        }
-        if (count == 0) {
-          onIdle()
-        }
+        val count = _counter.decrementAndGet().also { check(it >= 0) { "task executed more than once." } }
+        if (count == 0) onIdle()
       }
     }
   }
