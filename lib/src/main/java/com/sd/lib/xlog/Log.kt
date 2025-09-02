@@ -80,9 +80,9 @@ object FLog {
    * 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
    */
   @JvmStatic
-  fun setLimitMBPerDay(limitMBPerDay: Int) {
+  fun setMaxMBPerDay(mb: Int) {
     checkInit()
-    _publisher.setLimitPerDay(limitMBPerDay * 1024 * 1024L)
+    _publisher.setMaxBytePerDay(mb * 1024 * 1024L)
   }
 
   /**

@@ -20,7 +20,7 @@ class LogFileLimitTest {
   fun test() {
     val dir = testLogDir
     FLog.setLevel(FLogLevel.All)
-    FLog.setLimitMBPerDay(1)
+    FLog.setMaxMBPerDay(1)
 
     dir.deleteRecursively()
     assertEquals(false, dir.exists())

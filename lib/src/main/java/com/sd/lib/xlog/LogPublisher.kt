@@ -24,7 +24,7 @@ internal interface DirectoryLogPublisher : LogPublisher {
   /**
    * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
    */
-  fun setLimitPerDay(limit: Long)
+  fun setMaxBytePerDay(limit: Long)
 
   /**
    * 调度器空闲回调
@@ -60,16 +60,16 @@ private class LogPublisherImpl(
   )
 
   private var _dateInfo: DateInfo? = null
-  private var _limitPerDay: Long = 0
+  private var _maxBytePerDay: Long = 0
 
-  override fun setLimitPerDay(limit: Long) {
-    _limitPerDay = limit
+  override fun setMaxBytePerDay(limit: Long) {
+    _maxBytePerDay = limit
   }
 
   override fun publish(record: FLogRecord) {
     with(getDateInfo(record)) {
       store.append(formatter.format(record))
-      checkLimit()
+      checkLogSize()
     }
   }
 
@@ -106,15 +106,15 @@ private class LogPublisherImpl(
     }
   }
 
-  private fun DateInfo.checkLimit() {
-    val limit = _limitPerDay
-    if (limit <= 0) {
+  private fun DateInfo.checkLogSize() {
+    val maxBytePerDay = _maxBytePerDay
+    if (maxBytePerDay <= 0) {
       // 不限制大小
       return
     }
 
-    val partLimit = limit / 2
-    if (store.size() < partLimit) {
+    val partSize = maxBytePerDay / 2
+    if (store.size() < partSize) {
       // 还未超过限制
       return
     }

@@ -22,7 +22,7 @@ class App : Application() {
     FLog.setLevel(FLogLevel.All)
 
     // 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
-    FLog.setLimitMBPerDay(100)
+    FLog.setMaxMBPerDay(100)
 
     // 设置是否打打印控制台日志，默认打开
     FLog.setConsoleLogEnabled(true)
