@@ -83,6 +83,7 @@ private class LogPublisherImpl(
   private fun getDateInfo(record: FLogRecord): DateInfo {
     val date = filename.filenameOf(record.millis)
     if (_dateInfo?.date != date) {
+      check(date.isNotEmpty())
       close()
       val file = directory.resolve("${date}.log")
       _dateInfo = DateInfo(
