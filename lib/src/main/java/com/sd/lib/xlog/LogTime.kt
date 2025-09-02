@@ -45,10 +45,6 @@ private data class LogTimeModel(
     get() = "${hourOfDay.leadingZero()}:${minute.leadingZero()}:${second.leadingZero()}.${millisecond.leadingZero(3)}"
 }
 
-private fun Int.leadingZero(size: Int = 2): String {
-  return this.toString().let {
-    val repeat = size - it.length
-    if (repeat > 0) "0".repeat(repeat) + it
-    else it
-  }
+private fun Int.leadingZero(length: Int = 2): String {
+  return toString().padStart(length = length, padChar = '0')
 }
