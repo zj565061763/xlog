@@ -125,7 +125,7 @@ private class LogPublisherImpl(
     file.renameTo(partFile).also { rename ->
       flogConsole {
         val res = if (rename) "success" else "failed"
-        "lib publisher log file rename $res ${this@LogPublisherImpl}"
+        "lib publisher part log file rename $res ${this@LogPublisherImpl}"
       }
     }
   }
