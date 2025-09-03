@@ -36,6 +36,13 @@ inline fun FLogger.le(block: () -> String) {
 }
 
 /**
+ * 打印日志
+ */
+inline fun FLogger.l(level: FLogLevel, block: () -> String) {
+  logInternal(javaClass, level, block)
+}
+
+/**
  * 打印控制台日志，不会写入到文件中
  */
 inline fun FLogger.logConsole(

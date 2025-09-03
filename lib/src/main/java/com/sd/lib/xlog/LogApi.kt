@@ -36,18 +36,10 @@ inline fun <reified T : FLogger> flogE(block: () -> String) {
 }
 
 /**
- * 打印控制台日志，不会写入到文件中
+ * 打印日志
  */
-inline fun flogConsole(
-  tag: String = DefaultDebugTag,
-  level: FLogLevel = FLogLevel.Debug,
-  block: () -> String,
-) {
-  with(FLog) {
-    if (isLoggableConsole(level)) {
-      logConsole(tag = tag, level = level, msg = block())
-    }
-  }
+inline fun <reified T : FLogger> flog(level: FLogLevel, block: () -> String) {
+  logInternal(T::class.java, level, block)
 }
 
 @PublishedApi
@@ -59,6 +51,21 @@ internal inline fun <T : FLogger> logInternal(
   with(FLog) {
     if (isLoggable(clazz, level)) {
       log(clazz = clazz, level = level, msg = block())
+    }
+  }
+}
+
+/**
+ * 打印控制台日志，不会写入到文件中
+ */
+inline fun flogConsole(
+  tag: String = DefaultDebugTag,
+  level: FLogLevel = FLogLevel.Debug,
+  block: () -> String,
+) {
+  with(FLog) {
+    if (isLoggableConsole(level)) {
+      logConsole(tag = tag, level = level, msg = block())
     }
   }
 }

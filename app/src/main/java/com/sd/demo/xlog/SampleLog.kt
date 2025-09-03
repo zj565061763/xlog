@@ -5,13 +5,16 @@ import androidx.appcompat.app.AppCompatActivity
 import com.sd.demo.xlog.databinding.SampleLogBinding
 import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
+import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogger
+import com.sd.lib.xlog.flog
 import com.sd.lib.xlog.flogConsole
 import com.sd.lib.xlog.flogD
 import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
+import com.sd.lib.xlog.l
 import com.sd.lib.xlog.ld
 import com.sd.lib.xlog.le
 import com.sd.lib.xlog.li
@@ -47,6 +50,7 @@ class SampleLog : AppCompatActivity(), FLogger {
     thread {
       flogW<AppLogger> { "in thread" }
     }
+    flog<AppLogger>(level = FLogLevel.Info) { "level info" }
   }
 
   private fun loggerApi() {
@@ -56,5 +60,6 @@ class SampleLog : AppCompatActivity(), FLogger {
     li { "Info" }
     lw { "Warning" }
     le { "Error" }
+    l(level = FLogLevel.Info) { "level info" }
   }
 }
