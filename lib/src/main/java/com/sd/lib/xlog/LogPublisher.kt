@@ -148,7 +148,7 @@ private class LogDateHandler(
     close()
     val partFile = logFile.resolveSibling("${logFilename}.1").also { it.deleteRecursively() }
     logFile.renameTo(partFile).also { rename ->
-      libLog { "lib part log file rename $rename" }
+      libLog { "part log file rename $rename" }
     }
   }
 }
