@@ -141,10 +141,11 @@ object FLog {
    * 访问日志文件目录，[block]在[FLogDispatcher]调度器上面执行
    */
   @JvmStatic
-  fun logDirectory(block: (File) -> Unit) {
+  fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
     dispatch {
       _publisher.close()
-      block(_publisher.directory)
+      val directory = _publisher.directory
+      LogDirectoryScopeImpl(_publisher).block(directory)
     }
   }
 

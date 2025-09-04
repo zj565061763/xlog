@@ -4,10 +4,18 @@ package com.sd.lib.xlog
  * 日志文件名
  */
 internal interface LogFilename {
+  /** 文件扩展名 */
+  val fileExt: String
+
   /**
    * 返回时间戳[millis]对应的日志文件名，不包含扩展名
    */
   fun filenameOf(millis: Long): String
+
+  /**
+   * 返回指定年月日对应的日志文件名，不包含扩展名
+   */
+  fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String
 
   /**
    * 计算[filename1]和[filename2]之间的天数差距，例如：
@@ -22,8 +30,14 @@ internal interface LogFilename {
 internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 
 private class LogFilenameImpl : LogFilename {
+  override val fileExt: String = "log"
+
   override fun filenameOf(millis: Long): String {
     return LogTime.create(millis).dateString
+  }
+
+  override fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String {
+    return LogTime.create(year = year, month = month, dayOfMonth = dayOfMonth).dateString
   }
 
   override fun diffDays(filename1: String, filename2: String): Int? {

@@ -30,6 +30,11 @@ internal interface DirectoryLogPublisher : LogPublisher {
    * 调度器空闲回调
    */
   fun onIdle()
+
+  /**
+   * 获取指定年月日的日志文件
+   */
+  fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File>
 }
 
 internal fun defaultLogPublisher(
@@ -85,7 +90,7 @@ private class LogPublisherImpl(
     if (_dateInfo?.date != date) {
       check(date.isNotEmpty())
       close()
-      val file = directory.resolve("${date}.log")
+      val file = directory.resolve("${date}.${filename.fileExt}")
       _dateInfo = DateInfo(
         date = date,
         file = file,
@@ -103,6 +108,17 @@ private class LogPublisherImpl(
         // 文件不存在，关闭后会重新创建
         info.closeStore()
       }
+    }
+  }
+
+  override fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File> {
+    val date = filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
+    val logFilename = "${date}.${filename.fileExt}"
+    val file = directory.resolve(logFilename)
+    val file1 = directory.resolve("${logFilename}.1")
+    return buildList {
+      if (file.exists()) add(file)
+      if (file1.exists()) add(file1)
     }
   }
 
