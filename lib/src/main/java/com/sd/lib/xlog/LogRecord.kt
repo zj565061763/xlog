@@ -6,14 +6,14 @@ interface FLogRecord {
   /** 日志标识 */
   val logger: Class<out FLogger>
 
+  /** 日志等级 */
+  val level: FLogLevel
+
   /** 日志标志 */
   val tag: String
 
   /** 日志内容 */
   val msg: String
-
-  /** 日志等级 */
-  val level: FLogLevel
 
   /** 日志生成的时间戳 */
   val millis: Long
@@ -27,15 +27,15 @@ interface FLogRecord {
 
 internal fun newLogRecord(
   logger: Class<out FLogger>,
+  level: FLogLevel,
   tag: String,
   msg: String,
-  level: FLogLevel,
 ): FLogRecord {
   return LogRecordImpl(
     logger = logger,
+    level = level,
     tag = tag,
     msg = msg,
-    level = level,
     millis = System.currentTimeMillis(),
     isMainThread = Looper.myLooper() === Looper.getMainLooper(),
     threadID = Thread.currentThread().id.toString(),
@@ -44,9 +44,9 @@ internal fun newLogRecord(
 
 private data class LogRecordImpl(
   override val logger: Class<out FLogger>,
+  override val level: FLogLevel,
   override val tag: String,
   override val msg: String,
-  override val level: FLogLevel,
   override val millis: Long,
   override val isMainThread: Boolean,
   override val threadID: String,

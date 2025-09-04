@@ -165,14 +165,14 @@ object FLog {
     when (mode ?: config?.mode ?: _mode) {
       FLogMode.Default -> {
         publishConsoleLog(level = level, tag = tag, msg = msg)
-        val record = newLogRecord(logger = clazz, tag = tag, msg = msg, level = level)
+        val record = newLogRecord(logger = clazz, level = level, tag = tag, msg = msg)
         dispatch { _publisher.publish(record) }
       }
       FLogMode.Console -> {
         publishConsoleLog(level = level, tag = tag, msg = msg)
       }
       FLogMode.Store -> {
-        val record = newLogRecord(logger = clazz, tag = tag, msg = msg, level = level)
+        val record = newLogRecord(logger = clazz, level = level, tag = tag, msg = msg)
         dispatch { _publisher.publish(record) }
       }
     }
