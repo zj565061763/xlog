@@ -38,7 +38,7 @@ private fun List<File>.fZipTo(target: File): Boolean {
     }
     return true
   } catch (e: Throwable) {
-    e.printStackTrace()
+    libLog { "lib zip error ${e.stackTraceToString()}" }
     return false
   }
 }
