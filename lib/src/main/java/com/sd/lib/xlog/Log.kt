@@ -155,17 +155,16 @@ object FLog {
     mode: FLogMode?,
     msg: String?,
   ) {
-    synchronized(FLog) {
-      if (msg.isNullOrEmpty()) return
-      if (!isLoggable(clazz, level)) return
-      newLogRecord(
-        logger = clazz,
-        tag = (getConfig(clazz)?.tag ?: "").ifEmpty { clazz.simpleName },
-        msg = msg,
-        level = level,
-      )
-    }.also { record ->
-      when (mode ?: _mode) {
+    if (msg.isNullOrEmpty()) return
+    val config = getConfig(clazz)
+    if (!isLoggable(level, config)) return
+    newLogRecord(
+      logger = clazz,
+      tag = (config?.tag ?: "").ifEmpty { clazz.simpleName },
+      msg = msg,
+      level = level,
+    ).also { record ->
+      when (mode ?: config?.mode ?: _mode) {
         FLogMode.Default -> {
           record.consoleLog()
           dispatch { _publisher.publish(record) }
@@ -182,6 +181,10 @@ object FLog {
 
   @PublishedApi
   internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
+    return isLoggable(level = level, config = getConfig(clazz))
+  }
+
+  private fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
     checkInit()
     checkLoggable(level)
 
@@ -190,12 +193,13 @@ object FLog {
       return false
     }
 
-    val limitLevel = getConfig(clazz)?.level ?: _level
+    val limitLevel = config?.level ?: _level
     return level >= limitLevel
   }
 
   private fun getConfig(clazz: Class<out FLogger>): FLoggerConfig? {
-    return _configHolder.get(clazz)
+    if (_configHolder.isEmpty()) return null
+    return _configHolder[clazz]
   }
 
   /**
