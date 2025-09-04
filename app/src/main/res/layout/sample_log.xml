@@ -13,6 +13,13 @@
         android:textAllCaps="false" />
 
     <Button
+        android:id="@+id/btn_log_console"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="log console"
+        android:textAllCaps="false" />
+
+    <Button
         android:id="@+id/btn_logger_api"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

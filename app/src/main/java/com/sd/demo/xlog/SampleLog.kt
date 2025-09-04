@@ -28,6 +28,9 @@ class SampleLog : AppCompatActivity(), FLogger {
     _binding.btnLog.setOnClickListener {
       log()
     }
+    _binding.btnLogConsole.setOnClickListener {
+      logConsole()
+    }
     _binding.btnLoggerApi.setOnClickListener {
       loggerApi()
     }
@@ -42,6 +45,14 @@ class SampleLog : AppCompatActivity(), FLogger {
     flogW<AppLogger> { "Warning" }
     flogE<AppLogger> { "Error" }
     thread { flogE<AppLogger> { "in thread" } }
+  }
+
+  private fun logConsole() {
+    flogV<AppLogger>(mode = FLogMode.Console) { "Verbose" }
+    flogD<AppLogger>(mode = FLogMode.Console) { "Debug" }
+    flogI<AppLogger>(mode = FLogMode.Console) { "Info" }
+    flogW<AppLogger>(mode = FLogMode.Console) { "Warning" }
+    flogE<AppLogger>(mode = FLogMode.Console) { "Error" }
   }
 
   private fun loggerApi() {
