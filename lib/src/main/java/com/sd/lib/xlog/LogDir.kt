@@ -7,13 +7,23 @@ import android.os.Build
 import android.os.Process
 import java.io.File
 
-fun Context.fLogDir(): File {
-  val dir = applicationContext.filesDir.resolve("sd.lib.xlog")
+/**
+ * 获取日志目录
+ */
+fun Context.fLogDir(
+  /** 是否优先使用外部存储 */
+  preferExternal: Boolean = true,
+  /** 日志目录名称 */
+  dirName: String = "sd.lib.xlog",
+): File {
+  require(dirName.isNotEmpty()) { "dirName is empty" }
+  val rootDir = if (preferExternal) (getExternalFilesDir(null) ?: filesDir) else filesDir
+  val logDir = rootDir.resolve(dirName)
   val process = currentProcess()
   return if (!process.isNullOrBlank() && process != packageName) {
-    dir.resolve(process.replace(":", "_"))
+    logDir.resolve(process.replace(":", "_"))
   } else {
-    dir
+    logDir
   }
 }
 
