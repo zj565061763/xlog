@@ -3,7 +3,7 @@ package com.sd.lib.xlog
 internal inline fun <R> libRunCatching(block: () -> R): Result<R> {
   return runCatching(block)
     .onFailure { e ->
-      flogConsole { "lib ${e.stackTraceToString()}" }
+      libLog { "lib ${e.stackTraceToString()}" }
     }
 }
 

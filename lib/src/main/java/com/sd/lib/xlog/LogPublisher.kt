@@ -123,7 +123,7 @@ private class LogPublisherImpl(
     closeStore()
     val partFile = file.resolveSibling("${file.name}.1")
     file.renameTo(partFile).also { rename ->
-      flogConsole {
+      libLog {
         val res = if (rename) "success" else "failed"
         "lib publisher part log file rename $res ${this@LogPublisherImpl}"
       }

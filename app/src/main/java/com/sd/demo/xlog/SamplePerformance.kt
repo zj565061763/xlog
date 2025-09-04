@@ -5,7 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.sd.demo.xlog.databinding.SamplePerformanceBinding
 import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
-import com.sd.lib.xlog.flogConsole
+import com.sd.lib.xlog.FLogMode
 import com.sd.lib.xlog.flogI
 import kotlin.time.measureTime
 
@@ -18,22 +18,18 @@ class SamplePerformance : AppCompatActivity() {
     _binding.btnLog.setOnClickListener {
       log()
     }
+
+    FLog.setMode(FLogMode.Store)
   }
 
-  /**
-   * 日志性能测试，需要关闭控制台日志后测试
-   */
   private fun log(repeat: Int = 1_0000) {
-    // 关闭控制台日志
-    FLog.setConsoleLogEnabled(false)
-
     val log = "1".repeat(500)
     measureTime {
       repeat(repeat) {
         flogI<AppLogger> { log }
       }
     }.let {
-      flogConsole { "time:${it.inWholeMilliseconds}" }
+      flogI<AppLogger>(mode = FLogMode.Console) { "time:${it.inWholeMilliseconds}" }
     }
   }
 }

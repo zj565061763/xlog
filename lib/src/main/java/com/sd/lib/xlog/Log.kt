@@ -13,6 +13,17 @@ enum class FLogLevel {
   Off,
 }
 
+enum class FLogMode {
+  /** 默认，发布到控制台和日志仓库 */
+  Default,
+
+  /** 仅发布到控制台 */
+  Console,
+
+  /** 仅发布到日志仓库 */
+  Store,
+}
+
 object FLog {
   /** 是否已经初始化 */
   private var _hasInit = false
@@ -21,9 +32,9 @@ object FLog {
   @Volatile
   private var _level = FLogLevel.All
 
-  /** 是否打印控制台日志 */
+  /** 日志模式 */
   @Volatile
-  private var _consoleLogEnabled = true
+  private var _mode: FLogMode = FLogMode.Default
 
   /** [FLogger]配置信息 */
   private var _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig>? = null
@@ -68,24 +79,6 @@ object FLog {
   }
 
   /**
-   * 是否打打印控制台日志，[FLog.logConsole]方法不受此开关的限制
-   */
-  @JvmStatic
-  fun setConsoleLogEnabled(enabled: Boolean) {
-    checkInit()
-    _consoleLogEnabled = enabled
-  }
-
-  /**
-   * 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
-   */
-  @JvmStatic
-  fun setMaxMBPerDay(mb: Int) {
-    checkInit()
-    _publisher.setMaxBytePerDay(mb * 1024 * 1024L)
-  }
-
-  /**
    * 设置日志等级
    */
   @JvmStatic
@@ -98,6 +91,25 @@ object FLog {
       }
     }
   }
+
+  /**
+   * 设置日志模式
+   */
+  @JvmStatic
+  fun setMode(mode: FLogMode) {
+    checkInit()
+    _mode = mode
+  }
+
+  /**
+   * 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
+   */
+  @JvmStatic
+  fun setMaxMBPerDay(mb: Int) {
+    checkInit()
+    _publisher.setMaxBytePerDay(mb * 1024 * 1024L)
+  }
+
 
   /**
    * 修改[FLogger]配置信息
@@ -145,7 +157,12 @@ object FLog {
   }
 
   @PublishedApi
-  internal fun log(clazz: Class<out FLogger>, level: FLogLevel, msg: String?) {
+  internal fun log(
+    clazz: Class<out FLogger>,
+    level: FLogLevel,
+    mode: FLogMode?,
+    msg: String?,
+  ) {
     synchronized(FLog) {
       if (msg.isNullOrEmpty()) return
       if (!isLoggable(clazz, level)) return
@@ -156,9 +173,17 @@ object FLog {
         level = level,
       )
     }.also { record ->
-      dispatch {
-        if (_consoleLogEnabled) record.consoleLog()
-        _publisher.publish(record)
+      when (mode ?: _mode) {
+        FLogMode.Default -> {
+          record.consoleLog()
+          dispatch { _publisher.publish(record) }
+        }
+        FLogMode.Console -> {
+          record.consoleLog()
+        }
+        FLogMode.Store -> {
+          dispatch { _publisher.publish(record) }
+        }
       }
     }
   }
@@ -231,80 +256,71 @@ object FLog {
     }
   }
 
-  @PublishedApi
-  internal fun isLoggableConsole(level: FLogLevel): Boolean {
-    checkInit()
-    checkLoggable(level)
-    return level >= _level
-  }
-
-  /**
-   * 打印控制台日志，不会写入到文件中，默认tag为[DefaultDebugTag]，
-   * 注意：此方法不受[setConsoleLogEnabled]开关限制，只受日志等级限制
-   */
-  @JvmStatic
-  @JvmOverloads
-  fun logConsole(
-    tag: String = DefaultDebugTag,
-    level: FLogLevel = FLogLevel.Debug,
-    msg: String?,
-  ) {
-    if (msg.isNullOrEmpty()) return
-    if (isLoggableConsole(level)) {
-      when (level) {
-        FLogLevel.Verbose -> Log.v(tag, msg)
-        FLogLevel.Debug -> Log.d(tag, msg)
-        FLogLevel.Info -> Log.i(tag, msg)
-        FLogLevel.Warning -> Log.w(tag, msg)
-        FLogLevel.Error -> Log.e(tag, msg)
-        else -> {}
-      }
-    }
-  }
-
   /**
    * 打印[FLogLevel.Verbose]日志
    */
   @JvmStatic
-  fun logV(clazz: Class<out FLogger>, msg: String?) {
-    log(clazz, FLogLevel.Verbose, msg)
+  @JvmOverloads
+  fun logV(
+    clazz: Class<out FLogger>,
+    mode: FLogMode? = null,
+    msg: String?,
+  ) {
+    log(clazz, FLogLevel.Verbose, mode, msg)
   }
 
   /**
    * 打印[FLogLevel.Debug]日志
    */
   @JvmStatic
-  fun logD(clazz: Class<out FLogger>, msg: String?) {
-    log(clazz, FLogLevel.Debug, msg)
+  @JvmOverloads
+  fun logD(
+    clazz: Class<out FLogger>,
+    mode: FLogMode? = null,
+    msg: String?,
+  ) {
+    log(clazz, FLogLevel.Debug, mode, msg)
   }
 
   /**
    * 打印[FLogLevel.Info]日志
    */
   @JvmStatic
-  fun logI(clazz: Class<out FLogger>, msg: String?) {
-    log(clazz, FLogLevel.Info, msg)
+  @JvmOverloads
+  fun logI(
+    clazz: Class<out FLogger>,
+    mode: FLogMode? = null,
+    msg: String?,
+  ) {
+    log(clazz, FLogLevel.Info, mode, msg)
   }
 
   /**
    * 打印[FLogLevel.Warning]日志
    */
   @JvmStatic
-  fun logW(clazz: Class<out FLogger>, msg: String?) {
-    log(clazz, FLogLevel.Warning, msg)
+  @JvmOverloads
+  fun logW(
+    clazz: Class<out FLogger>,
+    mode: FLogMode? = null,
+    msg: String?,
+  ) {
+    log(clazz, FLogLevel.Warning, mode, msg)
   }
 
   /**
    * 打印[FLogLevel.Error]日志
    */
   @JvmStatic
-  fun logE(clazz: Class<out FLogger>, msg: String?) {
-    log(clazz, FLogLevel.Error, msg)
+  @JvmOverloads
+  fun logE(
+    clazz: Class<out FLogger>,
+    mode: FLogMode? = null,
+    msg: String?,
+  ) {
+    log(clazz, FLogLevel.Error, mode, msg)
   }
 }
-
-@PublishedApi
-internal const val DefaultDebugTag = "DebugLogger"
 
 private fun checkLoggable(level: FLogLevel) {
   require(level != FLogLevel.All)

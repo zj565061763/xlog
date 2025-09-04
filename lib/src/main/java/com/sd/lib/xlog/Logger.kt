@@ -21,3 +21,9 @@ data class FLoggerConfig(
 internal fun FLoggerConfig.isEmpty(): Boolean {
   return level == null && tag.isNullOrEmpty()
 }
+
+internal inline fun libLog(block: () -> String) {
+  flogV<FLogLibLogger>(mode = FLogMode.Console, block = block)
+}
+
+internal class FLogLibLogger : FLogger

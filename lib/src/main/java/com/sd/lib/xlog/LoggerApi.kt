@@ -3,55 +3,60 @@ package com.sd.lib.xlog
 /**
  * 打印[FLogLevel.Verbose]日志
  */
-inline fun FLogger.lv(block: () -> String) {
-  logInternal(javaClass, FLogLevel.Verbose, block)
+inline fun FLogger.lv(
+  mode: FLogMode? = null,
+  block: () -> String,
+) {
+  l(FLogLevel.Verbose, mode, block)
 }
 
 /**
  * 打印[FLogLevel.Debug]日志
  */
-inline fun FLogger.ld(block: () -> String) {
-  logInternal(javaClass, FLogLevel.Debug, block)
+inline fun FLogger.ld(
+  mode: FLogMode? = null,
+  block: () -> String,
+) {
+  l(FLogLevel.Debug, mode, block)
 }
 
 /**
  * 打印[FLogLevel.Info]日志
  */
-inline fun FLogger.li(block: () -> String) {
-  logInternal(javaClass, FLogLevel.Info, block)
+inline fun FLogger.li(
+  mode: FLogMode? = null,
+  block: () -> String,
+) {
+  l(FLogLevel.Info, mode, block)
 }
 
 /**
  * 打印[FLogLevel.Warning]日志
  */
-inline fun FLogger.lw(block: () -> String) {
-  logInternal(javaClass, FLogLevel.Warning, block)
+inline fun FLogger.lw(
+  mode: FLogMode? = null,
+  block: () -> String,
+) {
+  l(FLogLevel.Warning, mode, block)
 }
 
 /**
  * 打印[FLogLevel.Error]日志
  */
-inline fun FLogger.le(block: () -> String) {
-  logInternal(javaClass, FLogLevel.Error, block)
+inline fun FLogger.le(
+  mode: FLogMode? = null,
+  block: () -> String,
+) {
+  l(FLogLevel.Error, mode, block)
 }
 
 /**
  * 打印日志
  */
-inline fun FLogger.l(level: FLogLevel, block: () -> String) {
-  logInternal(javaClass, level, block)
-}
-
-/**
- * 打印控制台日志，不会写入到文件中
- */
-inline fun FLogger.logConsole(
-  level: FLogLevel = FLogLevel.Debug,
+inline fun FLogger.l(
+  level: FLogLevel,
+  mode: FLogMode? = null,
   block: () -> String,
 ) {
-  flogConsole(
-    tag = javaClass.simpleName,
-    level = level,
-    block = block,
-  )
+  logInternal(javaClass, level, mode, block)
 }
