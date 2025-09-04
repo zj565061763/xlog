@@ -46,7 +46,8 @@ private class LogFilenameImpl(
   }
 
   private fun filenameToInt(filename: String): Int? {
-    if (!filename.endsWith(extension)) return null
-    return filename.substringBefore(".").toIntOrNull()?.takeIf { it > 0 }
+    val date = filename.removeSuffix(extension)
+    if (date === filename) return null
+    return date.toIntOrNull()?.takeIf { it > 0 }
   }
 }
