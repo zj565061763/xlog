@@ -19,7 +19,10 @@ interface FLogDirectoryScope {
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
 ) : FLogDirectoryScope {
+  private var _destroyed = false
+
   override fun logZipOf(date: String): File? {
+    if (_destroyed) return null
     if (date.length != 8) return null
     val year = date.substring(0, 4).toIntOrNull() ?: return null
     val month = date.substring(4, 6).toIntOrNull() ?: return null
@@ -28,12 +31,17 @@ internal class LogDirectoryScopeImpl(
   }
 
   override fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File? {
+    if (_destroyed) return null
     val files = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth)
     if (files.isEmpty()) return null
     val zipFile = publisher.directory.resolve("${files.first().name.substringBefore(".")}.zip")
     val zipResult = files.fZipTo(zipFile)
     libLog { "lib log zip ${zipFile.name} $zipResult" }
     return if (zipResult && zipFile.exists()) zipFile else null
+  }
+
+  fun destroy() {
+    _destroyed = true
   }
 }
 

@@ -145,7 +145,9 @@ object FLog {
     dispatch {
       _publisher.close()
       val directory = _publisher.directory
-      LogDirectoryScopeImpl(_publisher).block(directory)
+      val scope = LogDirectoryScopeImpl(_publisher)
+      scope.block(directory)
+      scope.destroy()
     }
   }
 
