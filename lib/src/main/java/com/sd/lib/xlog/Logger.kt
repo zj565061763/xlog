@@ -9,17 +9,19 @@ interface FLogger
  * [FLogger]配置信息
  */
 data class FLoggerConfig(
-  /** 日志等级 */
-  val level: FLogLevel? = null,
   /** 日志标识 */
   val tag: String? = null,
+  /** 日志等级 */
+  val level: FLogLevel? = null,
+  /** 日志模式 */
+  val mode: FLogMode? = null,
 )
 
 /**
  * 配置信息是否为空
  */
 internal fun FLoggerConfig.isEmpty(): Boolean {
-  return level == null && tag.isNullOrEmpty()
+  return tag.isNullOrEmpty() && level == null && mode == null
 }
 
 internal inline fun libLog(block: () -> String) {

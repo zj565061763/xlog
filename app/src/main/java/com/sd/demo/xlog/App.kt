@@ -10,14 +10,19 @@ import com.sd.lib.xlog.fLogDir
 class App : Application() {
   override fun onCreate() {
     super.onCreate()
-    // 初始化
-    FLog.init(
-      //（必传参数）日志文件目录
-      directory = fLogDir(),
 
+    // 初始化
+    FLog.init(directory = fLogDir()) {
       // 单元测试使用的调度器
-//      dispatcher = TestLogDispatcher(),
-    )
+//      setLogDispatcher(TestLogDispatcher())
+
+      configLogger(AppLogger::class.java) {
+        it.copy(
+          level = FLogLevel.All,
+          tag = "AppLoggerAppLogger",
+        )
+      }
+    }
 
     // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
     FLog.setLevel(FLogLevel.All)
@@ -27,14 +32,6 @@ class App : Application() {
 
     // 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
     FLog.setMaxMBPerDay(100)
-
-    // 修改某个日志标识的配置信息
-    FLog.config<AppLogger> {
-      it.copy(
-        level = FLogLevel.All,
-        tag = "AppLoggerAppLogger",
-      )
-    }
 
     /**
      * 删除日志，参数saveDays表示要保留的日志天数，小于等于0表示删除全部日志，

@@ -30,20 +30,17 @@ object FLog {
 
   /** 日志等级 */
   @Volatile
-  private var _level = FLogLevel.All
-
+  private var _level: FLogLevel = FLogLevel.All
   /** 日志模式 */
   @Volatile
   private var _mode: FLogMode = FLogMode.Default
 
-  /** [FLogger]配置信息 */
-  private var _configHolder: MutableMap<Class<out FLogger>, FLoggerConfig>? = null
-
-  /** 文件日志发布 */
+  /** 日志发布 */
   private lateinit var _publisher: DirectoryLogPublisher
-
   /** 日志调度器 */
   private lateinit var _dispatcher: FLogDispatcher
+  /** [FLogger]配置信息 */
+  private lateinit var _configHolder: Map<Class<out FLogger>, FLoggerConfig>
 
   /**
    * 初始化
@@ -54,25 +51,26 @@ object FLog {
   fun init(
     /** 日志文件目录 */
     directory: File,
-    /** 日志格式化 */
-    formatter: FLogFormatter? = null,
-    /** 日志仓库工厂 */
-    storeFactory: FLogStore.Factory? = null,
-    /** 日志调度器 */
-    dispatcher: FLogDispatcher? = null,
+    /** 初始化 */
+    initBlock: FLogInitScope.() -> Unit = {},
   ): Boolean {
     synchronized(FLog) {
       if (_hasInit) return false
+      val initScope = LogInitScopeImpl().apply(initBlock)
+
       _publisher = defaultLogPublisher(
         directory = directory,
         filename = defaultLogFilename(),
-        formatter = formatter ?: defaultLogFormatter(),
-        storeFactory = storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
+        formatter = initScope.formatter ?: defaultLogFormatter(),
+        storeFactory = initScope.storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
       ).safePublisher()
+
       _dispatcher = defaultLogDispatcher(
-        dispatcher = dispatcher,
+        dispatcher = initScope.dispatcher,
         onIdle = { handleDispatcherIdle() },
       )
+
+      _configHolder = initScope.configHolder.toMap()
       _hasInit = true
       return true
     }
@@ -108,84 +106,6 @@ object FLog {
   fun setMaxMBPerDay(mb: Int) {
     checkInit()
     _publisher.setMaxBytePerDay(mb * 1024 * 1024L)
-  }
-
-
-  /**
-   * 修改[FLogger]配置信息
-   */
-  inline fun <reified T : FLogger> config(noinline block: (FLoggerConfig) -> FLoggerConfig) {
-    config(T::class.java, block)
-  }
-
-  /**
-   * 修改[FLogger]配置信息
-   */
-  @JvmStatic
-  fun config(clazz: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig) {
-    checkInit()
-    synchronized(FLog) {
-      val holder = _configHolder ?: mutableMapOf<Class<out FLogger>, FLoggerConfig>().also { _configHolder = it }
-      val config = block(holder.getOrPut(clazz) { FLoggerConfig() })
-      if (config.isEmpty()) {
-        holder.remove(clazz)
-        if (holder.isEmpty()) _configHolder = null
-      } else {
-        holder[clazz] = config
-      }
-    }
-  }
-
-  private fun getConfig(clazz: Class<out FLogger>): FLoggerConfig? {
-    synchronized(FLog) {
-      return _configHolder?.get(clazz)
-    }
-  }
-
-  @PublishedApi
-  internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
-    checkInit()
-    checkLoggable(level)
-
-    if (_level == FLogLevel.Off) {
-      /** 如果全局等级为[FLogLevel.Off]，不读取[FLoggerConfig]，不打印日志 */
-      return false
-    }
-
-    val limitLevel = getConfig(clazz)?.level ?: _level
-    return level >= limitLevel
-  }
-
-  @PublishedApi
-  internal fun log(
-    clazz: Class<out FLogger>,
-    level: FLogLevel,
-    mode: FLogMode?,
-    msg: String?,
-  ) {
-    synchronized(FLog) {
-      if (msg.isNullOrEmpty()) return
-      if (!isLoggable(clazz, level)) return
-      newLogRecord(
-        logger = clazz,
-        tag = (getConfig(clazz)?.tag ?: "").ifEmpty { clazz.simpleName },
-        msg = msg,
-        level = level,
-      )
-    }.also { record ->
-      when (mode ?: _mode) {
-        FLogMode.Default -> {
-          record.consoleLog()
-          dispatch { _publisher.publish(record) }
-        }
-        FLogMode.Console -> {
-          record.consoleLog()
-        }
-        FLogMode.Store -> {
-          dispatch { _publisher.publish(record) }
-        }
-      }
-    }
   }
 
   /**
@@ -228,6 +148,56 @@ object FLog {
     }
   }
 
+  @PublishedApi
+  internal fun log(
+    clazz: Class<out FLogger>,
+    level: FLogLevel,
+    mode: FLogMode?,
+    msg: String?,
+  ) {
+    synchronized(FLog) {
+      if (msg.isNullOrEmpty()) return
+      if (!isLoggable(clazz, level)) return
+      newLogRecord(
+        logger = clazz,
+        tag = (getConfig(clazz)?.tag ?: "").ifEmpty { clazz.simpleName },
+        msg = msg,
+        level = level,
+      )
+    }.also { record ->
+      when (mode ?: _mode) {
+        FLogMode.Default -> {
+          record.consoleLog()
+          dispatch { _publisher.publish(record) }
+        }
+        FLogMode.Console -> {
+          record.consoleLog()
+        }
+        FLogMode.Store -> {
+          dispatch { _publisher.publish(record) }
+        }
+      }
+    }
+  }
+
+  @PublishedApi
+  internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
+    checkInit()
+    checkLoggable(level)
+
+    if (_level == FLogLevel.Off) {
+      /** 如果全局等级为[FLogLevel.Off]，不读取[FLoggerConfig]，不打印日志 */
+      return false
+    }
+
+    val limitLevel = getConfig(clazz)?.level ?: _level
+    return level >= limitLevel
+  }
+
+  private fun getConfig(clazz: Class<out FLogger>): FLoggerConfig? {
+    return _configHolder.get(clazz)
+  }
+
   /**
    * 在调度器上面执行
    */
@@ -247,14 +217,14 @@ object FLog {
     }
   }
 
-  //---------- other ----------
-
   private fun checkInit() {
     if (_hasInit) return
     synchronized(FLog) {
       check(_hasInit) { "You should init before this." }
     }
   }
+
+  //---------- other ----------
 
   /**
    * 打印[FLogLevel.Verbose]日志
