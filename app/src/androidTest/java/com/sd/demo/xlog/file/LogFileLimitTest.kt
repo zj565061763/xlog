@@ -9,7 +9,7 @@ import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.Calendar
+import java.text.SimpleDateFormat
 
 /**
  * 限制日志文件大小
@@ -45,12 +45,8 @@ class LogFileLimitTest {
     assertEquals(2, dir.listFiles()!!.size)
 
     FLog.logDirectory {
-      val calendar = Calendar.getInstance()
-      logZipOf(
-        year = calendar.get(Calendar.YEAR),
-        month = calendar.get(Calendar.MONTH) + 1,
-        dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH),
-      ).also { file ->
+      val date = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis())
+      logZipOf(date)!!.also { file ->
         assertEquals(true, file.exists())
         assertEquals(true, file.length() > 0)
       }

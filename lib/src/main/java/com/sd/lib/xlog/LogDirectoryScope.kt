@@ -6,20 +6,34 @@ import java.util.zip.ZipOutputStream
 
 interface FLogDirectoryScope {
   /**
+   * 获取指定年月日(yyyyMMdd)的日志文件压缩包
+   */
+  fun logZipOf(date: String): File?
+
+  /**
    * 获取指定年月日的日志文件压缩包
    */
-  fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File
+  fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File?
 }
 
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
 ) : FLogDirectoryScope {
-  override fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File {
-    val logFilename = publisher.filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    val zipFile = publisher.directory.resolve("${logFilename}.zip")
-    val zipResult = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth).fZipTo(zipFile)
+  override fun logZipOf(date: String): File? {
+    if (date.length != 8) return null
+    val year = date.substring(0, 4).toIntOrNull() ?: return null
+    val month = date.substring(4, 6).toIntOrNull() ?: return null
+    val dayOfMonth = date.substring(6, 8).toIntOrNull() ?: return null
+    return logZipOf(year = year, month = month, dayOfMonth = dayOfMonth)
+  }
+
+  override fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File? {
+    val files = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth)
+    if (files.isEmpty()) return null
+    val zipFile = publisher.directory.resolve("${files.first().name.substringBefore(".")}.zip")
+    val zipResult = files.fZipTo(zipFile)
     libLog { "lib log zip ${zipFile.name} $zipResult" }
-    return zipFile
+    return if (zipResult && zipFile.exists()) zipFile else null
   }
 }
 
