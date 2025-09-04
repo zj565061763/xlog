@@ -161,23 +161,19 @@ object FLog {
     if (msg.isNullOrEmpty()) return
     val config = getConfig(clazz)
     if (!isLoggable(level, config)) return
-    newLogRecord(
-      logger = clazz,
-      tag = (config?.tag ?: "").ifEmpty { clazz.simpleName },
-      msg = msg,
-      level = level,
-    ).also { record ->
-      when (mode ?: config?.mode ?: _mode) {
-        FLogMode.Default -> {
-          record.consoleLog()
-          dispatch { _publisher.publish(record) }
-        }
-        FLogMode.Console -> {
-          record.consoleLog()
-        }
-        FLogMode.Store -> {
-          dispatch { _publisher.publish(record) }
-        }
+    val tag = (config?.tag ?: "").ifEmpty { clazz.simpleName }
+    when (mode ?: config?.mode ?: _mode) {
+      FLogMode.Default -> {
+        publishConsoleLog(level = level, tag = tag, msg = msg)
+        val record = newLogRecord(logger = clazz, tag = tag, msg = msg, level = level)
+        dispatch { _publisher.publish(record) }
+      }
+      FLogMode.Console -> {
+        publishConsoleLog(level = level, tag = tag, msg = msg)
+      }
+      FLogMode.Store -> {
+        val record = newLogRecord(logger = clazz, tag = tag, msg = msg, level = level)
+        dispatch { _publisher.publish(record) }
       }
     }
   }
@@ -304,7 +300,7 @@ private fun checkLoggable(level: FLogLevel) {
   require(level != FLogLevel.Off)
 }
 
-private fun FLogRecord.consoleLog() {
+private fun publishConsoleLog(level: FLogLevel, tag: String, msg: String) {
   when (level) {
     FLogLevel.Verbose -> Log.v(tag, msg)
     FLogLevel.Debug -> Log.d(tag, msg)
