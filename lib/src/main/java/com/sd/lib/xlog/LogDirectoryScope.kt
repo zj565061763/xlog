@@ -7,11 +7,6 @@ import java.util.zip.ZipOutputStream
 
 interface FLogDirectoryScope {
   /**
-   * 获取指定年月日的日志文件
-   */
-  fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File>
-
-  /**
    * 获取指定年月日的日志文件压缩包
    */
   fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File
@@ -20,15 +15,11 @@ interface FLogDirectoryScope {
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
 ) : FLogDirectoryScope {
-  override fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File> {
-    return publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth)
-  }
-
   override fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File {
-    val date = publisher.filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    val zipFile = publisher.directory.resolve("${date}.zip")
-    val zipResult = logOf(year = year, month = month, dayOfMonth = dayOfMonth).toTypedArray().fZipTo(zipFile)
-    libLog { "lib logZipOf $date $zipResult" }
+    val logFilename = publisher.filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
+    val zipFile = publisher.directory.resolve("${logFilename}.zip")
+    val zipResult = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth).toTypedArray().fZipTo(zipFile)
+    libLog { "lib logZipOf ${zipFile.name} $zipResult" }
     return zipFile
   }
 }

@@ -4,16 +4,13 @@ package com.sd.lib.xlog
  * 日志文件名
  */
 internal interface LogFilename {
-  /** 文件扩展名 */
-  val fileExt: String
-
   /**
-   * 返回时间戳[millis]对应的日志文件名，不包含扩展名
+   * 返回时间戳[millis]对应的日志文件名
    */
   fun filenameOf(millis: Long): String
 
   /**
-   * 返回指定年月日对应的日志文件名，不包含扩展名
+   * 返回指定年月日对应的日志文件名
    */
   fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String
 
@@ -29,15 +26,17 @@ internal interface LogFilename {
 
 internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 
-private class LogFilenameImpl : LogFilename {
-  override val fileExt: String = "log"
-
+private class LogFilenameImpl(
+  private val extension: String = ".log",
+) : LogFilename {
   override fun filenameOf(millis: Long): String {
-    return LogTime.create(millis).dateString
+    val dateString = LogTime.create(millis).dateString
+    return dateString + extension
   }
 
   override fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String {
-    return LogTime.create(year = year, month = month, dayOfMonth = dayOfMonth).dateString
+    val dateString = LogTime.create(year = year, month = month, dayOfMonth = dayOfMonth).dateString
+    return dateString + extension
   }
 
   override fun diffDays(filename1: String, filename2: String): Int? {
@@ -47,6 +46,7 @@ private class LogFilenameImpl : LogFilename {
   }
 
   private fun filenameToInt(filename: String): Int? {
+    if (!filename.endsWith(extension)) return null
     return filename.substringBefore(".").toIntOrNull()?.takeIf { it > 0 }
   }
 }

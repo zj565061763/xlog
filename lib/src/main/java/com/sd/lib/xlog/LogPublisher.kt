@@ -59,9 +59,9 @@ private class LogPublisherImpl(
 ) : DirectoryLogPublisher {
 
   private data class DateInfo(
-    val date: String,
-    val file: File,
-    val store: FLogStore,
+    val logFile: File,
+    val logFilename: String,
+    val logStore: FLogStore,
   )
 
   private var _dateInfo: DateInfo? = null
@@ -73,7 +73,7 @@ private class LogPublisherImpl(
 
   override fun publish(record: FLogRecord) {
     with(getDateInfo(record)) {
-      store.append(formatter.format(record))
+      logStore.append(formatter.format(record))
       checkLogSize()
     }
   }
@@ -86,15 +86,14 @@ private class LogPublisherImpl(
   }
 
   private fun getDateInfo(record: FLogRecord): DateInfo {
-    val date = filename.filenameOf(record.millis)
-    if (_dateInfo?.date != date) {
-      check(date.isNotEmpty())
+    val logFilename = filename.filenameOf(record.millis)
+    if (_dateInfo?.logFilename != logFilename) {
       close()
-      val file = directory.resolve("${date}.${filename.fileExt}")
+      val logFile = directory.resolve(logFilename)
       _dateInfo = DateInfo(
-        date = date,
-        file = file,
-        store = SafeLogStore(storeFactory.create(file)),
+        logFile = logFile,
+        logFilename = logFilename,
+        logStore = SafeLogStore(storeFactory.create(logFile)),
       )
     }
     return checkNotNull(_dateInfo)
@@ -102,7 +101,7 @@ private class LogPublisherImpl(
 
   override fun onIdle() {
     _dateInfo?.also { info ->
-      if (info.file.isFile) {
+      if (info.logFile.isFile) {
         // 文件存在
       } else {
         // 文件不存在，关闭后会重新创建
@@ -112,8 +111,7 @@ private class LogPublisherImpl(
   }
 
   override fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File> {
-    val date = filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    val logFilename = "${date}.${filename.fileExt}"
+    val logFilename = filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
     val file = directory.resolve(logFilename)
     val file1 = directory.resolve("${logFilename}.1")
     return buildList {
@@ -130,15 +128,15 @@ private class LogPublisherImpl(
     }
 
     val partSize = maxBytePerDay / 2
-    if (store.size() < partSize) {
+    if (logStore.size() < partSize) {
       // 还未超过限制
       return
     }
 
     // 关闭并重命名
     closeStore()
-    val partFile = file.resolveSibling("${file.name}.1")
-    file.renameTo(partFile).also { rename ->
+    val partFile = logFile.resolveSibling("${logFilename}.1")
+    logFile.renameTo(partFile).also { rename ->
       libLog {
         val res = if (rename) "success" else "failed"
         "lib publisher part log file rename $res ${this@LogPublisherImpl}"
@@ -147,7 +145,7 @@ private class LogPublisherImpl(
   }
 
   private fun DateInfo.closeStore() {
-    store.close()
+    logStore.close()
     if (formatter is AutoCloseable) {
       formatter.close()
     }

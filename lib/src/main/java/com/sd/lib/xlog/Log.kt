@@ -129,10 +129,6 @@ object FLog {
       val today = filename.filenameOf(System.currentTimeMillis())
 
       for (file in files) {
-        if (file.extension != filename.fileExt) {
-          file.deleteRecursively()
-          continue
-        }
         val diffDays = filename.diffDays(today, file.name)
         if (diffDays == null || diffDays > (saveDays - 1)) {
           file.deleteRecursively()
