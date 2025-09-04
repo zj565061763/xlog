@@ -46,12 +46,21 @@ class LogFileLimitTest {
 
     FLog.logDirectory {
       val calendar = Calendar.getInstance()
-      val logs = logOf(
+      logOf(
         year = calendar.get(Calendar.YEAR),
         month = calendar.get(Calendar.MONTH) + 1,
         dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH),
-      )
-      assertEquals(2, logs.size)
+      ).also { files ->
+        assertEquals(2, files.size)
+      }
+      logZipOf(
+        year = calendar.get(Calendar.YEAR),
+        month = calendar.get(Calendar.MONTH) + 1,
+        dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH),
+      ).also { file ->
+        assertEquals(true, file.exists())
+        assertEquals(true, file.length() > 0)
+      }
     }
   }
 }
