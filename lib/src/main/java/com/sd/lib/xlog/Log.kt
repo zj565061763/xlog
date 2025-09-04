@@ -164,8 +164,8 @@ object FLog {
     val tag = (config?.tag ?: "").ifEmpty { logger.simpleName }
     when (mode ?: config?.mode ?: _mode) {
       FLogMode.Default -> {
-        publishConsoleLog(level = level, tag = tag, msg = msg)
         val record = newLogRecord(logger = logger, level = level, tag = tag, msg = msg)
+        publishConsoleLog(level = level, tag = tag, msg = msg)
         dispatch { _publisher.publish(record) }
       }
       FLogMode.Console -> {
