@@ -28,7 +28,7 @@ internal class LogDirectoryScopeImpl(
     val date = publisher.filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
     val zipFile = publisher.directory.resolve("${date}.zip")
     val zipResult = logOf(year = year, month = month, dayOfMonth = dayOfMonth).toTypedArray().fZipTo(zipFile)
-    libLog { "logZipOf $date $zipResult" }
+    libLog { "lib logZipOf $date $zipResult" }
     return zipFile
   }
 }
