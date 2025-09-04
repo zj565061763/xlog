@@ -31,12 +31,12 @@ private class LogFilenameImpl(
 ) : LogFilename {
   override fun filenameOf(millis: Long): String {
     val dateString = LogTime.create(millis).dateString
-    return dateString + extension
+    return "${dateString}${extension}"
   }
 
   override fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String {
     val dateString = LogTime.create(year = year, month = month, dayOfMonth = dayOfMonth).dateString
-    return dateString + extension
+    return "${dateString}${extension}"
   }
 
   override fun diffDays(filename1: String, filename2: String): Int? {
