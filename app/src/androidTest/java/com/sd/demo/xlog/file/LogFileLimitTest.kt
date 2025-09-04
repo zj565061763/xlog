@@ -9,6 +9,7 @@ import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Calendar
 
 /**
  * 限制日志文件大小
@@ -29,18 +30,28 @@ class LogFileLimitTest {
     assertEquals(true, dir.exists())
     assertEquals(false, dir.listFiles()?.isEmpty())
 
-    dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
+    dir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
       assertEquals(0, files?.size)
     }
 
     val log = "1".repeat(800 * 1024)
     flogI<TestLogger> { log }
 
-    dir.listFiles { _, name -> name.endsWith(".1") }.let { files ->
+    dir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
       assertEquals(1, files?.size)
     }
 
     flogI<TestLogger> { "info" }
     assertEquals(2, dir.listFiles()!!.size)
+
+    FLog.logDirectory {
+      val calendar = Calendar.getInstance()
+      val logs = logOf(
+        year = calendar.get(Calendar.YEAR),
+        month = calendar.get(Calendar.MONTH) + 1,
+        dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH),
+      )
+      assertEquals(2, logs.size)
+    }
   }
 }
