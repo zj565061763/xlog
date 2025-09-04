@@ -21,4 +21,8 @@ private class SafeLogPublisher(
   override fun close() {
     libRunCatching { instance.close() }
   }
+
+  override fun onIdle() {
+    libRunCatching { instance.onIdle() }
+  }
 }

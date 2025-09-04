@@ -12,6 +12,11 @@ internal interface LogPublisher : AutoCloseable {
    * 关闭
    */
   override fun close()
+
+  /**
+   * 调度器空闲回调
+   */
+  fun onIdle()
 }
 
 internal interface DirectoryLogPublisher : LogPublisher {
@@ -25,11 +30,6 @@ internal interface DirectoryLogPublisher : LogPublisher {
    * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
    */
   fun setMaxBytePerDay(limit: Long)
-
-  /**
-   * 调度器空闲回调
-   */
-  fun onIdle()
 
   /**
    * 获取指定年月日的日志文件
