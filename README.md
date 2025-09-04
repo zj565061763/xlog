@@ -43,6 +43,9 @@ flogE<AppLogger> { "Error" }
 // 设置日志等级 All, Verbose, Debug, Info, Warning, Error, Off  默认日志等级：All
 FLog.setLevel(FLogLevel.All)
 
+// 设置日志模式 Default，Console，Store 默认日志模式：Default，发布到控制台和仓库
+FLog.setMode(FLogMode.Default)
+
 // 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
 FLog.setMaxMBPerDay(100)
 
