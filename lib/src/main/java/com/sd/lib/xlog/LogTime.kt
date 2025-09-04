@@ -54,6 +54,6 @@ private data class LogTimeImpl(
   override val timeString: String = "${hourOfDay.leadingZero()}:${minute.leadingZero()}:${second.leadingZero()}.${millisecond.leadingZero(3)}"
 }
 
-internal fun Int.leadingZero(length: Int = 2): String {
+private fun Int.leadingZero(length: Int = 2): String {
   return toString().padStart(length = length, padChar = '0')
 }
