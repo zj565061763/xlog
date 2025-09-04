@@ -135,7 +135,7 @@ private class LogPublisherImpl(
 
     // 关闭并重命名
     closeStore()
-    val partFile = logFile.resolveSibling("${logFilename}.1")
+    val partFile = logFile.resolveSibling("${logFilename}.1").also { it.deleteRecursively() }
     logFile.renameTo(partFile).also { rename ->
       libLog {
         val res = if (rename) "success" else "failed"
