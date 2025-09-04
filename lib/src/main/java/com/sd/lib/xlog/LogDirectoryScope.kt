@@ -71,7 +71,7 @@ private fun compressFile(
       file.listFiles()?.forEach { item ->
         compressFile(
           file = item,
-          filename = filename + File.separator + item.name,
+          filename = "${filename}/${item.name}",
           outputStream = outputStream,
         )
       }
