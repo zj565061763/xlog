@@ -63,14 +63,14 @@ inline fun <reified T : FLogger> flog(
 
 @PublishedApi
 internal inline fun <T : FLogger> logInternal(
-  clazz: Class<T>,
+  logger: Class<T>,
   level: FLogLevel,
   mode: FLogMode?,
   block: () -> String,
 ) {
   with(FLog) {
-    if (isLoggable(clazz, level)) {
-      log(clazz = clazz, level = level, mode = mode, msg = block())
+    if (isLoggable(logger, level)) {
+      log(logger = logger, level = level, mode = mode, msg = block())
     }
   }
 }

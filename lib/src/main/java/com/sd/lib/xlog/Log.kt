@@ -153,34 +153,34 @@ object FLog {
 
   @PublishedApi
   internal fun log(
-    clazz: Class<out FLogger>,
+    logger: Class<out FLogger>,
     level: FLogLevel,
     mode: FLogMode?,
     msg: String?,
   ) {
     if (msg.isNullOrEmpty()) return
-    val config = getConfig(clazz)
+    val config = getConfig(logger)
     if (!isLoggable(level, config)) return
-    val tag = (config?.tag ?: "").ifEmpty { clazz.simpleName }
+    val tag = (config?.tag ?: "").ifEmpty { logger.simpleName }
     when (mode ?: config?.mode ?: _mode) {
       FLogMode.Default -> {
         publishConsoleLog(level = level, tag = tag, msg = msg)
-        val record = newLogRecord(logger = clazz, level = level, tag = tag, msg = msg)
+        val record = newLogRecord(logger = logger, level = level, tag = tag, msg = msg)
         dispatch { _publisher.publish(record) }
       }
       FLogMode.Console -> {
         publishConsoleLog(level = level, tag = tag, msg = msg)
       }
       FLogMode.Store -> {
-        val record = newLogRecord(logger = clazz, level = level, tag = tag, msg = msg)
+        val record = newLogRecord(logger = logger, level = level, tag = tag, msg = msg)
         dispatch { _publisher.publish(record) }
       }
     }
   }
 
   @PublishedApi
-  internal fun isLoggable(clazz: Class<out FLogger>, level: FLogLevel): Boolean {
-    return isLoggable(level = level, config = getConfig(clazz))
+  internal fun isLoggable(logger: Class<out FLogger>, level: FLogLevel): Boolean {
+    return isLoggable(level = level, config = getConfig(logger))
   }
 
   private fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
@@ -196,9 +196,9 @@ object FLog {
     return level >= limitLevel
   }
 
-  private fun getConfig(clazz: Class<out FLogger>): FLoggerConfig? {
+  private fun getConfig(logger: Class<out FLogger>): FLoggerConfig? {
     if (_configHolder.isEmpty()) return null
-    return _configHolder[clazz]
+    return _configHolder[logger]
   }
 
   /**
@@ -235,11 +235,11 @@ object FLog {
   @JvmStatic
   @JvmOverloads
   fun logV(
-    clazz: Class<out FLogger>,
+    logger: Class<out FLogger>,
     mode: FLogMode? = null,
     msg: String?,
   ) {
-    log(clazz, FLogLevel.Verbose, mode, msg)
+    log(logger, FLogLevel.Verbose, mode, msg)
   }
 
   /**
@@ -248,11 +248,11 @@ object FLog {
   @JvmStatic
   @JvmOverloads
   fun logD(
-    clazz: Class<out FLogger>,
+    logger: Class<out FLogger>,
     mode: FLogMode? = null,
     msg: String?,
   ) {
-    log(clazz, FLogLevel.Debug, mode, msg)
+    log(logger, FLogLevel.Debug, mode, msg)
   }
 
   /**
@@ -261,11 +261,11 @@ object FLog {
   @JvmStatic
   @JvmOverloads
   fun logI(
-    clazz: Class<out FLogger>,
+    logger: Class<out FLogger>,
     mode: FLogMode? = null,
     msg: String?,
   ) {
-    log(clazz, FLogLevel.Info, mode, msg)
+    log(logger, FLogLevel.Info, mode, msg)
   }
 
   /**
@@ -274,11 +274,11 @@ object FLog {
   @JvmStatic
   @JvmOverloads
   fun logW(
-    clazz: Class<out FLogger>,
+    logger: Class<out FLogger>,
     mode: FLogMode? = null,
     msg: String?,
   ) {
-    log(clazz, FLogLevel.Warning, mode, msg)
+    log(logger, FLogLevel.Warning, mode, msg)
   }
 
   /**
@@ -287,11 +287,11 @@ object FLog {
   @JvmStatic
   @JvmOverloads
   fun logE(
-    clazz: Class<out FLogger>,
+    logger: Class<out FLogger>,
     mode: FLogMode? = null,
     msg: String?,
   ) {
-    log(clazz, FLogLevel.Error, mode, msg)
+    log(logger, FLogLevel.Error, mode, msg)
   }
 }
 

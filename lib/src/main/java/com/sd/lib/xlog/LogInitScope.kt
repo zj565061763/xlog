@@ -4,7 +4,7 @@ interface FLogInitScope {
   fun setLogFormatter(formatter: FLogFormatter)
   fun setLogStoreFactory(factory: FLogStore.Factory)
   fun setLogDispatcher(dispatcher: FLogDispatcher)
-  fun configLogger(clazz: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig)
+  fun configLogger(logger: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig)
 }
 
 internal class LogInitScopeImpl : FLogInitScope {
@@ -25,12 +25,12 @@ internal class LogInitScopeImpl : FLogInitScope {
     this.dispatcher = dispatcher
   }
 
-  override fun configLogger(clazz: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig) {
-    val config = block(configHolder.getOrPut(clazz) { FLoggerConfig() })
+  override fun configLogger(logger: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig) {
+    val config = block(configHolder.getOrPut(logger) { FLoggerConfig() })
     if (config.isEmpty()) {
-      configHolder.remove(clazz)
+      configHolder.remove(logger)
     } else {
-      configHolder[clazz] = config
+      configHolder[logger] = config
     }
   }
 }
