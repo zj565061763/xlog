@@ -1,7 +1,6 @@
 package com.sd.lib.xlog
 
 import java.io.File
-import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -27,7 +26,7 @@ internal class LogDirectoryScopeImpl(
 private fun List<File>.fZipTo(target: File): Boolean {
   try {
     if (this.isEmpty()) return false
-    if (!target.fCreateNewFile()) return false
+    if (!target.deleteAndCreateNewFile()) return false
     ZipOutputStream(target.outputStream().buffered()).use { outputStream ->
       for (item in this) {
         compressFile(
@@ -38,7 +37,7 @@ private fun List<File>.fZipTo(target: File): Boolean {
       }
     }
     return true
-  } catch (e: IOException) {
+  } catch (e: Throwable) {
     e.printStackTrace()
     return false
   }
@@ -70,13 +69,8 @@ private fun compressFile(
   }
 }
 
-private fun File.fCreateNewFile(): Boolean {
-  try {
-    this.deleteRecursively()
-    this.parentFile?.mkdirs()
-    return this.createNewFile()
-  } catch (e: IOException) {
-    e.printStackTrace()
-    return false
-  }
+private fun File.deleteAndCreateNewFile(): Boolean {
+  deleteRecursively()
+  parentFile?.mkdirs()
+  return createNewFile()
 }
