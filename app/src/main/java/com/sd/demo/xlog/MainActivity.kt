@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.sd.demo.xlog.databinding.ActivityMainBinding
 import com.sd.lib.xlog.FLog
+import java.text.SimpleDateFormat
 
 class MainActivity : AppCompatActivity() {
   private val _binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
@@ -22,7 +23,9 @@ class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
-    // 删除所有日志
-    FLog.deleteLog(saveDays = 0)
+    FLog.logDirectory {
+      val date = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis())
+      logZipOf(date)
+    }
   }
 }
