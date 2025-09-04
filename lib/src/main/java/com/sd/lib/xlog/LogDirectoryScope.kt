@@ -18,15 +18,15 @@ internal class LogDirectoryScopeImpl(
   override fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File {
     val logFilename = publisher.filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
     val zipFile = publisher.directory.resolve("${logFilename}.zip")
-    val zipResult = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth).toTypedArray().fZipTo(zipFile)
+    val zipResult = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth).fZipTo(zipFile)
     libLog { "lib logZipOf ${zipFile.name} $zipResult" }
     return zipFile
   }
 }
 
-private fun Array<File>?.fZipTo(target: File): Boolean {
+private fun List<File>.fZipTo(target: File): Boolean {
   try {
-    if (this.isNullOrEmpty()) return false
+    if (this.isEmpty()) return false
     if (!target.fCreateNewFile()) return false
     ZipOutputStream(target.outputStream().buffered()).use { outputStream ->
       for (item in this) {
