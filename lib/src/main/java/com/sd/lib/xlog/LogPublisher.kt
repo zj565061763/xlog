@@ -57,14 +57,7 @@ private class LogPublisherImpl(
   private val formatter: FLogFormatter,
   private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
-
-  private data class DateInfo(
-    val logFile: File,
-    val logFilename: String,
-    val logStore: FLogStore,
-  )
-
-  private var _dateInfo: DateInfo? = null
+  private var _handler: LogDateHandler? = null
   private var _maxBytePerDay: Long = 0
 
   override fun setMaxBytePerDay(limit: Long) {
@@ -72,42 +65,18 @@ private class LogPublisherImpl(
   }
 
   override fun publish(record: FLogRecord) {
-    with(getDateInfo(record)) {
-      logStore.append(formatter.format(record))
-      checkLogSize()
-    }
+    getHandler(record).publish(record, _maxBytePerDay)
   }
 
   override fun close() {
-    _dateInfo?.also { info ->
-      _dateInfo = null
-      info.closeStore()
+    _handler?.also {
+      _handler = null
+      it.close()
     }
-  }
-
-  private fun getDateInfo(record: FLogRecord): DateInfo {
-    val logFilename = filename.filenameOf(record.millis)
-    if (_dateInfo?.logFilename != logFilename) {
-      close()
-      val logFile = directory.resolve(logFilename)
-      _dateInfo = DateInfo(
-        logFile = logFile,
-        logFilename = logFilename,
-        logStore = SafeLogStore(storeFactory.create(logFile)),
-      )
-    }
-    return checkNotNull(_dateInfo)
   }
 
   override fun onIdle() {
-    _dateInfo?.also { info ->
-      if (info.logFile.isFile) {
-        // 文件存在
-      } else {
-        // 文件不存在，关闭后会重新创建
-        info.closeStore()
-      }
-    }
+    _handler?.onIdle()
   }
 
   override fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File> {
@@ -120,8 +89,50 @@ private class LogPublisherImpl(
     }
   }
 
-  private fun DateInfo.checkLogSize() {
-    val maxBytePerDay = _maxBytePerDay
+  private fun getHandler(record: FLogRecord): LogDateHandler {
+    val logFilename = filename.filenameOf(record.millis)
+    if (_handler?.logFilename != logFilename) {
+      close()
+      val logFile = directory.resolve(logFilename)
+      _handler = LogDateHandler(
+        logFilename = logFilename,
+        logFile = logFile,
+        logStore = SafeLogStore(storeFactory.create(logFile)),
+        formatter = formatter,
+      )
+    }
+    return checkNotNull(_handler)
+  }
+}
+
+private class LogDateHandler(
+  val logFilename: String,
+  private val logFile: File,
+  private val logStore: FLogStore,
+  private val formatter: FLogFormatter,
+) {
+  fun publish(record: FLogRecord, maxBytePerDay: Long) {
+    logStore.append(formatter.format(record))
+    checkLogSize(maxBytePerDay)
+  }
+
+  fun onIdle() {
+    if (logFile.isFile) {
+      // 文件存在
+    } else {
+      // 文件不存在，关闭后会重新创建
+      close()
+    }
+  }
+
+  fun close() {
+    logStore.close()
+    if (formatter is AutoCloseable) {
+      formatter.close()
+    }
+  }
+
+  private fun checkLogSize(maxBytePerDay: Long) {
     if (maxBytePerDay <= 0) {
       // 不限制大小
       return
@@ -134,20 +145,10 @@ private class LogPublisherImpl(
     }
 
     // 关闭并重命名
-    closeStore()
+    close()
     val partFile = logFile.resolveSibling("${logFilename}.1").also { it.deleteRecursively() }
     logFile.renameTo(partFile).also { rename ->
-      libLog {
-        val res = if (rename) "success" else "failed"
-        "lib publisher part log file rename $res ${this@LogPublisherImpl}"
-      }
-    }
-  }
-
-  private fun DateInfo.closeStore() {
-    logStore.close()
-    if (formatter is AutoCloseable) {
-      formatter.close()
+      libLog { "lib part log file rename $rename" }
     }
   }
 }
