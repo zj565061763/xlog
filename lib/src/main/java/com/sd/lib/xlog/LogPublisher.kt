@@ -104,8 +104,9 @@ private class LogPublisherImpl(
 
   private fun getDateLogFile(date: String, suffix: String = ""): File {
     require(date.isNotEmpty())
-    val logDir = directory.resolve(date).let { if (process.isNullOrEmpty()) it else it.resolve(process) }
-    return logDir.resolve("${date}.${filename.extension}${suffix}")
+    return directory.resolve(date).let { dateDir ->
+      if (process.isNullOrEmpty()) dateDir else dateDir.resolve(process.replace(":", "_"))
+    }.resolve("${date}.${filename.extension}${suffix}")
   }
 }
 
