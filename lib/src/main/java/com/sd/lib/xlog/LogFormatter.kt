@@ -15,7 +15,7 @@ private class LogFormatterImpl : FLogFormatter, AutoCloseable {
 
   override fun format(record: FLogRecord): String = with(record) {
     buildString {
-      append(LogTime.create(millis).timeString)
+      append(LogTime.timeStringOf(millis))
       append("[")
 
       val logTag = if (tag == _lastLogTag) "" else tag
