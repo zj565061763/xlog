@@ -5,14 +5,13 @@ import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogMode
-import com.sd.lib.xlog.fLogDir
 
 class App : Application() {
   override fun onCreate() {
     super.onCreate()
 
     // 初始化
-    FLog.init(directory = fLogDir()) {
+    FLog.init(context = this) {
       // 单元测试使用的调度器
 //      setLogDispatcher(TestLogDispatcher())
 
