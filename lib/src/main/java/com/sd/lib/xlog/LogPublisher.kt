@@ -102,11 +102,11 @@ private class LogPublisherImpl(
     return checkNotNull(_handler)
   }
 
-  private fun getDateLogFile(date: String, suffix: String = ""): File {
+  private fun getDateLogFile(date: String): File {
     require(date.isNotEmpty())
     return directory.resolve(date).let { dateDir ->
       if (process.isNullOrEmpty()) dateDir else dateDir.resolve(process.replace(":", "_"))
-    }.resolve("${date}.${filename.extension}${suffix}")
+    }.resolve("${date}.${filename.extension}")
   }
 }
 
