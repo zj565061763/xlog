@@ -4,7 +4,7 @@ package com.sd.lib.xlog
  * 日志文件名
  */
 internal interface LogFilename {
-  /** 文件扩展名 */
+  /** 文件扩展名，不包含. */
   val extension: String
 
   /**
@@ -30,7 +30,7 @@ internal interface LogFilename {
 internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 
 private class LogFilenameImpl(
-  override val extension: String = ".log",
+  override val extension: String = "log",
 ) : LogFilename {
   override fun dateOf(millis: Long): String {
     return LogTime.dateOf(millis)
