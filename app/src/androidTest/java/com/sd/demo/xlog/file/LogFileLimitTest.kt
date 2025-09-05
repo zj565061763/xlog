@@ -2,6 +2,7 @@ package com.sd.demo.xlog.file
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.demo.xlog.TestLogger
+import com.sd.demo.xlog.testContext
 import com.sd.demo.xlog.testLogDir
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogDirectoryScope
@@ -31,19 +32,22 @@ class LogFileLimitTest {
     assertEquals(true, dir.exists())
     assertEquals(false, dir.listFiles()?.isEmpty())
 
-    dir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
+    val today = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis()).toInt()
+    val logDir = dir.resolve(today.toString()).resolve(testContext.packageName)
+
+    logDir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
       assertEquals(0, files?.size)
     }
 
     val log = "1".repeat(800 * 1024)
     flogI<TestLogger> { log }
 
-    dir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
+    logDir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
       assertEquals(1, files?.size)
     }
 
     flogI<TestLogger> { "info" }
-    assertEquals(2, dir.listFiles()!!.size)
+    assertEquals(2, logDir.listFiles()!!.size)
 
     var scope: FLogDirectoryScope? = null
     FLog.logDirectory {
