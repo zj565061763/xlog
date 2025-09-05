@@ -4,50 +4,49 @@ package com.sd.lib.xlog
  * 日志文件名
  */
 internal interface LogFilename {
-  /**
-   * 返回时间戳[millis]对应的日志文件名
-   */
-  fun filenameOf(millis: Long): String
+  /** 文件扩展名 */
+  val extension: String
 
   /**
-   * 返回指定年月日对应的日志文件名
+   * 返回时间戳[millis]对应的文件日期，不包含扩展名
    */
-  fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String
+  fun dateOf(millis: Long): String
 
   /**
-   * 计算[filename1]和[filename2]之间的天数差距，例如：
+   * 返回指定年月日对应的文件日期，不包含扩展名
+   */
+  fun dateOf(year: Int, month: Int, dayOfMonth: Int): String
+
+  /**
+   * 计算[date1]和[date2]之间的天数差距，例如：
    * 20231125 和 20231125 天数差距为0，
    * 20231130 和 20231125 天数差距为5，
    * 20231125 和 20231130 天数差距为-5
-   * 如果返回null，表示文件名不合法
+   * 如果返回null，表示文件日期格式不合法
    */
-  fun diffDays(filename1: String, filename2: String): Int?
+  fun diffDays(date1: String, date2: String): Int?
 }
 
 internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 
 private class LogFilenameImpl(
-  private val extension: String = ".log",
+  override val extension: String = ".log",
 ) : LogFilename {
-  override fun filenameOf(millis: Long): String {
-    val dateString = LogTime.dateStringOf(millis)
-    return "${dateString}${extension}"
+  override fun dateOf(millis: Long): String {
+    return LogTime.dateOf(millis)
   }
 
-  override fun filenameOf(year: Int, month: Int, dayOfMonth: Int): String {
-    val dateString = LogTime.dateStringOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    return "${dateString}${extension}"
+  override fun dateOf(year: Int, month: Int, dayOfMonth: Int): String {
+    return LogTime.dateOf(year = year, month = month, dayOfMonth = dayOfMonth)
   }
 
-  override fun diffDays(filename1: String, filename2: String): Int? {
-    val f1 = filenameToInt(filename1) ?: return null
-    val f2 = filenameToInt(filename2) ?: return null
+  override fun diffDays(date1: String, date2: String): Int? {
+    val f1 = dateToInt(date1) ?: return null
+    val f2 = dateToInt(date2) ?: return null
     return f1 - f2
   }
 
-  private fun filenameToInt(filename: String): Int? {
-    val date = filename.removeSuffix(extension)
-    if (date === filename) return null
+  private fun dateToInt(date: String): Int? {
     return date.toIntOrNull()?.takeIf { it > 0 }
   }
 }

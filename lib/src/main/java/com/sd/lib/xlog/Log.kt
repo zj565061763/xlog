@@ -1,5 +1,6 @@
 package com.sd.lib.xlog
 
+import android.content.Context
 import android.util.Log
 import java.io.File
 
@@ -48,18 +49,14 @@ object FLog {
    */
   @JvmStatic
   @JvmOverloads
-  fun init(
-    /** 日志文件目录 */
-    directory: File,
-    /** 初始化 */
-    initBlock: FLogInitScope.() -> Unit = {},
-  ): Boolean {
+  fun init(context: Context, initBlock: FLogInitScope.() -> Unit = {}): Boolean {
     synchronized(FLog) {
       if (_hasInit) return false
       val initScope = LogInitScopeImpl().apply(initBlock)
 
       _publisher = defaultLogPublisher(
-        directory = directory,
+        process = context.currentProcess(),
+        directory = initScope.directory ?: context.fLogDir(),
         filename = defaultLogFilename(),
         formatter = initScope.formatter ?: defaultLogFormatter(),
         storeFactory = initScope.storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
@@ -126,7 +123,7 @@ object FLog {
       }
 
       val filename = _publisher.filename
-      val today = filename.filenameOf(System.currentTimeMillis())
+      val today = filename.dateOf(System.currentTimeMillis())
 
       for (file in files) {
         val diffDays = filename.diffDays(today, file.name)

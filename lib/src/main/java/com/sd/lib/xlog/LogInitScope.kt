@@ -1,6 +1,9 @@
 package com.sd.lib.xlog
 
+import java.io.File
+
 interface FLogInitScope {
+  fun setLogDirectory(directory: File)
   fun setLogFormatter(formatter: FLogFormatter)
   fun setLogStoreFactory(factory: FLogStore.Factory)
   fun setLogDispatcher(dispatcher: FLogDispatcher)
@@ -8,10 +11,15 @@ interface FLogInitScope {
 }
 
 internal class LogInitScopeImpl : FLogInitScope {
+  var directory: File? = null
   var formatter: FLogFormatter? = null
   var storeFactory: FLogStore.Factory? = null
   var dispatcher: FLogDispatcher? = null
   val configHolder: MutableMap<Class<out FLogger>, FLoggerConfig> = mutableMapOf()
+
+  override fun setLogDirectory(directory: File) {
+    this.directory = directory
+  }
 
   override fun setLogFormatter(formatter: FLogFormatter) {
     this.formatter = formatter

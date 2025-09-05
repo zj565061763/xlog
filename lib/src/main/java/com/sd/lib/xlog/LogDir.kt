@@ -8,7 +8,7 @@ import android.os.Process
 import java.io.File
 
 /**
- * 获取日志目录
+ * 日志目录
  */
 fun Context.fLogDir(
   /** 是否优先使用外部存储 */
@@ -18,16 +18,13 @@ fun Context.fLogDir(
 ): File {
   require(dirName.isNotEmpty()) { "dirName is empty" }
   val rootDir = if (preferExternal) (getExternalFilesDir(null) ?: filesDir) else filesDir
-  val logDir = rootDir.resolve(dirName)
-  val process = currentProcess()
-  return if (!process.isNullOrBlank() && process != packageName) {
-    logDir.resolve(process.replace(":", "_"))
-  } else {
-    logDir
-  }
+  return rootDir.resolve(dirName)
 }
 
-private fun Context.currentProcess(): String? {
+/**
+ * 当前进程
+ */
+internal fun Context.currentProcess(): String? {
   return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
     Application.getProcessName()
   } else {

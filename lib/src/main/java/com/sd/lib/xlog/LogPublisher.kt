@@ -38,12 +38,14 @@ internal interface DirectoryLogPublisher : LogPublisher {
 }
 
 internal fun defaultLogPublisher(
+  process: String?,
   directory: File,
   filename: LogFilename,
   formatter: FLogFormatter,
   storeFactory: FLogStore.Factory,
 ): DirectoryLogPublisher {
   return LogPublisherImpl(
+    process = process,
     directory = directory,
     filename = filename,
     formatter = formatter,
@@ -52,12 +54,13 @@ internal fun defaultLogPublisher(
 }
 
 private class LogPublisherImpl(
+  private val process: String?,
   override val directory: File,
   override val filename: LogFilename,
   private val formatter: FLogFormatter,
   private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
-  private var _handler: LogDateHandler? = null
+  private var _handler: DateLogHandler? = null
   private var _maxBytePerDay: Long = 0
 
   override fun setMaxBytePerDay(limit: Long) {
@@ -80,22 +83,22 @@ private class LogPublisherImpl(
   }
 
   override fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File> {
-    val logFilename = filename.filenameOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    val file = directory.resolve(logFilename)
-    val file1 = directory.resolve("${logFilename}.1")
+    val date = filename.dateOf(year = year, month = month, dayOfMonth = dayOfMonth)
+    val file = getDateLogFile(date)
+    val file1 = getDateLogFile(date, suffix = ".1")
     return buildList {
       if (file.exists()) add(file)
       if (file1.exists()) add(file1)
     }
   }
 
-  private fun getHandler(record: FLogRecord): LogDateHandler {
-    val logFilename = filename.filenameOf(record.millis)
-    if (_handler?.logFilename != logFilename) {
+  private fun getHandler(record: FLogRecord): DateLogHandler {
+    val date = filename.dateOf(record.millis)
+    if (_handler?.date != date) {
       close()
-      val logFile = directory.resolve(logFilename)
-      _handler = LogDateHandler(
-        logFilename = logFilename,
+      val logFile = getDateLogFile(date)
+      _handler = DateLogHandler(
+        date = date,
         logFile = logFile,
         logStore = SafeLogStore(storeFactory.create(logFile)),
         formatter = formatter,
@@ -103,10 +106,16 @@ private class LogPublisherImpl(
     }
     return checkNotNull(_handler)
   }
+
+  private fun getDateLogFile(date: String, suffix: String = ""): File {
+    require(date.isNotEmpty())
+    val logDir = directory.resolve(date).let { if (process.isNullOrEmpty()) it else it.resolve(process) }
+    return logDir.resolve("${date}.${filename.extension}${suffix}")
+  }
 }
 
-private class LogDateHandler(
-  val logFilename: String,
+private class DateLogHandler(
+  val date: String,
   private val logFile: File,
   private val logStore: FLogStore,
   private val formatter: FLogFormatter,
@@ -146,7 +155,7 @@ private class LogDateHandler(
 
     // 关闭并重命名
     close()
-    val partFile = logFile.resolveSibling("${logFilename}.1").also { it.deleteRecursively() }
+    val partFile = logFile.resolveSibling("${logFile.name}.1").also { it.deleteRecursively() }
     logFile.renameTo(partFile).also { rename ->
       libLog { "part log file rename $rename" }
     }

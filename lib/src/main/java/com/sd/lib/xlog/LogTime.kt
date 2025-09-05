@@ -6,10 +6,10 @@ internal object LogTime {
   private val _calendar = Calendar.getInstance()
 
   /** yyyyMMdd，例如：20231125 */
-  fun dateStringOf(millis: Long): String {
+  fun dateOf(millis: Long): String {
     return with(_calendar) {
       setTimeInMillis(millis)
-      dateStringOf(
+      dateOf(
         year = get(Calendar.YEAR),
         month = get(Calendar.MONTH) + 1,
         dayOfMonth = get(Calendar.DAY_OF_MONTH),
@@ -18,11 +18,12 @@ internal object LogTime {
   }
 
   /** yyyyMMdd，例如：20231125 */
-  fun dateStringOf(year: Int, month: Int, dayOfMonth: Int): String {
+  fun dateOf(year: Int, month: Int, dayOfMonth: Int): String {
     return "${year}${month.leadingZero()}${dayOfMonth.leadingZero()}"
   }
 
-  fun timeStringOf(millis: Long): String {
+  /** HH:mm:ss.SSS，例如：18:18:18.888 */
+  fun timeOf(millis: Long): String {
     return with(_calendar) {
       setTimeInMillis(millis)
       val hourOfDay = get(Calendar.HOUR_OF_DAY)
