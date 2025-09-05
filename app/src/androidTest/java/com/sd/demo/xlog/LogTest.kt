@@ -11,14 +11,13 @@ import com.sd.lib.xlog.flogW
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class LogTest {
 
   @Test
   fun testReInit() {
-    val init = FLog.init(directory = File("abc"))
+    val init = FLog.init(testContext)
     assertEquals(false, init)
   }
 

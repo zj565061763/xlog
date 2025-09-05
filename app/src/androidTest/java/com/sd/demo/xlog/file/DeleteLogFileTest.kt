@@ -27,17 +27,17 @@ class DeleteLogFileTest {
     assertEquals(false, dir.exists())
     flogI<TestLogger> { "info" }
     flogI<TestLogger> { "info" }
-    assertEquals(true, dir.exists())
-    assertEquals(false, dir.listFiles()?.isEmpty())
 
     val today = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis()).toInt()
 
-    val file1 = dir.resolve("${today - 1}.log").apply { fCreateFile() }
-    val file2 = dir.resolve("${today - 2}.log").apply { fCreateFile() }
-    val file3 = dir.resolve("${today - 3}.log").apply { fCreateFile() }
-    val file4 = dir.resolve("${today - 4}.log").apply { fCreateFile() }
-    val file5 = dir.resolve("${today - 5}.log").apply { fCreateFile() }
+    val todayFile = dir.resolve(today.toString())
+    val file1 = dir.resolve("${today - 1}").apply { fCreateFile() }
+    val file2 = dir.resolve("${today - 2}").apply { fCreateFile() }
+    val file3 = dir.resolve("${today - 3}").apply { fCreateFile() }
+    val file4 = dir.resolve("${today - 4}").apply { fCreateFile() }
+    val file5 = dir.resolve("${today - 5}").apply { fCreateFile() }
 
+    assertEquals(true, todayFile.exists())
     assertEquals(true, file1.exists())
     assertEquals(true, file2.exists())
     assertEquals(true, file3.exists())
