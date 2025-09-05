@@ -41,7 +41,7 @@ internal class LogDirectoryScopeImpl(
     val files = publisher.logOf(year = year, month = month, dayOfMonth = dayOfMonth)
     if (files.isEmpty()) return null
     val zipFile = publisher.directory.resolve("${files.first().name.substringBefore(".")}.zip")
-    val zipResult = files.fZipTo(zipFile)
+    val zipResult = files.zipTo(zipFile)
     libLog { "log zip ${zipFile.name} $zipResult" }
     return if (zipResult && zipFile.exists()) zipFile else null
   }
@@ -51,7 +51,7 @@ internal class LogDirectoryScopeImpl(
   }
 }
 
-private fun List<File>.fZipTo(target: File): Boolean {
+private fun List<File>.zipTo(target: File): Boolean {
   try {
     if (this.isEmpty()) return false
     if (!target.deleteAndCreateNewFile()) return false

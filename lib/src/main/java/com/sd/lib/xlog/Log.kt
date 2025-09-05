@@ -144,9 +144,8 @@ object FLog {
   fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
     dispatch {
       _publisher.close()
-      val directory = _publisher.directory
       val scope = LogDirectoryScopeImpl(_publisher)
-      scope.block(directory)
+      scope.block(_publisher.directory)
       scope.destroy()
     }
   }
