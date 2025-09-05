@@ -32,9 +32,9 @@ internal interface DirectoryLogPublisher : LogPublisher {
   fun setMaxBytePerDay(limit: Long)
 
   /**
-   * 获取指定年月日的日志文件
+   * 指定日期的日志目录
    */
-  fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File>
+  fun logDirOf(year: Int, month: Int, dayOfMonth: Int): File
 }
 
 internal fun defaultLogPublisher(
@@ -82,14 +82,9 @@ private class LogPublisherImpl(
     _handler?.onIdle()
   }
 
-  override fun logOf(year: Int, month: Int, dayOfMonth: Int): List<File> {
+  override fun logDirOf(year: Int, month: Int, dayOfMonth: Int): File {
     val date = filename.dateOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    val file = getDateLogFile(date)
-    val file1 = getDateLogFile(date, suffix = ".1")
-    return buildList {
-      if (file.exists()) add(file)
-      if (file1.exists()) add(file1)
-    }
+    return directory.resolve(date)
   }
 
   private fun getHandler(record: FLogRecord): DateLogHandler {
