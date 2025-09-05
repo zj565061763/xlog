@@ -24,6 +24,9 @@
         </activity>
 
         <activity android:name=".SampleLog" />
+        <activity
+            android:name=".SampleLogProcess"
+            android:process=":custom" />
         <activity android:name=".SamplePerformance" />
 
     </application>

@@ -19,7 +19,7 @@ import com.sd.lib.xlog.lv
 import com.sd.lib.xlog.lw
 import kotlin.concurrent.thread
 
-class SampleLog : AppCompatActivity(), FLogger {
+open class SampleLog : AppCompatActivity(), FLogger {
   private val _binding by lazy { SampleLogBinding.inflate(layoutInflater) }
 
   override fun onCreate(savedInstanceState: Bundle?) {
