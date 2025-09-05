@@ -27,6 +27,7 @@ class DeleteLogFileTest {
     assertEquals(false, dir.exists())
     flogI<TestLogger> { "info" }
     flogI<TestLogger> { "info" }
+    assertEquals(true, dir.exists())
 
     val today = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis()).toInt()
 

@@ -23,8 +23,15 @@ class LogFileDeletedTest {
 
     dir.deleteRecursively()
     assertEquals(false, dir.exists())
+    flogI<TestLogger> { "info" }
+    flogI<TestLogger> { "info" }
+    assertEquals(true, dir.exists())
 
-    // 触发store.close()
+    // 模拟删除文件
+    dir.deleteRecursively()
+    assertEquals(false, dir.exists())
+
+    // 触发close()
     flogI<TestLogger> { "info" }
     // 触发创建新文件
     flogI<TestLogger> { "info" }
