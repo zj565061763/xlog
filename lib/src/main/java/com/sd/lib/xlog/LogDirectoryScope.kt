@@ -38,12 +38,9 @@ internal class LogDirectoryScopeImpl(
       libLog { "log zip failed with destroyed state" }
       return null
     }
-
     val dateDir = publisher.logDirOf(year = year, month = month, dayOfMonth = dayOfMonth)
-    if (!dateDir.isDirectory) return null
-
     val zipFile = dateDir.resolveSibling("${dateDir.name}.zip")
-    val zipResult = dateDir.zipTo(zipFile)
+    val zipResult = zip(source = dateDir, target = zipFile)
     libLog { "log zip ${zipFile.name} $zipResult" }
     return if (zipResult && zipFile.exists()) zipFile else null
   }
@@ -53,11 +50,11 @@ internal class LogDirectoryScopeImpl(
   }
 }
 
-private fun File.zipTo(target: File): Boolean {
+private fun zip(source: File, target: File): Boolean {
   try {
     if (!target.deleteAndCreateNewFile()) return false
     ZipOutputStream(target.outputStream().buffered()).use { outputStream ->
-      compressFile(file = this, filename = this.name, outputStream = outputStream)
+      compressFile(file = source, filename = source.name, outputStream = outputStream)
     }
     return true
   } catch (e: Throwable) {
