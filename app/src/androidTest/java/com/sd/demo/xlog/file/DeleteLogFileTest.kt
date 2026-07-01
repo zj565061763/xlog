@@ -11,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.text.SimpleDateFormat
+import java.util.Calendar
 
 /**
  * 删除日志文件
@@ -29,14 +30,27 @@ class DeleteLogFileTest {
     flogI<TestLogger> { "info" }
     assertEquals(true, dir.exists())
 
-    val today = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis()).toInt()
+    val dateFormat = SimpleDateFormat("yyyyMMdd")
+    val calendar = Calendar.getInstance().apply {
+      clear()
+      set(2026, Calendar.JULY, 1, 0, 0, 0)
+      set(Calendar.MILLISECOND, 0)
+    }
 
-    val todayFile = dir.resolve(today.toString())
-    val file1 = dir.resolve("${today - 1}").apply { fCreateFile() }
-    val file2 = dir.resolve("${today - 2}").apply { fCreateFile() }
-    val file3 = dir.resolve("${today - 3}").apply { fCreateFile() }
-    val file4 = dir.resolve("${today - 4}").apply { fCreateFile() }
-    val file5 = dir.resolve("${today - 5}").apply { fCreateFile() }
+    fun dateOfDaysAgo(days: Int): String {
+      val cal = calendar.clone() as Calendar
+      cal.add(Calendar.DAY_OF_MONTH, -days)
+      return dateFormat.format(cal.time)
+    }
+
+    val today = dateFormat.format(calendar.time)
+
+    val todayFile = dir.resolve(today)
+    val file1 = dir.resolve(dateOfDaysAgo(1)).apply { fCreateFile() }
+    val file2 = dir.resolve(dateOfDaysAgo(2)).apply { fCreateFile() }
+    val file3 = dir.resolve(dateOfDaysAgo(3)).apply { fCreateFile() }
+    val file4 = dir.resolve(dateOfDaysAgo(4)).apply { fCreateFile() }
+    val file5 = dir.resolve(dateOfDaysAgo(5)).apply { fCreateFile() }
 
     assertEquals(true, todayFile.exists())
     assertEquals(true, file1.exists())
