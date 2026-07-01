@@ -1,5 +1,7 @@
 package com.sd.lib.xlog
 
+import java.util.Calendar
+
 /**
  * 日志文件名
  */
@@ -32,6 +34,8 @@ internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 private class LogFilenameImpl(
   override val extension: String = "log",
 ) : LogFilename {
+  private val _calendar = Calendar.getInstance()
+
   override fun dateOf(millis: Long): String {
     return LogTime.dateOf(millis)
   }
@@ -41,12 +45,21 @@ private class LogFilenameImpl(
   }
 
   override fun diffDays(date1: String, date2: String): Int? {
-    val f1 = dateToInt(date1) ?: return null
-    val f2 = dateToInt(date2) ?: return null
-    return f1 - f2
+    val time1 = parseDate(date1) ?: return null
+    val time2 = parseDate(date2) ?: return null
+    val diff = time1 - time2
+    return (diff / (24 * 3600 * 1000L)).toInt()
   }
 
-  private fun dateToInt(date: String): Int? {
-    return date.toIntOrNull()?.takeIf { it > 0 }
+  private fun parseDate(date: String): Long? {
+    if (date.length != 8) return null
+    val year = date.substring(0, 4).toIntOrNull() ?: return null
+    val month = date.substring(4, 6).toIntOrNull() ?: return null
+    val day = date.substring(6, 8).toIntOrNull() ?: return null
+    return with(_calendar) {
+      set(year, month - 1, day, 0, 0, 0)
+      set(Calendar.MILLISECOND, 0)
+      timeInMillis
+    }
   }
 }
