@@ -27,6 +27,7 @@ enum class FLogMode {
 
 object FLog {
   /** 是否已经初始化 */
+  @Volatile
   private var _hasInit = false
 
   /** 日志等级 */
