@@ -19,6 +19,7 @@ interface FLogDirectoryScope {
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
 ) : FLogDirectoryScope {
+  @Volatile
   private var _destroyed = false
 
   override fun logZipOf(date: String): File? {

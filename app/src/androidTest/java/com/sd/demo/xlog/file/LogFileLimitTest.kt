@@ -2,8 +2,10 @@ package com.sd.demo.xlog.file
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.demo.xlog.TestLogger
+import com.sd.demo.xlog.awaitLogIdle
+import com.sd.demo.xlog.dateOfDaysAgo
+import com.sd.demo.xlog.resetLogDir
 import com.sd.demo.xlog.testContext
-import com.sd.demo.xlog.testLogDir
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogDirectoryScope
 import com.sd.lib.xlog.FLogLevel
@@ -11,7 +13,6 @@ import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.text.SimpleDateFormat
 
 /**
  * 限制日志文件大小
@@ -21,19 +22,18 @@ class LogFileLimitTest {
 
   @Test
   fun test() {
-    val dir = testLogDir
     FLog.setLevel(FLogLevel.All)
     FLog.setMaxMBPerDay(1)
 
-    dir.deleteRecursively()
-    assertEquals(false, dir.exists())
+    val dir = resetLogDir()
     flogI<TestLogger> { "info" }
     flogI<TestLogger> { "info" }
+    awaitLogIdle()
     assertEquals(true, dir.exists())
     assertEquals(false, dir.listFiles()?.isEmpty())
 
-    val today = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis()).toInt()
-    val logDir = dir.resolve(today.toString()).resolve(testContext.packageName)
+    val today = dateOfDaysAgo(0)
+    val logDir = dir.resolve(today).resolve(testContext.packageName)
 
     logDir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
       assertEquals(0, files?.size)
@@ -41,24 +41,26 @@ class LogFileLimitTest {
 
     val log = "1".repeat(800 * 1024)
     flogI<TestLogger> { log }
+    awaitLogIdle()
 
     logDir.listFiles { _, name -> name.endsWith(".1") }.also { files ->
       assertEquals(1, files?.size)
     }
 
     flogI<TestLogger> { "info" }
+    awaitLogIdle()
     assertEquals(2, logDir.listFiles()!!.size)
 
     var scope: FLogDirectoryScope? = null
     FLog.logDirectory {
       scope = this
-      val date = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis())
-      logZipOf(date)!!.also { file ->
+      logZipOf(today)!!.also { file ->
         assertEquals(true, file.exists())
         assertEquals(true, file.length() > 0)
       }
     }
-    val date = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis())
-    assertEquals(null, scope!!.logZipOf(date))
+    awaitLogIdle()
+    // 离开logDirectory之后scope已经销毁
+    assertEquals(null, scope!!.logZipOf(today))
   }
 }

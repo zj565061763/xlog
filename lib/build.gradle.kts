@@ -25,6 +25,7 @@ android {
 }
 
 dependencies {
+  testImplementation(libs.junit)
 }
 
 mavenPublishing {

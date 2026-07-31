@@ -2,6 +2,7 @@ package com.sd.demo.xlog
 
 import android.app.Application
 import com.sd.demo.xlog.log.AppLogger
+import com.sd.demo.xlog.log.TestLogDispatcher
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogMode
@@ -12,8 +13,8 @@ class App : Application() {
 
     // 初始化
     FLog.init(context = this) {
-      // 单元测试使用的调度器
-//      setLogDispatcher(TestLogDispatcher())
+      // 测试使用的调度器，行为和默认调度器一致，额外提供等待任务执行完成的能力
+      setLogDispatcher(TestLogDispatcher)
 
       configLogger(AppLogger::class.java) {
         it.copy(
