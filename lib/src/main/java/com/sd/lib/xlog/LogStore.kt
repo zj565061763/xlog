@@ -48,7 +48,7 @@ private class FileLogStore(file: File) : FLogStore {
   }
 
   override fun size(): Long {
-    return getOutput().written
+    return _output?.written ?: _file.length()
   }
 
   override fun close() {
