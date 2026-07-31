@@ -4,9 +4,6 @@ package com.sd.lib.xlog
  * 日志文件名
  */
 internal interface LogFilename {
-  /** 文件扩展名，不包含. */
-  val extension: String
-
   /**
    * 返回时间戳[millis]对应的文件日期，不包含扩展名
    */
@@ -20,12 +17,23 @@ internal interface LogFilename {
    * 如果返回null，表示文件日期格式不合法
    */
   fun diffDays(date1: String, date2: String): Int?
+
+  /**
+   * 返回[date]和序号[seq]对应的日志文件名，例如：20231125.0.log。
+   * 序号递增，序号大的是新文件
+   */
+  fun logNameOf(date: String, seq: Int): String
+
+  /**
+   * 从日志文件名[logName]中解析出序号，不是合法的日志文件名返回null
+   */
+  fun seqOf(logName: String): Int?
 }
 
 internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 
 private class LogFilenameImpl(
-  override val extension: String = "log",
+  private val extension: String = "log",
 ) : LogFilename {
   override fun dateOf(millis: Long): String {
     return LogTime.dateOf(millis)
@@ -35,6 +43,24 @@ private class LogFilenameImpl(
     val day1 = epochDayOf(date1) ?: return null
     val day2 = epochDayOf(date2) ?: return null
     return (day1 - day2).toInt()
+  }
+
+  override fun logNameOf(date: String, seq: Int): String {
+    require(date.isNotEmpty())
+    require(seq >= 0)
+    return "${date}.${seq}.${extension}"
+  }
+
+  override fun seqOf(logName: String): Int? {
+    val suffix = ".${extension}"
+    if (!logName.endsWith(suffix)) return null
+
+    val body = logName.dropLast(suffix.length)
+    val index = body.lastIndexOf('.')
+    if (index < 0) return null
+
+    val seq = body.substring(index + 1).toIntOrNull() ?: return null
+    return if (seq >= 0) seq else null
   }
 }
 

@@ -112,22 +112,15 @@ private class LogPublisherImpl(
     val date = filename.dateOf(record.millis)
     if (_handler?.date != date) {
       close()
-      val logFile = getDateLogFile(date)
       _handler = DateLogHandler(
         date = date,
-        logFile = logFile,
-        logStore = SafeLogStore(storeFactory.create(logFile)),
+        logDir = logDirOf(date).resolveProcess(),
+        filename = filename,
         formatter = formatter,
+        storeFactory = storeFactory,
       )
     }
     return checkNotNull(_handler)
-  }
-
-  private fun getDateLogFile(date: String): File {
-    require(date.isNotEmpty())
-    return directory.resolve(date)
-      .resolveProcess()
-      .resolve("${date}.${filename.extension}")
   }
 
   /** 多进程的时候按进程名分子目录 */
@@ -142,17 +135,27 @@ private const val ZIP_EXTENSION = "zip"
 
 private class DateLogHandler(
   val date: String,
-  private val logFile: File,
-  private val logStore: FLogStore,
+  private val logDir: File,
+  private val filename: LogFilename,
   private val formatter: FLogFormatter,
+  private val storeFactory: FLogStore.Factory,
 ) {
+  /** 当前日志文件的序号，进程重启之后从已有的文件里恢复，接着往下写 */
+  private var _seq: Int = logDir.listFiles()
+    ?.mapNotNull { filename.seqOf(it.name) }
+    ?.maxOrNull()
+    ?: 0
+
+  private var _logFile: File = logDir.resolve(filename.logNameOf(date, _seq))
+  private var _logStore: FLogStore = SafeLogStore(storeFactory.create(_logFile))
+
   fun publish(record: FLogRecord, maxBytePerDay: Long) {
-    logStore.append(formatter.format(record))
+    _logStore.append(formatter.format(record))
     checkLogSize(maxBytePerDay)
   }
 
   fun onIdle() {
-    if (logFile.isFile) {
+    if (_logFile.isFile) {
       // 文件存在
     } else {
       // 文件不存在，关闭后会重新创建
@@ -161,7 +164,7 @@ private class DateLogHandler(
   }
 
   fun close() {
-    logStore.close()
+    _logStore.close()
     if (formatter is AutoCloseable) {
       formatter.close()
     }
@@ -174,19 +177,38 @@ private class DateLogHandler(
     }
 
     val partSize = maxBytePerDay / 2
-    if (logStore.size() < partSize) {
+    if (_logStore.size() < partSize) {
       // 还未超过限制
       return
     }
 
-    // 关闭并重命名
+    // 当前文件写满，关掉之后切到下一个序号继续写
     close()
-    val partFile = logFile.resolveSibling("${logFile.name}.1").also { it.deleteRecursively() }
-    logFile.renameTo(partFile).also { rename ->
-      libLog { "part log file rename $rename" }
+    _seq++
+    _logFile = logDir.resolve(filename.logNameOf(date, _seq))
+    _logStore = SafeLogStore(storeFactory.create(_logFile))
+
+    deleteOldLog()
+  }
+
+  /**
+   * 只保留当前和上一个日志文件。
+   * 删除失败只是多留一个文件，不重试，不影响写入
+   */
+  private fun deleteOldLog() {
+    logDir.listFiles()?.forEach { file ->
+      val seq = filename.seqOf(file.name) ?: return@forEach
+      if (seq <= _seq - KEEP_COUNT) {
+        file.delete().also { deleted ->
+          if (!deleted) libLog { "delete old log file ${file.name} failed" }
+        }
+      }
     }
   }
 }
+
+/** 保留的日志文件个数，当前文件加上一个写满的文件 */
+private const val KEEP_COUNT = 2
 
 private class SafeLogStore(
   private val instance: FLogStore,

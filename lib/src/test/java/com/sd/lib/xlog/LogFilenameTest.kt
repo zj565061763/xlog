@@ -20,6 +20,37 @@ class LogFilenameTest {
     TimeZone.setDefault(_defaultTimeZone)
   }
 
+  /** 日志文件名带递增序号，序号大的是新文件 */
+  @Test
+  fun testLogNameOf() {
+    assertEquals("20231125.0.log", _filename.logNameOf("20231125", 0))
+    assertEquals("20231125.1.log", _filename.logNameOf("20231125", 1))
+    assertEquals("20231125.10.log", _filename.logNameOf("20231125", 10))
+    assertEquals("20231125.1000.log", _filename.logNameOf("20231125", 1000))
+  }
+
+  /**
+   * [LogFilename.logNameOf]和[LogFilename.seqOf]互为逆运算
+   */
+  @Test
+  fun testSeqOf() {
+    for (seq in listOf(0, 1, 10, 999, 1000)) {
+      assertEquals(seq, _filename.seqOf(_filename.logNameOf("20231125", seq)))
+    }
+
+    // 不是日志文件
+    assertNull(_filename.seqOf(""))
+    assertNull(_filename.seqOf("20231125"))
+    assertNull(_filename.seqOf("20231125.0.zip"))
+    assertNull(_filename.seqOf("20231125.0.log.1"))
+    // 序号不是数字
+    assertNull(_filename.seqOf("20231125.abc.log"))
+    // 没有序号
+    assertNull(_filename.seqOf("20231125.log"))
+    // 旧版本的分片文件
+    assertNull(_filename.seqOf("20231125.log.1"))
+  }
+
   /**
    * [LogFilename.diffDays]注释里的例子
    */
