@@ -61,6 +61,8 @@ private class LogPublisherImpl(
   private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
   private var _handler: DateLogHandler? = null
+
+  @Volatile
   private var _maxBytePerDay: Long = 0
 
   override fun setMaxBytePerDay(limit: Long) {
