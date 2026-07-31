@@ -103,7 +103,7 @@ object FLog {
   @JvmStatic
   fun setMaxMBPerDay(mb: Int) {
     checkInit()
-    _publisher.setMaxBytePerDay(mb * 1024 * 1024L)
+    _publisher.setMaxBytePerDay(mb * 1024L * 1024L)
   }
 
   /**
