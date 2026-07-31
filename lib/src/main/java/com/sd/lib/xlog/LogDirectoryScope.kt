@@ -43,7 +43,7 @@ internal class LogDirectoryScopeImpl(
     val dateDir = publisher.logDirOf(year = year, month = month, dayOfMonth = dayOfMonth)
     if (!dateDir.exists()) return null
 
-    val zipFile = dateDir.resolveSibling("${dateDir.name}.zip")
+    val zipFile = publisher.zipFileOf(dateDir.name)
     val zipResult = zip(source = dateDir, target = zipFile)
     libLog { "log zip ${zipFile.name} $zipResult" }
     return if (zipResult && zipFile.exists()) zipFile else null

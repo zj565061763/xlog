@@ -82,7 +82,9 @@ class DeleteLogFileTest {
     kotlin.run {
       FLog.deleteLog(0)
       awaitLogIdle()
-      assertEquals(false, dir.exists())
+      // 日志全部删除，但是日志目录本身保留，避免下次重建的消耗
+      assertEquals(true, dir.exists())
+      assertEquals(true, dir.listFiles()?.isEmpty())
     }
   }
 }

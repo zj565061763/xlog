@@ -70,6 +70,12 @@ object FLog {
 
       _configHolder = initScope.configHolder.toMap()
       _hasInit = true
+
+      /**
+       * 清空上次运行遗留的压缩包。
+       * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走
+       */
+      dispatch { _publisher.zipDirectory.deleteRecursively() }
       return true
     }
   }
@@ -113,23 +119,28 @@ object FLog {
   @JvmStatic
   fun deleteLog(saveDays: Int) {
     logDirectory { dir ->
-      if (saveDays <= 0) {
-        dir.deleteRecursively()
-        return@logDirectory
-      }
-
       val files = dir.listFiles()
-      if (files.isNullOrEmpty()) {
-        return@logDirectory
-      }
+      if (!files.isNullOrEmpty()) {
+        val filename = _publisher.filename
+        val today = filename.dateOf(System.currentTimeMillis())
 
-      val filename = _publisher.filename
-      val today = filename.dateOf(System.currentTimeMillis())
+        for (file in files) {
+          /**
+           * 以.开头的是库的内部目录（比如导出的日志压缩包），
+           * 它的生命周期由使用方决定，不受日志保留策略管辖，
+           * 所以即使是删除全部日志也不动它
+           */
+          if (file.name.startsWith(".")) continue
 
-      for (file in files) {
-        val diffDays = filename.diffDays(today, file.name)
-        if (diffDays == null || diffDays > (saveDays - 1)) {
-          file.deleteRecursively()
+          if (saveDays <= 0) {
+            file.deleteRecursively()
+            continue
+          }
+
+          val diffDays = filename.diffDays(today, file.name)
+          if (diffDays == null || diffDays > (saveDays - 1)) {
+            file.deleteRecursively()
+          }
         }
       }
     }

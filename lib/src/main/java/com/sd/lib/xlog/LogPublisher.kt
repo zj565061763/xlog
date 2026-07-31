@@ -27,6 +27,12 @@ internal interface DirectoryLogPublisher : LogPublisher {
   val filename: LogFilename
 
   /**
+   * 日志压缩包目录，以.开头，不参与日志保留策略，
+   * 里面的内容只在本次进程运行期间有效，初始化的时候会清空
+   */
+  val zipDirectory: File
+
+  /**
    * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
    */
   fun setMaxBytePerDay(limit: Long)
@@ -35,6 +41,11 @@ internal interface DirectoryLogPublisher : LogPublisher {
    * 指定日期的日志目录
    */
   fun logDirOf(year: Int, month: Int, dayOfMonth: Int): File
+
+  /**
+   * 指定日期的日志压缩包文件
+   */
+  fun zipFileOf(date: String): File
 }
 
 internal fun defaultLogPublisher(
@@ -84,9 +95,17 @@ private class LogPublisherImpl(
     _handler?.onIdle()
   }
 
+  override val zipDirectory: File
+    get() = directory.resolve(ZIP_DIR_NAME).resolveProcess()
+
   override fun logDirOf(year: Int, month: Int, dayOfMonth: Int): File {
     val date = filename.dateOf(year = year, month = month, dayOfMonth = dayOfMonth)
     return directory.resolve(date)
+  }
+
+  override fun zipFileOf(date: String): File {
+    require(date.isNotEmpty())
+    return zipDirectory.resolve("${date}.${ZIP_EXTENSION}")
   }
 
   private fun getHandler(record: FLogRecord): DateLogHandler {
@@ -106,11 +125,20 @@ private class LogPublisherImpl(
 
   private fun getDateLogFile(date: String): File {
     require(date.isNotEmpty())
-    return directory.resolve(date).let { dateDir ->
-      if (process.isNullOrEmpty()) dateDir else dateDir.resolve(process.replace(":", "_"))
-    }.resolve("${date}.${filename.extension}")
+    return directory.resolve(date)
+      .resolveProcess()
+      .resolve("${date}.${filename.extension}")
+  }
+
+  /** 多进程的时候按进程名分子目录 */
+  private fun File.resolveProcess(): File {
+    return if (process.isNullOrEmpty()) this else resolve(process.replace(":", "_"))
   }
 }
+
+/** 日志压缩包目录名，以.开头表示是库的内部目录，不参与日志保留策略 */
+private const val ZIP_DIR_NAME = ".zip"
+private const val ZIP_EXTENSION = "zip"
 
 private class DateLogHandler(
   val date: String,
