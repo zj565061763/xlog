@@ -9,17 +9,11 @@ internal object LogTime {
   fun dateOf(millis: Long): String {
     return with(_calendar) {
       setTimeInMillis(millis)
-      dateOf(
-        year = get(Calendar.YEAR),
-        month = get(Calendar.MONTH) + 1,
-        dayOfMonth = get(Calendar.DAY_OF_MONTH),
-      )
+      val year = get(Calendar.YEAR)
+      val month = get(Calendar.MONTH) + 1
+      val dayOfMonth = get(Calendar.DAY_OF_MONTH)
+      "${year}${month.leadingZero()}${dayOfMonth.leadingZero()}"
     }
-  }
-
-  /** yyyyMMdd，例如：20231125 */
-  fun dateOf(year: Int, month: Int, dayOfMonth: Int): String {
-    return "${year}${month.leadingZero()}${dayOfMonth.leadingZero()}"
   }
 
   /** HH:mm:ss.SSS，例如：18:18:18.888 */

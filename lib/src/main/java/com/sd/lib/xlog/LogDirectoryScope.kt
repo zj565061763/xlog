@@ -9,11 +9,6 @@ interface FLogDirectoryScope {
    * 获取指定日期(yyyyMMdd)的日志文件压缩包
    */
   fun logZipOf(date: String): File?
-
-  /**
-   * 获取指定日期的日志文件压缩包
-   */
-  fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File?
 }
 
 internal class LogDirectoryScopeImpl(
@@ -27,23 +22,14 @@ internal class LogDirectoryScopeImpl(
       libLog { "log zip failed with destroyed state" }
       return null
     }
+
     if (date.length != 8) return null
-    val year = date.substring(0, 4).toIntOrNull() ?: return null
-    val month = date.substring(4, 6).toIntOrNull() ?: return null
-    val dayOfMonth = date.substring(6, 8).toIntOrNull() ?: return null
-    return logZipOf(year = year, month = month, dayOfMonth = dayOfMonth)
-  }
+    if (!date.all { it.isDigit() }) return null
 
-  override fun logZipOf(year: Int, month: Int, dayOfMonth: Int): File? {
-    if (_destroyed) {
-      libLog { "log zip failed with destroyed state" }
-      return null
-    }
-
-    val dateDir = publisher.logDirOf(year = year, month = month, dayOfMonth = dayOfMonth)
+    val dateDir = publisher.logDirOf(date)
     if (!dateDir.exists()) return null
 
-    val zipFile = publisher.zipFileOf(dateDir.name)
+    val zipFile = publisher.zipFileOf(date)
     val zipResult = zip(source = dateDir, target = zipFile)
     libLog { "log zip ${zipFile.name} $zipResult" }
     return if (zipResult && zipFile.exists()) zipFile else null

@@ -38,9 +38,9 @@ internal interface DirectoryLogPublisher : LogPublisher {
   fun setMaxBytePerDay(limit: Long)
 
   /**
-   * 指定日期的日志目录
+   * 指定日期(yyyyMMdd)的日志目录
    */
-  fun logDirOf(year: Int, month: Int, dayOfMonth: Int): File
+  fun logDirOf(date: String): File
 
   /**
    * 指定日期的日志压缩包文件
@@ -98,8 +98,8 @@ private class LogPublisherImpl(
   override val zipDirectory: File
     get() = directory.resolve(ZIP_DIR_NAME).resolveProcess()
 
-  override fun logDirOf(year: Int, month: Int, dayOfMonth: Int): File {
-    val date = filename.dateOf(year = year, month = month, dayOfMonth = dayOfMonth)
+  override fun logDirOf(date: String): File {
+    require(date.isNotEmpty())
     return directory.resolve(date)
   }
 
