@@ -147,11 +147,16 @@ private class DateLogHandler(
     ?: 0
 
   private var _logFile: File = logDir.resolve(filename.logNameOf(date, _seq))
-  private var _logStore: FLogStore = SafeLogStore(storeFactory.create(_logFile))
+  private var _logStore: FLogStore? = null
 
   fun publish(record: FLogRecord, maxBytePerDay: Long) {
-    _logStore.append(formatter.format(record))
-    checkLogSize(maxBytePerDay)
+    val logStore = getLogStore()
+    logStore.append(formatter.format(record))
+    checkLogSize(logStore, maxBytePerDay)
+  }
+
+  private fun getLogStore(): FLogStore {
+    return _logStore ?: SafeLogStore(storeFactory.create(_logFile)).also { _logStore = it }
   }
 
   fun onIdle() {
@@ -164,20 +169,20 @@ private class DateLogHandler(
   }
 
   fun close() {
-    _logStore.close()
+    _logStore?.close()
     if (formatter is AutoCloseable) {
       formatter.close()
     }
   }
 
-  private fun checkLogSize(maxBytePerDay: Long) {
+  private fun checkLogSize(logStore: FLogStore, maxBytePerDay: Long) {
     if (maxBytePerDay <= 0) {
       // 不限制大小
       return
     }
 
     val partSize = maxBytePerDay / 2
-    if (_logStore.size() < partSize) {
+    if (logStore.size() < partSize) {
       // 还未超过限制
       return
     }
@@ -186,7 +191,15 @@ private class DateLogHandler(
     close()
     _seq++
     _logFile = logDir.resolve(filename.logNameOf(date, _seq))
-    _logStore = SafeLogStore(storeFactory.create(_logFile))
+
+    /**
+     * 新的日志仓库等下一条日志来的时候再创建。
+     * 如果在这里创建，[FLogStore.Factory]抛异常的话，
+     * [_logStore]会继续指向旧文件，下一条日志就写回旧文件里去了，
+     * 于是每条日志都触发一次轮换、每次都失败，文件无限增长，
+     * [FLog.setMaxMBPerDay]的限制形同虚设
+     */
+    _logStore = null
 
     deleteOldLog()
   }
