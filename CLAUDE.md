@@ -4,8 +4,8 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 
 ## 项目结构
 
-- `lib/` — 发布的库模块，namespace `com.sd.lib.xlog`，`minSdk 21`，纯 Kotlin **无第三方依赖**。所有源码在 `lib/src/main/java/com/sd/lib/xlog/`。
-- `app/` — 演示 App（`com.sd.demo.xlog`）。**唯一的测试在这里**：`app/src/androidTest/`（instrumented 测试，非单元测试），需要设备/模拟器运行。`app/src/main/java/.../App.kt` 是初始化示例。
+- `lib/` — 发布的库模块，namespace `com.sd.lib.xlog`，`minSdk 21`，纯 Kotlin **无第三方依赖**（运行时依赖为零，`testImplementation junit` 只用于单元测试）。源码在 `lib/src/main/java/com/sd/lib/xlog/`，JVM 单元测试在 `lib/src/test/`。
+- `app/` — 演示 App（`com.sd.demo.xlog`）。instrumented 测试在 `app/src/androidTest/`，需要设备/模拟器运行。`app/src/main/java/.../App.kt` 是初始化示例。
 - Gradle 版本目录：`gradle/libs.versions.toml`（AGP 8.7.3，Kotlin 1.9.25，compileSdk 35）。
 
 ## 公共 API（对外，F 前缀）
@@ -30,12 +30,17 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - **Store**（`LogStore.kt`）：`FileLogStore` 用 `CounterOutputStream` 追加写并自行累计字节数（避免每次 `file.length()`）。
 - **安全包装**：`SafeLogPublisher`（`LogSafe.kt`）和 `SafeLogStore`（`LogPublisher.kt` 内）用 `runCatching` 包裹 I/O，异常时自动 close，保证日志失败不crash业务。
 - **Formatter**（`LogFormatter.kt`）：格式 `HH:mm:ss.SSS[tag|Level|threadID] msg\n`。连续相同 tag 会省略；主线程省略 threadID。
-- 文件名/日期逻辑集中在 `LogFilename.kt` + `LogTime.kt`，日期字符串为 `yyyyMMdd`。**跨月天数差**用 `Calendar` 转毫秒再相减（见 `diffDays`），历史上曾因直接减日期出过 bug（commit 5d5f093）。
+- 文件名/日期逻辑集中在 `LogFilename.kt` + `LogTime.kt`，日期字符串为 `yyyyMMdd`。**天数差**（`diffDays`）把 `yyyyMMdd` 转成"距 1970-01-01 的天数"再相减，纯整数运算不碰时区。这里踩过两次坑：直接减日期字符串会导致跨月时日志被全删（commit 5d5f093）；改成 `Calendar` 转毫秒相减后，夏令时切换那天只有 23 小时，除以 86400000 会少算一天。**不要再改回基于时间戳的算法。**
 
 ## 约定与注意事项
 
 - 改动公共 API 时保持 `F` 前缀约定；内部类用 `internal`。
-- `deleteLog(saveDays)`：保留最近 N 天，`saveDays=1` = 仅当天，`<=0` = 删全部。日期比较依赖 `LogFilename.diffDays`，改这里务必考虑跨月/跨年，并补 `app/src/androidTest/.../file/` 下的测试。
-- 测试是 **androidTest（instrumented）**，用 `./gradlew :app:connectedAndroidTest` 运行，需要连接的设备/模拟器。`TestLogDispatcher` 提供同步调度以便测试。
+- `deleteLog(saveDays)`：保留最近 N 天，`saveDays=1` = 仅当天，`<=0` = 删全部。日期比较依赖 `LogFilename.diffDays`，改这里务必考虑跨月/跨年/闰年/夏令时，并补 `lib/src/test/.../LogFilenameTest.kt` 的用例。
+- 两套测试：
+  - `./gradlew :lib:test` — JVM 单元测试，无需设备。纯逻辑（日期计算等）放这里，能访问 `internal`，日期场景可以构造成确定的。
+  - `./gradlew :app:connectedAndroidTest` — instrumented 测试，需要设备/模拟器，覆盖真实文件读写。`App.kt` 里通过 `setLogDispatcher(TestLogDispatcher)` 注入了测试调度器：它**保持异步**（单线程按序执行，和默认调度器行为一致），额外提供 `await()`。测试里断言文件状态前必须先调 `awaitLogIdle()`。
+- instrumented 测试开头一律用 `resetLogDir()`，不要直接 `dir.deleteRecursively()`。因为上一个测试可能留着**打开的文件句柄**：目录被删掉后往这个句柄写日志照样成功（写进已 unlink 的 inode），文件不会重建，要等空闲回调发现文件不存在才 close。不先关句柄的话，测试结果取决于执行顺序。
+- `awaitLogIdle()` 为什么不用 `FLog.logDirectory {}` 做屏障：一是 `logDirectory` 第一件事就是 `_publisher.close()`，会改变被测状态；二是 `LogDispatcherWrapper` 的 `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它。`TestLogDispatcher.await()` 直接往自己的执行器排空任务，收到的 task 已经是包装好的（含 `onIdle`），既能等全又无副作用。`LogFileDeletedTest` 依赖这个语义。
+- instrumented 测试里的日期**只能相对当前时间往前推**（用 `dateOfDaysAgo`），因为 `deleteLog` 读的是 `System.currentTimeMillis()`；写死具体日期的测试只在那一天能通过。
 - 库无外部依赖，新增依赖需谨慎（会传递给使用方）。
 - 发布用 `com.vanniktech.maven.publish`，版本号在 `lib/gradle.properties`。
