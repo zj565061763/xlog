@@ -26,7 +26,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 日志写入链路：`flogX` → `FLog.log()` → `_dispatcher.dispatch { _publisher.publish(record) }`。
 
 - **调度器**（`LogDispatcher.kt`）：默认单线程 executor，保证**按提交顺序串行执行**。`LogDispatcherWrapper` 用 `AtomicInteger` 计数，归零时触发 `onIdle`（空闲时若等级为 Off 则关闭 publisher，否则检查文件是否被外部删除并重建）。所有磁盘 I/O 都在调度线程上，不阻塞调用方。
-- **Publisher**（`LogPublisher.kt`）：`LogPublisherImpl` 按日期切换 `DateLogHandler`。文件路径：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.log`（多进程时按进程名分子目录，`:` 替换为 `_`）。`setMaxBytePerDay` 超过一半阈值时把当前文件重命名为 `.log.1`（滚动，最多保留一个 part）。
+- **Publisher**（`LogPublisher.kt`）：`LogPublisherImpl` 按日期切换 `DateLogHandler`。文件路径：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.log`（多进程时按进程名分子目录，`:` 替换为 `_`）。`setMaxBytePerDay` 超过一半阈值时把当前文件重命名为 `.log.1`（滚动，最多保留一个 part）。导出的压缩包路径：`<dir>/.zip/<process>/<yyyyMMdd>.zip`。
 - **Store**（`LogStore.kt`）：`FileLogStore` 用 `CounterOutputStream` 追加写并自行累计字节数（避免每次 `file.length()`）。
 - **安全包装**：`SafeLogPublisher`（`LogSafe.kt`）和 `SafeLogStore`（`LogPublisher.kt` 内）用 `runCatching` 包裹 I/O，异常时自动 close，保证日志失败不crash业务。
 - **Formatter**（`LogFormatter.kt`）：格式 `HH:mm:ss.SSS[tag|Level|threadID] msg\n`。连续相同 tag 会省略；主线程省略 threadID。
@@ -36,6 +36,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 
 - 改动公共 API 时保持 `F` 前缀约定；内部类用 `internal`。
 - **日志文件被外部删除，靠 `onIdle` 兜底，不要改成每次写入检查 `isFile`**（这是有意的取舍，不是 bug）。文件被删后 fd 仍然有效，写入照样成功（写进已 unlink 的 inode）也不会抛异常，没有比 stat 更便宜的信号；而 `onIdle` 已经在做这次 stat。因为 `LogDispatcherWrapper` 的计数器是**队列排空时归零**而不是定时触发：稀疏写入下一条日志就归零一次，检查频率和"每次写入都 stat"完全相同；突发写入下 N 条日志才 stat 一次，压力越大越省。所以现方案的检查频率永远不高于每次写入检查，代价只是丢失窗口等于一个 burst 的长度，而文件被外部删除本身是低概率事件。
+- **`logZipOf` 返回的压缩包是临时产物**：放在 `<dir>/.zip/<process>/`，只保证在本次进程运行期间有效，下次 `init` 会清空（只清本进程那个子目录，不影响其他进程）。使用方需要长期保存的话，应该拿到 `File` 之后自己移到自己管理的目录，库不提供 target 参数，也不提供单独的删除 API。压缩包的生命周期是"导出→上传/分享→丢弃"，和 `saveDays` 那套按天保留是两回事，所以刻意不让它受 `deleteLog` 管辖——`deleteLog` 会跳过所有 `.` 开头的条目（历史上正是因为 zip 落在日志根目录、文件名解析不出日期而被当垃圾删掉）。**`deleteLog(0)`（删除全部日志）同样不删压缩包**，因为"导出 zip → 立即清空日志腾空间 → 再上传 zip"是常见用法；所以它不能用 `dir.deleteRecursively()` 一把梭，得逐个跳过 `.` 条目。另外**日志根目录本身永远保留**（即使空了也不删），省掉下次写日志时重建目录的开销。
 - `deleteLog(saveDays)`：保留最近 N 天，`saveDays=1` = 仅当天，`<=0` = 删全部。日期比较依赖 `LogFilename.diffDays`，改这里务必考虑跨月/跨年/闰年/夏令时，并补 `lib/src/test/.../LogFilenameTest.kt` 的用例。
 - 两套测试：
   - `./gradlew :lib:test` — JVM 单元测试，无需设备。纯逻辑（日期计算等）放这里，能访问 `internal`，日期场景可以构造成确定的。
