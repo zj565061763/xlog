@@ -35,6 +35,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 ## 约定与注意事项
 
 - 改动公共 API 时保持 `F` 前缀约定；内部类用 `internal`。
+- **日志文件被外部删除，靠 `onIdle` 兜底，不要改成每次写入检查 `isFile`**（这是有意的取舍，不是 bug）。文件被删后 fd 仍然有效，写入照样成功（写进已 unlink 的 inode）也不会抛异常，没有比 stat 更便宜的信号；而 `onIdle` 已经在做这次 stat。因为 `LogDispatcherWrapper` 的计数器是**队列排空时归零**而不是定时触发：稀疏写入下一条日志就归零一次，检查频率和"每次写入都 stat"完全相同；突发写入下 N 条日志才 stat 一次，压力越大越省。所以现方案的检查频率永远不高于每次写入检查，代价只是丢失窗口等于一个 burst 的长度，而文件被外部删除本身是低概率事件。
 - `deleteLog(saveDays)`：保留最近 N 天，`saveDays=1` = 仅当天，`<=0` = 删全部。日期比较依赖 `LogFilename.diffDays`，改这里务必考虑跨月/跨年/闰年/夏令时，并补 `lib/src/test/.../LogFilenameTest.kt` 的用例。
 - 两套测试：
   - `./gradlew :lib:test` — JVM 单元测试，无需设备。纯逻辑（日期计算等）放这里，能访问 `internal`，日期场景可以构造成确定的。
