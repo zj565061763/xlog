@@ -185,7 +185,6 @@ object FLog {
   }
 
   private fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
-    checkInit()
     checkLoggable(level)
 
     if (_level == FLogLevel.Off) {
@@ -198,11 +197,6 @@ object FLog {
   }
 
   private fun getConfig(logger: Class<out FLogger>): FLoggerConfig? {
-    /**
-     * [_configHolder]是lateinit的，必须先[checkInit]，
-     * 否则未初始化的时候抛的是UninitializedPropertyAccessException，
-     * 而且初始化的过程中调用会直接崩溃，不会等待初始化完成
-     */
     checkInit()
     if (_configHolder.isEmpty()) return null
     return _configHolder[logger]
