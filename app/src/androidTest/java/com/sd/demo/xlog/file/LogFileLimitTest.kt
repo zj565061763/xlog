@@ -79,7 +79,12 @@ class LogFileLimitTest {
   }
 }
 
-/** 目录下的日志文件名，排序只是为了断言时结果稳定（这个测试的序号都是个位数） */
+/** 目录下的日志文件名，按序号排序。不能按文件名排序，序号位数不同的时候字典序和数值序不一致 */
 private fun File.logNames(): List<String> {
-  return listFiles()?.map { it.name }?.sorted() ?: emptyList()
+  return listFiles()?.map { it.name }?.sortedBy { it.logSeq() } ?: emptyList()
+}
+
+/** 从 <date>.<seq>.log 里解析出序号 */
+private fun String.logSeq(): Int? {
+  return removeSuffix(".log").substringAfterLast('.').toIntOrNull()
 }

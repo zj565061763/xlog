@@ -21,13 +21,17 @@ class LogPublisherTest {
     val maxByte = 400L
     publisher.setMaxBytePerDay(maxByte)
 
-    // 4条填满序号0，再4条填满序号1(序号0被删)，剩2条写进序号2
-    repeat(10) { publisher.publish(testLogRecord()) }
+    /**
+     * 每4条填满一个分片，42条一路轮换到序号10，最后2条写在序号10里。
+     * 故意让保留的两个序号跨过9和10的位数边界，
+     * 覆盖序号进入两位数之后的轮换和删除逻辑
+     */
+    repeat(42) { publisher.publish(testLogRecord()) }
 
     val filename = defaultLogFilename()
     val date = filename.dateOf(RECORD_MILLIS)
     assertEquals(
-      listOf(filename.logNameOf(date, 1), filename.logNameOf(date, 2)),
+      listOf(filename.logNameOf(date, 9), filename.logNameOf(date, 10)),
       dir.logNames(),
     )
 
@@ -90,8 +94,12 @@ private fun testLogRecord(): FLogRecord = object : FLogRecord {
   override val threadID: String = "1"
 }
 
+/** 目录下的日志文件名，按序号排序。不能按文件名排序，序号位数不同的时候字典序和数值序不一致 */
 private fun File.logNames(): List<String> {
-  return walkTopDown().filter { it.isFile }.map { it.name }.sorted().toList()
+  val filename = defaultLogFilename()
+  return walkTopDown().filter { it.isFile }.map { it.name }
+    .sortedBy { filename.seqOf(it) }
+    .toList()
 }
 
 private fun File.totalSize(): Long {
