@@ -1,6 +1,6 @@
 # xlog
 
-Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlog`）。核心能力：把日志同时输出到 Logcat 控制台和**按天分文件的磁盘仓库**，支持日志等级/模式过滤、单日文件大小限制、按天清理、导出 zip。当前版本见 `lib/gradle.properties` 的 `VERSION_NAME`（当前 1.9.2）。
+Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlog`）。核心能力：把日志同时输出到 Logcat 控制台和**按天分文件的磁盘仓库**，支持日志等级/模式过滤、单日文件大小限制、按天清理、导出 zip。当前版本见 `lib/gradle.properties` 的 `VERSION_NAME`。版本变更历史维护在 `CHANGELOG.md`（长期维护，语言简洁，只写用户可感知的内容。标题格式：`## <版本号>`，小节固定为 `### ⚠️ Breaking Changes` / `### ✨ Improvements` / `### 🐛 Bug Fixes` / `### Migration`，没有内容的小节省略）。
 
 ## 项目结构
 

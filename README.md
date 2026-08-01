@@ -10,6 +10,8 @@ implementation("io.github.zj565061763.android:xlog:$version")
 
 关于本库，请看[这里](https://juejin.cn/post/7306423214493270050)
 
+变更记录请看 [CHANGELOG.md](CHANGELOG.md)
+
 # Sample
 
 #### 初始化
