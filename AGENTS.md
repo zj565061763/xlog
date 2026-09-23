@@ -66,6 +66,10 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 日志滚动不要改回 `renameTo`，删除旧文件失败也绝不重试。
   - `renameTo` 失败时原文件大小不变，之后每条日志都重试 close + open + delete + rename，文件无限增长，`setMaxMBPerDay` 失效
   - 现方案只有 create 和 delete，删除失败最多多留一个文件，不影响写入
+- 调小 `setMaxMBPerDay` 或单条日志过大时，超过上限的旧文件要等下一次切换才删除，切换时不额外按大小删除。
+  - 正常写入时总量约等于上限，只有上限变化或单条超大日志才会超额
+  - 当天日志写不满半个上限时，超大文件会留到 `deleteLog` 按保留天数清理
+  - 切换时按大小删除只能覆盖部分情况，完整覆盖要在上限变化和重启后额外检查，影响不大，不值得增加复杂度
 - 每条日志都 `write` + `flush`，不加缓冲。
   - 崩溃或被杀前的最后几条日志最关键，缓冲会丢掉它们
   - 要加缓冲必须先回答“进程被 SIGKILL 时怎么 flush”，这在 Android 上无解
