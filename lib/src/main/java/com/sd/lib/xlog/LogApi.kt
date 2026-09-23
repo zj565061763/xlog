@@ -40,7 +40,7 @@ inline fun <reified T : FLogger> flogE(
   flog<T>(FLogLevel.Error, mode, block)
 }
 
-/** 打印日志，[level]不能是[FLogLevel.All]或[FLogLevel.Off] */
+/** 打印日志，[level]为[FLogLevel.All]或[FLogLevel.Off]时抛出[IllegalArgumentException] */
 inline fun <reified T : FLogger> flog(
   level: FLogLevel,
   mode: FLogMode? = null,

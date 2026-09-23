@@ -41,7 +41,7 @@ inline fun FLogger.le(
 }
 
 /**
- * 打印日志，[level]不能是[FLogLevel.All]或[FLogLevel.Off]。
+ * 打印日志，[level]为[FLogLevel.All]或[FLogLevel.Off]时抛出[IllegalArgumentException]。
  *
  * 日志标识是接收者的实际类型，而不是它实现的[FLogger]子接口，
  * 所以默认tag是实际类型的短类名，[FLogInitScope.configLogger]也要按实际类型配置。
