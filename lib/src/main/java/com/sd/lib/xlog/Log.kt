@@ -110,7 +110,8 @@ object FLog {
   }
 
   /**
-   * 删除日志，不会删除[FLogDirectoryScope.logZipOf]导出的压缩包
+   * 删除日志，在调度器上执行。
+   * 不会删除[FLogDirectoryScope.logZipOf]导出的压缩包。
    * @param saveDays 要保留的日志天数，1表示只保留当天，小于等于0表示删除全部日志
    */
   @JvmStatic

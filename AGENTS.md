@@ -71,6 +71,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `deleteLog` 保留日期在今天之后的目录，只有 `saveDays<=0` 时才删。
   - 这类目录来自设备时间被调快又恢复
   - 不删是因为当前时间被调慢时，这些目录才是真实的日志
+- `lib/consumer-rules.pro` 用 `-keepnames` 保留 `FLogger` 实现类的类名。
+  - 默认 tag 是短类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
+  - 不要改回 `-keep`：它会阻止 R8 移除没用到的实现类
 
 ## 日志清理与压缩包
 

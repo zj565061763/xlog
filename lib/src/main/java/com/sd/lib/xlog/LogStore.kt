@@ -15,7 +15,7 @@ interface FLogStore {
   @Throws(Throwable::class)
   fun append(log: String)
 
-  /** 日志大小(单位B) */
+  /** 当前日志文件的总大小(单位B)，包括打开前已有的内容，用来判断是否切换文件 */
   @Throws(Throwable::class)
   fun size(): Long
 

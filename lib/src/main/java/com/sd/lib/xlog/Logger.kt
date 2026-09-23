@@ -5,11 +5,11 @@ interface FLogger
 
 /** [FLogger]配置信息 */
 data class FLoggerConfig(
-  /** 日志tag */
+  /** 日志tag，为空时使用短类名 */
   val tag: String? = null,
-  /** 日志等级 */
+  /** 日志等级，覆盖全局等级，但全局等级为[FLogLevel.Off]时一律不打印 */
   val level: FLogLevel? = null,
-  /** 日志模式 */
+  /** 日志模式，优先级：调用时传入的模式 > 配置 > 全局设置 */
   val mode: FLogMode? = null,
 )
 
