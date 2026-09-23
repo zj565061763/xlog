@@ -21,6 +21,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 ## 公共 API
 
 - 对外类型以 `F` 开头；内部实现用 `internal`，不加前缀。
+  - 例外：`XLogLibLogger` 的类名是库内部日志的 tag，带库名前缀 `X` 便于在 Logcat 里识别
 - `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，要在 CHANGELOG 的 Breaking Changes 里写明。
 - `FLog`（`Log.kt`）：单例总控，必须先 `init`，否则抛异常。
 - `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是短类名。

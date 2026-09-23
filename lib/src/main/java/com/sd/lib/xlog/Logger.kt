@@ -19,7 +19,8 @@ internal fun FLoggerConfig.isEmpty(): Boolean {
 }
 
 internal inline fun libLog(block: () -> String) {
-  flogV<FLogLibLogger>(mode = FLogMode.Console, block = block)
+  flogV<XLogLibLogger>(mode = FLogMode.Console, block = block)
 }
 
-internal class FLogLibLogger : FLogger
+/** 库内部日志的标识，类名就是Logcat里的tag，所以带上库名前缀 */
+internal class XLogLibLogger : FLogger
