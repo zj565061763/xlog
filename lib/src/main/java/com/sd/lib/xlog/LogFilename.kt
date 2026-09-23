@@ -1,32 +1,26 @@
 package com.sd.lib.xlog
 
-/**
- * 日志文件名
- */
+/** 日志文件名 */
 internal interface LogFilename {
-  /**
-   * 返回时间戳[millis]对应的文件日期，不包含扩展名
-   */
+  /** 返回时间戳[millis]对应的日期，格式yyyyMMdd */
   fun dateOf(millis: Long): String
 
   /**
    * 计算[date1]和[date2]之间的天数差距，例如：
-   * 20231125 和 20231125 天数差距为0，
-   * 20231130 和 20231125 天数差距为5，
-   * 20231125 和 20231130 天数差距为-5
-   * 如果返回null，表示文件日期格式不合法
+   * 20231125 和 20231125 天数差距为0；
+   * 20231130 和 20231125 天数差距为5；
+   * 20231125 和 20231130 天数差距为-5；
+   * 日期格式不合法返回null。
    */
   fun diffDays(date1: String, date2: String): Int?
 
   /**
    * 返回[date]和序号[seq]对应的日志文件名，例如：20231125.0.log。
-   * 序号递增，序号大的是新文件
+   * 序号递增，序号大的是新文件。
    */
   fun logNameOf(date: String, seq: Int): String
 
-  /**
-   * 从日志文件名[logName]中解析出序号，不是合法的日志文件名返回null
-   */
+  /** 从日志文件名[logName]中解析出序号，不是合法的日志文件名返回null */
   fun seqOf(logName: String): Int?
 }
 

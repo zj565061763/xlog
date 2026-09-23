@@ -4,9 +4,13 @@ import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
+/** 日志目录作用域，只在[FLog.logDirectory]的block内有效 */
 interface FLogDirectoryScope {
   /**
-   * 获取指定日期(yyyyMMdd)的日志文件压缩包
+   * 把指定日期(yyyyMMdd)的日志打包成zip，包含该日期所有进程的日志。
+   * 日期不合法、没有该日期的日志或打包失败时返回null。
+   *
+   * 压缩包只在本次进程运行期间有效，下次[FLog.init]时会被清空，需要长期保存请自行移走。
    */
   fun logZipOf(date: String): File?
 }

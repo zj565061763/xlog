@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import java.io.File
 
+/** 日志等级，按声明顺序从低到高 */
 enum class FLogLevel {
   /** 开启所有日志 */
   All,
@@ -14,6 +15,7 @@ enum class FLogLevel {
   Off,
 }
 
+/** 日志模式 */
 enum class FLogMode {
   /** 默认，发布到控制台和日志仓库 */
   Default,
@@ -25,6 +27,7 @@ enum class FLogMode {
   Store,
 }
 
+/** 日志库入口，使用前需要先调用[init] */
 object FLog {
   /** 是否已经初始化 */
   @Volatile
@@ -73,39 +76,33 @@ object FLog {
 
       /**
        * 清空上次运行遗留的压缩包。
-       * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走
+       * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
        */
       dispatch { _publisher.zipDirectory.deleteRecursively() }
       return true
     }
   }
 
-  /**
-   * 设置日志等级
-   */
+  /** 设置日志等级，默认[FLogLevel.All] */
   @JvmStatic
   fun setLevel(level: FLogLevel) {
     checkInit()
     _level = level
     if (level == FLogLevel.Off) {
       dispatch {
-        // 发送一个空消息，等待调度器空闲的时候处理空闲逻辑
+        // 提交一个空任务，调度器空闲时关闭日志文件
       }
     }
   }
 
-  /**
-   * 设置日志模式
-   */
+  /** 设置日志模式，默认[FLogMode.Default] */
   @JvmStatic
   fun setMode(mode: FLogMode) {
     checkInit()
     _mode = mode
   }
 
-  /**
-   * 限制每天日志文件大小(单位MB)，小于等于0表示不限制，默认不限制
-   */
+  /** 限制每天日志文件大小(单位MB)，多进程时每个进程单独计算，小于等于0表示不限制，默认不限制 */
   @JvmStatic
   fun setMaxMBPerDay(mb: Int) {
     checkInit()
@@ -113,8 +110,8 @@ object FLog {
   }
 
   /**
-   * 删除日志
-   * @param saveDays 要保留的日志天数，小于等于0表示删除全部日志
+   * 删除日志，不会删除[FLogDirectoryScope.logZipOf]导出的压缩包
+   * @param saveDays 要保留的日志天数，1表示只保留当天，小于等于0表示删除全部日志
    */
   @JvmStatic
   fun deleteLog(saveDays: Int) {
@@ -128,7 +125,7 @@ object FLog {
           /**
            * 以.开头的是库的内部目录（比如导出的日志压缩包），
            * 它的生命周期由使用方决定，不受日志保留策略管辖，
-           * 所以即使是删除全部日志也不动它
+           * 所以即使是删除全部日志也不动它。
            */
           if (file.name.startsWith(".")) continue
 
@@ -137,6 +134,10 @@ object FLog {
             continue
           }
 
+          /**
+           * 日期在今天之后的目录会被保留，比如设备时间曾被调快又恢复。
+           * 不删是因为当前时间被调慢的时候，这些目录才是真实的日志。
+           */
           val diffDays = filename.diffDays(today, file.name)
           if (diffDays == null || diffDays > (saveDays - 1)) {
             file.deleteRecursively()
@@ -146,16 +147,14 @@ object FLog {
     }
   }
 
-  /**
-   * 访问日志文件目录，[block]在[FLogDispatcher]调度器上面执行
-   */
+  /** 访问日志目录，[block]在调度器上异步执行，执行前会先关闭当前的日志文件 */
   @JvmStatic
   fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
     dispatch {
       _publisher.close()
       val scope = LogDirectoryScopeImpl(_publisher)
       try {
-        // [block]是外部传入的，不能让它的异常中断调度线程
+        // 避免外部传入的[block]抛异常导致App崩溃
         libRunCatching { scope.block(_publisher.directory) }
       } finally {
         scope.destroy()
@@ -213,17 +212,13 @@ object FLog {
     return _configHolder[logger]
   }
 
-  /**
-   * 在调度器上面执行
-   */
+  /** 在调度器上面执行 */
   private fun dispatch(task: Runnable) {
     checkInit()
     _dispatcher.dispatch(task)
   }
 
-  /**
-   * 调度器空闲逻辑
-   */
+  /** 调度器空闲逻辑 */
   private fun handleDispatcherIdle() {
     if (_level == FLogLevel.Off) {
       _publisher.close()
@@ -241,9 +236,7 @@ object FLog {
 
   //---------- other ----------
 
-  /**
-   * 打印[FLogLevel.Verbose]日志
-   */
+  /** 打印[FLogLevel.Verbose]日志 */
   @JvmStatic
   @JvmOverloads
   fun logV(
@@ -254,9 +247,7 @@ object FLog {
     log(logger, FLogLevel.Verbose, mode, msg)
   }
 
-  /**
-   * 打印[FLogLevel.Debug]日志
-   */
+  /** 打印[FLogLevel.Debug]日志 */
   @JvmStatic
   @JvmOverloads
   fun logD(
@@ -267,9 +258,7 @@ object FLog {
     log(logger, FLogLevel.Debug, mode, msg)
   }
 
-  /**
-   * 打印[FLogLevel.Info]日志
-   */
+  /** 打印[FLogLevel.Info]日志 */
   @JvmStatic
   @JvmOverloads
   fun logI(
@@ -280,9 +269,7 @@ object FLog {
     log(logger, FLogLevel.Info, mode, msg)
   }
 
-  /**
-   * 打印[FLogLevel.Warning]日志
-   */
+  /** 打印[FLogLevel.Warning]日志 */
   @JvmStatic
   @JvmOverloads
   fun logW(
@@ -293,9 +280,7 @@ object FLog {
     log(logger, FLogLevel.Warning, mode, msg)
   }
 
-  /**
-   * 打印[FLogLevel.Error]日志
-   */
+  /** 打印[FLogLevel.Error]日志 */
   @JvmStatic
   @JvmOverloads
   fun logE(
@@ -308,8 +293,7 @@ object FLog {
 }
 
 private fun checkLoggable(level: FLogLevel) {
-  require(level != FLogLevel.All)
-  require(level != FLogLevel.Off)
+  require(level != FLogLevel.All && level != FLogLevel.Off) { "Cannot log with level ${level}." }
 }
 
 private fun publishConsoleLog(level: FLogLevel, tag: String, msg: String) {

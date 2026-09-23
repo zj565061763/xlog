@@ -68,6 +68,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 低频，进程重启后自愈
   - `deleteLog` 的 today 和日志文件日期用同一个时区，保留策略不会判断错
   - 夏令时与此无关（`TimeZone` 按时间戳动态计算偏移），不要和 `diffDays` 的夏令时问题混为一谈
+- `deleteLog` 保留日期在今天之后的目录，只有 `deleteLog(0)` 会删。
+  - 这类目录来自设备时间被调快又恢复
+  - 不删是因为当前时间被调慢时，这些目录才是真实的日志
 
 ## 日志清理与压缩包
 

@@ -5,11 +5,9 @@ package com.sd.lib.xlog
  */
 interface FLogger
 
-/**
- * [FLogger]配置信息
- */
+/** [FLogger]配置信息 */
 data class FLoggerConfig(
-  /** 日志标识 */
+  /** 日志tag */
   val tag: String? = null,
   /** 日志等级 */
   val level: FLogLevel? = null,
@@ -17,9 +15,7 @@ data class FLoggerConfig(
   val mode: FLogMode? = null,
 )
 
-/**
- * 配置信息是否为空
- */
+/** 配置信息是否为空 */
 internal fun FLoggerConfig.isEmpty(): Boolean {
   return tag.isNullOrEmpty() && level == null && mode == null
 }

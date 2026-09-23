@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+### 🐛 Bug Fixes
+
+- 日志写入失败后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
+
 ## 2.0.0
 
 ### ⚠️ Breaking Changes

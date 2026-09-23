@@ -6,30 +6,26 @@ import java.io.OutputStream
 
 /**
  * 日志仓库
+ *
+ * 所有方法都在调度线程上调用。
+ * [close]之后仍可能继续调用[append]，实现需要支持重新打开。
  */
 interface FLogStore {
-  /**
-   * 添加日志
-   */
+  /** 追加日志 */
   @Throws(Throwable::class)
   fun append(log: String)
 
-  /**
-   * 日志大小(单位B)
-   */
+  /** 日志大小(单位B) */
   @Throws(Throwable::class)
   fun size(): Long
 
-  /**
-   * 关闭
-   */
+  /** 关闭 */
   @Throws(Throwable::class)
   fun close()
 
+  /** 日志仓库工厂 */
   fun interface Factory {
-    /**
-     * 创建[file]对应的日志仓库
-     */
+    /** 创建[file]对应的日志仓库 */
     fun create(file: File): FLogStore
   }
 }

@@ -7,9 +7,7 @@ import android.os.Build
 import android.os.Process
 import java.io.File
 
-/**
- * 日志目录
- */
+/** 默认的日志目录 */
 fun Context.fLogDir(
   /** 是否优先使用外部存储 */
   preferExternal: Boolean = true,
@@ -21,9 +19,7 @@ fun Context.fLogDir(
   return rootDir.resolve(dirName)
 }
 
-/**
- * 当前进程
- */
+/** 当前进程名 */
 internal fun Context.currentProcess(): String? {
   return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
     Application.getProcessName()

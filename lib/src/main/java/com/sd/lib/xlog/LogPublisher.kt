@@ -3,19 +3,13 @@ package com.sd.lib.xlog
 import java.io.File
 
 internal interface LogPublisher : AutoCloseable {
-  /**
-   * 发布日志记录
-   */
+  /** 发布日志记录 */
   fun publish(record: FLogRecord)
 
-  /**
-   * 关闭
-   */
+  /** 关闭 */
   override fun close()
 
-  /**
-   * 调度器空闲回调
-   */
+  /** 调度器空闲回调 */
   fun onIdle()
 }
 
@@ -28,23 +22,17 @@ internal interface DirectoryLogPublisher : LogPublisher {
 
   /**
    * 日志压缩包目录，以.开头，不参与日志保留策略，
-   * 里面的内容只在本次进程运行期间有效，初始化的时候会清空
+   * 里面的内容只在本次进程运行期间有效，初始化的时候会清空。
    */
   val zipDirectory: File
 
-  /**
-   * 限制每天日志文件大小(单位B)，小于等于0表示不限制大小
-   */
+  /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
   fun setMaxBytePerDay(limit: Long)
 
-  /**
-   * 指定日期(yyyyMMdd)的日志目录
-   */
+  /** 指定日期(yyyyMMdd)的日志目录 */
   fun logDirOf(date: String): File
 
-  /**
-   * 指定日期的日志压缩包文件
-   */
+  /** 指定日期的日志压缩包文件 */
   fun zipFileOf(date: String): File
 }
 
@@ -123,7 +111,7 @@ private class LogPublisherImpl(
     return checkNotNull(_handler)
   }
 
-  /** 多进程的时候按进程名分子目录 */
+  /** 按进程名分子目录，取不到进程名时不分 */
   private fun File.resolveProcess(): File {
     return if (process.isNullOrEmpty()) this else resolve(process.replace(":", "_"))
   }
@@ -151,7 +139,14 @@ private class DateLogHandler(
 
   fun publish(record: FLogRecord, maxBytePerDay: Long) {
     val logStore = getLogStore()
-    logStore.append(formatter.format(record))
+    val log = formatter.format(record)
+    try {
+      logStore.append(log)
+    } catch (e: Throwable) {
+      // 这条日志没写进去，要重置格式化器，否则下一条相同tag的日志会省略tag
+      resetFormatter()
+      throw e
+    }
     checkLogSize(logStore, maxBytePerDay)
   }
 
@@ -170,6 +165,10 @@ private class DateLogHandler(
 
   fun close() {
     _logStore?.close()
+    resetFormatter()
+  }
+
+  private fun resetFormatter() {
     if (formatter is AutoCloseable) {
       formatter.close()
     }
@@ -197,7 +196,7 @@ private class DateLogHandler(
      * 如果在这里创建，[FLogStore.Factory]抛异常的话，
      * [_logStore]会继续指向旧文件，下一条日志就写回旧文件里去了，
      * 于是每条日志都触发一次轮换、每次都失败，文件无限增长，
-     * [FLog.setMaxMBPerDay]的限制形同虚设
+     * [FLog.setMaxMBPerDay]的限制形同虚设。
      */
     _logStore = null
 
@@ -206,7 +205,7 @@ private class DateLogHandler(
 
   /**
    * 只保留当前和上一个日志文件。
-   * 删除失败只是多留一个文件，不重试，不影响写入
+   * 删除失败只是多留一个文件，不重试，不影响写入。
    */
   private fun deleteOldLog() {
     logDir.listFiles()?.forEach { file ->

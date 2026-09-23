@@ -4,11 +4,11 @@ import java.util.Calendar
 
 internal object LogTime {
   /**
-   * 时区在这里创建的时候就确定了，运行期间系统时区变化（跨时区、手动改设置）不会反映到日志上，
-   * 进程重启之后恢复正常，这是有意不处理的：这种情况低频，而且[FLog.deleteLog]比较用的today
-   * 和日志文件的日期都从这里取，用的是同一个时区，保留策略的判断不会错乱。
+   * 时区在创建时确定，运行期间改时区不会反映到日志上，进程重启后恢复。
+   * 这是有意不处理的：这种情况低频，
+   * 而且[FLog.deleteLog]的today和日志文件的日期用的是同一个时区，保留策略不会判断错。
    *
-   * 注意夏令时不受影响，[java.util.TimeZone]会按传入的时间戳动态计算偏移量
+   * 夏令时不受影响，[java.util.TimeZone]会按传入的时间戳动态计算偏移量。
    */
   private val _calendar = Calendar.getInstance()
 

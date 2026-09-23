@@ -2,8 +2,11 @@ package com.sd.lib.xlog
 
 /**
  * 日志格式化
+ *
+ * 实现[AutoCloseable]的话，关闭日志文件或写入失败时会调用[AutoCloseable.close]，用来重置内部状态。
  */
 interface FLogFormatter {
+  /** 把[record]格式化成写入日志仓库的字符串 */
   fun format(record: FLogRecord): String
 }
 

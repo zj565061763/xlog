@@ -69,6 +69,33 @@ class LogPublisherTest {
     assertTrue("日志总大小${totalSize}字节，超过了上限${maxByte}字节", totalSize <= maxByte)
     assertTrue("应该有写入失败", failures > 0)
   }
+
+  /** 写入失败之后，下一条日志不能省略tag，否则会被当成上一个tag的日志 */
+  @Test
+  fun testAppendErrorKeepTag() {
+    val dir = folder.newFolder()
+    var appendCount = 0
+
+    val publisher = newPublisher(dir) { file ->
+      val store = defaultLogStore(file)
+      object : FLogStore by store {
+        override fun append(log: String) {
+          appendCount++
+          // 第2条日志写入失败
+          if (appendCount == 2) error("append error")
+          store.append(log)
+        }
+      }
+    }
+
+    publisher.publish(testLogRecord(recordTag = "A"))
+    runCatching { publisher.publish(testLogRecord(recordTag = "B")) }
+    publisher.publish(testLogRecord(recordTag = "B"))
+
+    val lines = dir.walkTopDown().first { it.isFile }.readLines()
+    assertEquals(2, lines.size)
+    assertTrue(lines[1], lines[1].contains("[B|"))
+  }
 }
 
 private fun newPublisher(dir: File, storeFactory: FLogStore.Factory): DirectoryLogPublisher {
@@ -84,10 +111,10 @@ private fun newPublisher(dir: File, storeFactory: FLogStore.Factory): DirectoryL
 private const val RECORD_MILLIS = 1_700_000_000_000L
 
 /** 每条日志格式化之后约61字节 */
-private fun testLogRecord(): FLogRecord = object : FLogRecord {
+private fun testLogRecord(recordTag: String = "T"): FLogRecord = object : FLogRecord {
   override val logger: Class<out FLogger> = FLogLibLogger::class.java
   override val level: FLogLevel = FLogLevel.Info
-  override val tag: String = "T"
+  override val tag: String = recordTag
   override val msg: String = "0123456789012345678901234567890123456789"
   override val millis: Long = RECORD_MILLIS
   override val isMainThread: Boolean = false

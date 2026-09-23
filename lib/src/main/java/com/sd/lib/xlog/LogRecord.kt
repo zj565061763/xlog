@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import android.os.Looper
 
+/** 日志记录 */
 interface FLogRecord {
   /** 日志标识 */
   val logger: Class<out FLogger>
@@ -9,7 +10,7 @@ interface FLogRecord {
   /** 日志等级 */
   val level: FLogLevel
 
-  /** 日志标志 */
+  /** 日志tag */
   val tag: String
 
   /** 日志内容 */
