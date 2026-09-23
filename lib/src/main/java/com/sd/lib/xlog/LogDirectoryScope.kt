@@ -1,6 +1,8 @@
 package com.sd.lib.xlog
 
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -72,9 +74,13 @@ private fun compressFile(
 ) {
   when {
     file.isFile -> {
-      outputStream.putNextEntry(ZipEntry(filename))
-      file.inputStream().use { inputStream -> inputStream.copyTo(outputStream) }
-      outputStream.closeEntry()
+      // 列出之后可能被其他进程删除，比如日志滚动或者清理日志，这种文件跳过
+      val input = file.inputStreamOrNull() ?: return
+      input.use { inputStream ->
+        outputStream.putNextEntry(ZipEntry(filename))
+        inputStream.copyTo(outputStream)
+        outputStream.closeEntry()
+      }
     }
 
     file.isDirectory -> {
@@ -88,6 +94,16 @@ private fun compressFile(
         )
       }
     }
+  }
+}
+
+/** 打开文件，文件已经不存在时返回null，其他原因打开失败照常抛出 */
+internal fun File.inputStreamOrNull(): InputStream? {
+  return try {
+    inputStream()
+  } catch (e: FileNotFoundException) {
+    if (exists()) throw e
+    null
   }
 }
 
