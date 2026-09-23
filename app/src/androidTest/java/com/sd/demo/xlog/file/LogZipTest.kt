@@ -66,6 +66,27 @@ class LogZipTest {
     }
   }
 
+  /** 同一日期再次打包时替换上次的压缩包，不留下临时文件 */
+  @Test
+  fun testRepeat() {
+    resetLogDir()
+    flogI<TestLogger> { "info" }
+    awaitLogIdle()
+
+    val today = dateOfDaysAgo(0)
+    var zip1: File? = null
+    var zip2: File? = null
+    FLog.logDirectory {
+      zip1 = logZipOf(today)
+      zip2 = logZipOf(today)
+    }
+    awaitLogIdle()
+
+    assertEquals(zip1, zip2)
+    assertEquals(true, ZipFile(zip2!!).use { zip -> zip.entries().asSequence().any { !it.isDirectory } })
+    assertEquals(listOf(zip2!!.name), zip2!!.parentFile?.list()?.toList())
+  }
+
   /** 日期目录里没有日志文件时返回不含日志的压缩包，日期对应的不是目录时返回null */
   @Test
   fun testNoLog() {

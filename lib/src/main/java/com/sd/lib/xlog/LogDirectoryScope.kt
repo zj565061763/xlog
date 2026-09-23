@@ -12,6 +12,7 @@ interface FLogDirectoryScope {
    * 日志目录存在但里面没有日志文件时，返回不含日志的压缩包。
    *
    * 压缩包只在本次进程运行期间有效，下次[FLog.init]时会被清空，需要长期保存请自行移走。
+   * 同一日期再次打包会替换上次的压缩包，打包失败时保留上次的。
    */
   fun logZipOf(date: String): File?
 }
@@ -46,17 +47,21 @@ internal class LogDirectoryScopeImpl(
 }
 
 private fun zip(source: File, target: File): Boolean {
+  // 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的
+  val tempFile = target.resolveSibling("${target.name}.tmp")
   try {
-    if (!target.deleteAndCreateNewFile()) return false
-    ZipOutputStream(target.outputStream().buffered()).use { outputStream ->
+    if (!tempFile.deleteAndCreateNewFile()) return false
+    ZipOutputStream(tempFile.outputStream().buffered()).use { outputStream ->
       compressFile(file = source, filename = source.name, outputStream = outputStream)
     }
-    return true
+    if (target.isDirectory) target.deleteRecursively()
+    return tempFile.renameTo(target)
   } catch (e: Throwable) {
     libLog("log zip error ${e.stackTraceToString()}")
-    // 打包失败的压缩包不完整，不能留着
-    target.delete()
     return false
+  } finally {
+    // 失败时临时文件不完整，成功时已经被重命名，删除不影响结果
+    tempFile.delete()
   }
 }
 

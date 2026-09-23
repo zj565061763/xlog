@@ -94,6 +94,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 取不到进程名时 `init` 不清空，此时压缩包目录是所有进程共用的
   - 需要长期保存由使用方自行移走，库不提供 target 参数，也不提供删除 API
   - 生命周期是“导出 → 上传/分享 → 丢弃”，刻意不受 `deleteLog` 管辖
+- 打包先写 `<yyyyMMdd>.zip.tmp`，成功后再 `renameTo` 替换，同一日期再次打包时上次的压缩包保持完整，失败时也保留。
 
 ## 测试
 
