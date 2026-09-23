@@ -11,7 +11,8 @@
 - 混淆规则改为只保留 `FLogger` 实现类的类名，未使用的实现类可以被 R8 移除
 - 每条日志少一次配置查询和等级判断
 - `init` 不再在调用线程上获取默认日志目录和进程名，避免主线程磁盘 I/O
-- 库内部日志改为以 Error 等级输出到 Logcat，tag 为 `XLogLibLogger`，不再受日志等级和模式影响
+- 库内部日志改为以 Error 等级输出到 Logcat，tag 为 `XLogLibLogger`，只在日志等级为 Off 时不输出
+- 默认调度线程命名为 `xlog`，并使用后台优先级
 
 ### 🐛 Bug Fixes
 

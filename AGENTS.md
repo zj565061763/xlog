@@ -33,7 +33,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 
 ## 关键架构
 
-- 写入链路：`flogX` → `FLog.log()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
+- 写入链路：`flogX` → `FLog.publishLog()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
   - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`fLogDir()`
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
@@ -48,8 +48,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
 - 异常隔离：`SafeLogPublisher`（`LogSafe.kt`）捕获并打印异常，保证日志失败不影响业务；`SafeLogStore`（`LogPublisher.kt`）出错时关闭再重抛。
-- 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，不受日志等级和模式影响。
-  - 不要改回走 `flogX`：使用方调高等级或设为 Off 后，写盘、打包失败会完全看不到
+- 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，只在全局等级为 Off 时不输出。
+  - 不要改回走 `flogX`：使用方调高等级后，写盘、打包失败会完全看不到
+- 默认调度线程名为 `xlog`，后台优先级。
 - 格式（`LogFormatter.kt`）：`HH:mm:ss.SSS[tag|L|threadID] msg\n`，`L` 是 V/D/I/W/E；连续相同 tag 省略 tag，主线程省略 threadID。
 - 文件名和日期逻辑集中在 `LogFilename.kt`、`LogTime.kt`，日期格式 `yyyyMMdd`；`logNameOf`/`seqOf` 互为逆运算，不要在别处拼日志文件名。
 

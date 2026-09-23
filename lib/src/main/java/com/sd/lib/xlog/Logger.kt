@@ -25,7 +25,8 @@ internal fun FLoggerConfig.isEmpty(): Boolean {
   return tag.isNullOrEmpty() && level == null && mode == null
 }
 
-/** 库内部日志，不受日志等级和模式影响，直接输出到Logcat，tag带上库名前缀便于识别 */
+/** 库内部日志，直接输出到Logcat，只在全局等级为[FLogLevel.Off]时不输出，tag带上库名前缀便于识别 */
 internal fun libLog(msg: String) {
+  if (FLog.level == FLogLevel.Off) return
   Log.e("XLogLibLogger", msg)
 }

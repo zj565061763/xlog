@@ -43,6 +43,9 @@ object FLog {
   @Volatile
   private var _mode: FLogMode = FLogMode.Default
 
+  /** 全局日志等级 */
+  internal val level: FLogLevel get() = _level
+
   /** 日志发布 */
   private lateinit var _publisher: DirectoryLogPublisher
   /** 日志调度器 */
