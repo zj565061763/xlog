@@ -5,9 +5,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
-/**
- * [FLogDispatcher]的契约
- */
+/** [FLogDispatcher]的契约 */
 class LogDispatcherTest {
 
   /** 提交的任务全部执行完成之后触发空闲回调 */
@@ -46,7 +44,7 @@ class LogDispatcherTest {
 
   /**
    * 调度器违反契约，同一个任务执行了多次，
-   * 调度器是整个日志库的基础，这种情况必须抛异常尽早暴露
+   * 调度器是整个日志库的基础，这种情况必须抛异常尽早暴露。
    */
   @Test
   fun testTaskExecutedTwice() {
@@ -67,7 +65,7 @@ class LogDispatcherTest {
   /**
    * 任务本身也抛异常的时候，抛出来的仍然是契约违反的异常，
    * 会覆盖掉任务的异常，这是有意的：
-   * 调度器的问题更底层，要先解决它，业务本身的异常之后再单独排查
+   * 调度器的问题更底层，要先解决它，业务本身的异常之后再单独排查。
    */
   @Test
   fun testTaskExecutedTwiceWithTaskError() {

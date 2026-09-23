@@ -64,18 +64,20 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 每条日志都 `write` + `flush`，不加缓冲。
   - 崩溃或被杀前的最后几条日志最关键，缓冲会丢掉它们
   - 要加缓冲必须先回答“进程被 SIGKILL 时怎么 flush”，这在 Android 上无解
-- `LogTime._calendar` 的时区在进程启动时确定，运行期改时区不生效。
+- `LogTime._calendar` 的时区在首次使用时确定，之后改时区不生效。
   - 低频，进程重启后自愈
   - `deleteLog` 的 today 和日志文件日期用同一个时区，保留策略不会判断错
   - 夏令时与此无关（`TimeZone` 按时间戳动态计算偏移），不要和 `diffDays` 的夏令时问题混为一谈
-- `deleteLog` 保留日期在今天之后的目录，只有 `deleteLog(0)` 会删。
+- `deleteLog` 保留日期在今天之后的目录，只有 `saveDays<=0` 时才删。
   - 这类目录来自设备时间被调快又恢复
   - 不删是因为当前时间被调慢时，这些目录才是真实的日志
 
 ## 日志清理与压缩包
 
 - `deleteLog(saveDays)`：保留最近 N 天，`saveDays=1` 表示仅当天，`<=0` 表示删除全部。
+- 是否删除的判断集中在 `LogFilename.kt` 的 `shouldDeleteLog`，不要在 `deleteLog` 里另写。
 - 改日期比较务必考虑跨月、跨年、闰年、夏令时，并补 `LogFilenameTest.kt` 的用例。
+- 日志目录只能存放日志：`deleteLog` 会删除其中不是日志的条目，自定义目录时不能用共用目录。
 - `deleteLog` 跳过所有 `.` 开头的条目；历史上 zip 落在日志根目录，文件名解析不出日期而被误删。
 - `deleteLog(0)` 同样不删压缩包，常见用法是“导出 zip → 清空日志 → 上传 zip”；所以不能用 `dir.deleteRecursively()`。
 - 日志根目录永远保留，即使空了也不删，省掉下次写日志时重建目录。

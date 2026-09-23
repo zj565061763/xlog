@@ -8,9 +8,7 @@ import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.TimeZone
 
-/**
- * [LogFilename.diffDays]
- */
+/** [LogFilename] */
 class LogFilenameTest {
   private val _filename = defaultLogFilename()
   private val _defaultTimeZone: TimeZone = TimeZone.getDefault()
@@ -29,9 +27,7 @@ class LogFilenameTest {
     assertEquals("20231125.1000.log", _filename.logNameOf("20231125", 1000))
   }
 
-  /**
-   * [LogFilename.logNameOf]和[LogFilename.seqOf]互为逆运算
-   */
+  /** [LogFilename.logNameOf]和[LogFilename.seqOf]互为逆运算 */
   @Test
   fun testSeqOf() {
     for (seq in listOf(0, 1, 10, 999, 1000)) {
@@ -51,9 +47,7 @@ class LogFilenameTest {
     assertNull(_filename.seqOf("20231125.log.1"))
   }
 
-  /**
-   * [LogFilename.diffDays]注释里的例子
-   */
+  /** [LogFilename.diffDays]注释里的例子 */
   @Test
   fun testDiffDays() {
     assertEquals(0, _filename.diffDays("20231125", "20231125"))
@@ -61,9 +55,7 @@ class LogFilenameTest {
     assertEquals(-5, _filename.diffDays("20231125", "20231130"))
   }
 
-  /**
-   * 跨月，历史上出过bug：跨月的时候日志被全部删除
-   */
+  /** 跨月，历史上出过bug：跨月的时候日志被全部删除 */
   @Test
   fun testCrossMonth() {
     // 7月1号往前推1到5天，全部落在6月
@@ -84,9 +76,7 @@ class LogFilenameTest {
     assertEquals(2, _filename.diffDays("20240301", "20240228"))
   }
 
-  /**
-   * 跨年
-   */
+  /** 跨年 */
   @Test
   fun testCrossYear() {
     assertEquals(1, _filename.diffDays("20240101", "20231231"))
@@ -101,30 +91,29 @@ class LogFilenameTest {
 
   /**
    * 夏令时，切换的那天不是24小时，
-   * 如果用[Calendar]转毫秒相减再除以86400000，会少算一天
+   * 如果用[Calendar]转毫秒相减再除以86400000，会少算一天。
    */
   @Test
   fun testDaylightSavingTime() {
+    // diffDays不依赖时区，这里设置时区是为了防止改回基于Calendar的算法
     TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
-    // 必须在设置时区之后创建
-    val filename = defaultLogFilename()
 
     // 2024-03-10进入夏令时，这天只有23小时
-    assertEquals(1, filename.diffDays("20240311", "20240310"))
-    assertEquals(2, filename.diffDays("20240311", "20240309"))
-    assertEquals(3, filename.diffDays("20240312", "20240309"))
+    assertEquals(1, _filename.diffDays("20240311", "20240310"))
+    assertEquals(2, _filename.diffDays("20240311", "20240309"))
+    assertEquals(3, _filename.diffDays("20240312", "20240309"))
 
     // 2024-11-03退出夏令时，这天有25小时
-    assertEquals(1, filename.diffDays("20241104", "20241103"))
-    assertEquals(2, filename.diffDays("20241104", "20241102"))
+    assertEquals(1, _filename.diffDays("20241104", "20241103"))
+    assertEquals(2, _filename.diffDays("20241104", "20241102"))
 
     // 跨越整个夏令时区间
-    assertEquals(238, filename.diffDays("20241104", "20240311"))
+    assertEquals(238, _filename.diffDays("20241104", "20240311"))
   }
 
   /**
    * 遍历2020-01-01到2030-12-31的每一天，
-   * 覆盖所有的月份边界、年份边界和闰年
+   * 覆盖所有的月份边界、年份边界和闰年。
    */
   @Test
   fun testEveryDay() {
@@ -157,7 +146,7 @@ class LogFilenameTest {
 
   /**
    * 日期格式不合法返回null，
-   * [FLog.deleteLog]会把这类文件当作垃圾删掉
+   * [FLog.deleteLog]会把这类文件当作垃圾删掉。
    */
   @Test
   fun testInvalidDate() {
@@ -185,17 +174,15 @@ class LogFilenameTest {
   }
 
   /**
-   * [FLog.deleteLog]的判断逻辑：
-   * 天数差距为null，或者大于(saveDays - 1)就删除。
-   * 这里模拟今天是7月1号，前5天全部跨到6月的场景
+   * [FLog.deleteLog]的判断逻辑[shouldDeleteLog]。
+   * 这里模拟今天是7月1号，前5天全部跨到6月的场景。
    */
   @Test
   fun testDeleteLogRule() {
     val today = "20260701"
 
     fun shouldDelete(date: String, saveDays: Int): Boolean {
-      val diffDays = _filename.diffDays(today, date)
-      return diffDays == null || diffDays > (saveDays - 1)
+      return _filename.shouldDeleteLog(today = today, date = date, saveDays = saveDays)
     }
 
     // 保留今天和前面4天
@@ -224,6 +211,14 @@ class LogFilenameTest {
 
     // 以后的日期不会被删除
     assertEquals(false, shouldDelete("20260702", 1))
+
+    // 小于等于0删除全部，包括今天和以后的日期
+    assertEquals(true, shouldDelete("20260701", 0))
+    assertEquals(true, shouldDelete("20260702", 0))
+    assertEquals(true, shouldDelete("20260701", -1))
+
+    // 日期不合法的删除
+    assertEquals(true, shouldDelete("abc", 5))
   }
 }
 

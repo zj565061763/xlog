@@ -24,6 +24,19 @@ internal interface LogFilename {
   fun seqOf(logName: String): Int?
 }
 
+/**
+ * 日期为[date]的日志是否要删除，[today]是今天的日期，[saveDays]是要保留的天数。
+ * [saveDays]小于等于0时全部删除，日期不合法的也删除。
+ *
+ * 日期在今天之后的会保留，比如设备时间曾被调快又恢复。
+ * 不删是因为当前时间被调慢的时候，这些才是真实的日志。
+ */
+internal fun LogFilename.shouldDeleteLog(today: String, date: String, saveDays: Int): Boolean {
+  if (saveDays <= 0) return true
+  val diffDays = diffDays(today, date) ?: return true
+  return diffDays > saveDays - 1
+}
+
 internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
 
 private class LogFilenameImpl(

@@ -4,7 +4,10 @@ import java.io.File
 
 /** 初始化配置，在[FLog.init]的block里调用 */
 interface FLogInitScope {
-  /** 设置日志目录，默认为[fLogDir] */
+  /**
+   * 设置日志目录，默认为[fLogDir]。
+   * 目录只能存放日志，[FLog.deleteLog]会删除其中不是日志的文件。
+   */
   fun setLogDirectory(directory: File)
 
   /** 设置日志格式化器 */

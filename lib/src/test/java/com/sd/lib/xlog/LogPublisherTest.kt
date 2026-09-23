@@ -24,7 +24,7 @@ class LogPublisherTest {
     /**
      * 每4条填满一个分片，42条一路轮换到序号10，最后2条写在序号10里。
      * 故意让保留的两个序号跨过9和10的位数边界，
-     * 覆盖序号进入两位数之后的轮换和删除逻辑
+     * 覆盖序号进入两位数之后的轮换和删除逻辑。
      */
     repeat(42) { publisher.publish(testLogRecord()) }
 
@@ -42,7 +42,7 @@ class LogPublisherTest {
   /**
    * 轮换的时候创建日志仓库失败，不能退回去继续写旧文件。
    * 否则每条日志都会触发一次轮换、每次都失败，
-   * 旧文件无限增长，[FLog.setMaxMBPerDay]的限制形同虚设
+   * 旧文件无限增长，[FLog.setMaxMBPerDay]的限制形同虚设。
    */
   @Test
   fun testStoreCreateErrorOnRotate() {

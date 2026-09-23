@@ -129,17 +129,7 @@ object FLog {
            */
           if (file.name.startsWith(".")) continue
 
-          if (saveDays <= 0) {
-            file.deleteRecursively()
-            continue
-          }
-
-          /**
-           * 日期在今天之后的目录会被保留，比如设备时间曾被调快又恢复。
-           * 不删是因为当前时间被调慢的时候，这些目录才是真实的日志。
-           */
-          val diffDays = filename.diffDays(today, file.name)
-          if (diffDays == null || diffDays > (saveDays - 1)) {
+          if (filename.shouldDeleteLog(today = today, date = file.name, saveDays = saveDays)) {
             file.deleteRecursively()
           }
         }
@@ -147,7 +137,10 @@ object FLog {
     }
   }
 
-  /** 访问日志目录，[block]在调度器上异步执行，执行前会先关闭当前的日志文件 */
+  /**
+   * 访问日志目录，[block]在调度器上执行，执行前会先关闭当前的日志文件。
+   * 目录只能存放日志，[deleteLog]会删除其中不是日志的文件。
+   */
   @JvmStatic
   fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
     dispatch {
