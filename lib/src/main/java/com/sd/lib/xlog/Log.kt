@@ -185,12 +185,6 @@ object FLog {
     return level >= limitLevel
   }
 
-  /** [logger]的[level]是否可以打印，给2.0.0及之前版本编译的内联代码调用，不能删除或改签名 */
-  @PublishedApi
-  internal fun isLoggable(logger: Class<out FLogger>, level: FLogLevel): Boolean {
-    return isLoggable(level, configOf(logger))
-  }
-
   /** 打印已经通过等级检查的日志，[config]是[configOf]返回的配置 */
   @PublishedApi
   internal fun publishLog(
@@ -310,6 +304,12 @@ object FLog {
     if (isLoggable(level, config)) {
       publishLog(logger = logger, level = level, mode = mode, msg = msg, config = config)
     }
+  }
+
+  /** [logger]的[level]是否可以打印，给2.0.0及之前版本编译的内联代码调用，不能删除或改签名 */
+  @PublishedApi
+  internal fun isLoggable(logger: Class<out FLogger>, level: FLogLevel): Boolean {
+    return isLoggable(level, configOf(logger))
   }
 }
 
