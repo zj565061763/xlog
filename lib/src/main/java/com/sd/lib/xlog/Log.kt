@@ -60,10 +60,12 @@ object FLog {
     synchronized(FLog) {
       if (_hasInit) return false
       val initScope = LogInitScopeImpl().apply(initBlock)
+      val appContext = context.applicationContext ?: context
+      val directory = initScope.directory
 
       _publisher = defaultLogPublisher(
-        process = context.currentProcess(),
-        directory = initScope.directory ?: context.fLogDir(),
+        processProvider = { appContext.currentProcess() },
+        directoryProvider = { directory ?: appContext.fLogDir() },
         filename = defaultLogFilename(),
         formatter = initScope.formatter ?: defaultLogFormatter(),
         storeFactory = initScope.storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
@@ -81,7 +83,7 @@ object FLog {
        * 清空上次运行遗留的压缩包。
        * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
        */
-      dispatch { _publisher.zipDirectory.deleteRecursively() }
+      dispatch { libRunCatching { _publisher.zipDirectory.deleteRecursively() } }
       return true
     }
   }

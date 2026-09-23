@@ -96,12 +96,36 @@ class LogPublisherTest {
     assertEquals(2, lines.size)
     assertTrue(lines[1], lines[1].contains("[B|"))
   }
+
+  /** 获取进程名和目录可能有IPC或磁盘I/O，创建时不能获取，要等到调度线程上第一次用到 */
+  @Test
+  fun testLazyProcessAndDirectory() {
+    val dir = folder.newFolder()
+    var processCount = 0
+    var directoryCount = 0
+
+    val publisher = defaultLogPublisher(
+      processProvider = { processCount++; null },
+      directoryProvider = { directoryCount++; dir },
+      filename = defaultLogFilename(),
+      formatter = defaultLogFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    )
+    assertEquals(0, processCount)
+    assertEquals(0, directoryCount)
+
+    // 第一次用到时获取，之后不再重复获取
+    publisher.publish(testLogRecord())
+    publisher.publish(testLogRecord())
+    assertEquals(1, processCount)
+    assertEquals(1, directoryCount)
+  }
 }
 
 private fun newPublisher(dir: File, storeFactory: FLogStore.Factory): DirectoryLogPublisher {
   return defaultLogPublisher(
-    process = null,
-    directory = dir,
+    processProvider = { null },
+    directoryProvider = { dir },
     filename = defaultLogFilename(),
     formatter = defaultLogFormatter(),
     storeFactory = storeFactory,

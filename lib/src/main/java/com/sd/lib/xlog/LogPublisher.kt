@@ -37,15 +37,15 @@ internal interface DirectoryLogPublisher : LogPublisher {
 }
 
 internal fun defaultLogPublisher(
-  process: String?,
-  directory: File,
+  processProvider: () -> String?,
+  directoryProvider: () -> File,
   filename: LogFilename,
   formatter: FLogFormatter,
   storeFactory: FLogStore.Factory,
 ): DirectoryLogPublisher {
   return LogPublisherImpl(
-    process = process,
-    directory = directory,
+    processProvider = processProvider,
+    directoryProvider = directoryProvider,
     filename = filename,
     formatter = formatter,
     storeFactory = storeFactory,
@@ -53,12 +53,16 @@ internal fun defaultLogPublisher(
 }
 
 private class LogPublisherImpl(
-  private val process: String?,
-  override val directory: File,
+  processProvider: () -> String?,
+  directoryProvider: () -> File,
   override val filename: LogFilename,
   private val formatter: FLogFormatter,
   private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
+  /** 获取进程名和目录可能有IPC或磁盘I/O，等到调度线程上第一次用到时再获取 */
+  private val _process by lazy(processProvider)
+  override val directory: File by lazy(directoryProvider)
+
   private var _handler: DateLogHandler? = null
 
   @Volatile
@@ -113,6 +117,7 @@ private class LogPublisherImpl(
 
   /** 按进程名分子目录，取不到进程名时不分 */
   private fun File.resolveProcess(): File {
+    val process = _process
     return if (process.isNullOrEmpty()) this else resolve(process.replace(":", "_"))
   }
 }
