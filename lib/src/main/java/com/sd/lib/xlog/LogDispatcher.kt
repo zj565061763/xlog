@@ -1,9 +1,7 @@
 package com.sd.lib.xlog
 
-import android.os.Process
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.concurrent.thread
 
 /**
  * 日志调度器，实现类可以在任何线程上执行任务，但是必须同时满足以下三点。
@@ -59,12 +57,4 @@ private class LogDispatcherWrapper(
   }
 }
 
-/** 默认调度线程，命名便于在ANR堆栈里识别，后台优先级避免和主线程抢CPU */
-private val SingleThreadExecutor by lazy {
-  Executors.newSingleThreadExecutor { runnable ->
-    thread(start = false, name = "xlog") {
-      libRunCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND) }
-      runnable.run()
-    }
-  }
-}
+private val SingleThreadExecutor by lazy { Executors.newSingleThreadExecutor() }

@@ -37,7 +37,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
   - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`fLogDir()`
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
-  - 默认线程名为 `xlog`，后台优先级
+  - 保持 `Executors.newSingleThreadExecutor()` 的默认线程工厂，不要为了命名或调优先级自定义：线程优先级 nice ≥ 10 时，Android 12 及以下会把线程移到后台调度组，队列积压，崩溃时丢失排队中的日志
 - `LogDispatcherWrapper` 计数，队列排空时触发 `onIdle`：等级为 Off 则关闭 publisher，否则检查日志文件，被外部删除就关闭，下次写入时重建。
 - 文件路径（`<process>` 是进程名，`:` 替换为 `_`；系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层）：
   - 日志：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.<seq>.log`
