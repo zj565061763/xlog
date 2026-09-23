@@ -155,16 +155,16 @@ object FLog {
     }
   }
 
+  /** 打印已经通过等级检查的日志，[config]是[configOf]返回的配置 */
   @PublishedApi
-  internal fun log(
+  internal fun publishLog(
     logger: Class<out FLogger>,
     level: FLogLevel,
     mode: FLogMode?,
     msg: String?,
+    config: FLoggerConfig?,
   ) {
     if (msg.isNullOrEmpty()) return
-    val config = getConfig(logger)
-    if (!isLoggable(level, config)) return
     val tag = (config?.tag ?: "").ifEmpty { logger.simpleName }
     when (mode ?: config?.mode ?: _mode) {
       FLogMode.Default -> {
@@ -182,12 +182,9 @@ object FLog {
     }
   }
 
+  /** [level]是否可以打印，[config]是[configOf]返回的配置 */
   @PublishedApi
-  internal fun isLoggable(logger: Class<out FLogger>, level: FLogLevel): Boolean {
-    return isLoggable(level = level, config = getConfig(logger))
-  }
-
-  private fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
+  internal fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
     checkLoggable(level)
 
     if (_level == FLogLevel.Off) {
@@ -199,7 +196,9 @@ object FLog {
     return level >= limitLevel
   }
 
-  private fun getConfig(logger: Class<out FLogger>): FLoggerConfig? {
+  /** [logger]的配置，没有配置返回null */
+  @PublishedApi
+  internal fun configOf(logger: Class<out FLogger>): FLoggerConfig? {
     checkInit()
     if (_configHolder.isEmpty()) return null
     return _configHolder[logger]
@@ -282,6 +281,19 @@ object FLog {
     msg: String?,
   ) {
     log(logger, FLogLevel.Error, mode, msg)
+  }
+
+  /** 检查等级后打印日志，给Java API使用 */
+  private fun log(
+    logger: Class<out FLogger>,
+    level: FLogLevel,
+    mode: FLogMode?,
+    msg: String?,
+  ) {
+    if (msg.isNullOrEmpty()) return
+    val config = configOf(logger)
+    if (!isLoggable(level, config)) return
+    publishLog(logger = logger, level = level, mode = mode, msg = msg, config = config)
   }
 }
 

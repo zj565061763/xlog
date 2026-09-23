@@ -57,8 +57,9 @@ internal inline fun <T : FLogger> logInternal(
   block: () -> String,
 ) {
   with(FLog) {
-    if (isLoggable(logger, level)) {
-      log(logger = logger, level = level, mode = mode, msg = block())
+    val config = configOf(logger)
+    if (isLoggable(level, config)) {
+      publishLog(logger = logger, level = level, mode = mode, msg = block(), config = config)
     }
   }
 }
