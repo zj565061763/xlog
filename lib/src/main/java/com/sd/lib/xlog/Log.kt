@@ -2,6 +2,9 @@ package com.sd.lib.xlog
 
 import android.content.Context
 import android.util.Log
+import com.sd.lib.xlog.FLog.configOf
+import com.sd.lib.xlog.FLog.deleteLog
+import com.sd.lib.xlog.FLog.init
 import java.io.File
 
 /** 日志等级，按声明顺序从低到高 */
@@ -155,6 +158,28 @@ object FLog {
     }
   }
 
+  /** [logger]的配置，没有配置返回null */
+  @PublishedApi
+  internal fun configOf(logger: Class<out FLogger>): FLoggerConfig? {
+    checkInit()
+    if (_configHolder.isEmpty()) return null
+    return _configHolder[logger]
+  }
+
+  /** [level]是否可以打印，[config]是[configOf]返回的配置 */
+  @PublishedApi
+  internal fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
+    checkLoggable(level)
+
+    if (_level == FLogLevel.Off) {
+      /** 如果全局等级为[FLogLevel.Off]，忽略[FLoggerConfig]，不打印日志 */
+      return false
+    }
+
+    val limitLevel = config?.level ?: _level
+    return level >= limitLevel
+  }
+
   /** 打印已经通过等级检查的日志，[config]是[configOf]返回的配置 */
   @PublishedApi
   internal fun publishLog(
@@ -180,28 +205,6 @@ object FLog {
         dispatch { _publisher.publish(record) }
       }
     }
-  }
-
-  /** [level]是否可以打印，[config]是[configOf]返回的配置 */
-  @PublishedApi
-  internal fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
-    checkLoggable(level)
-
-    if (_level == FLogLevel.Off) {
-      /** 如果全局等级为[FLogLevel.Off]，忽略[FLoggerConfig]，不打印日志 */
-      return false
-    }
-
-    val limitLevel = config?.level ?: _level
-    return level >= limitLevel
-  }
-
-  /** [logger]的配置，没有配置返回null */
-  @PublishedApi
-  internal fun configOf(logger: Class<out FLogger>): FLoggerConfig? {
-    checkInit()
-    if (_configHolder.isEmpty()) return null
-    return _configHolder[logger]
   }
 
   /** 在调度器上面执行 */
@@ -292,8 +295,9 @@ object FLog {
   ) {
     if (msg.isNullOrEmpty()) return
     val config = configOf(logger)
-    if (!isLoggable(level, config)) return
-    publishLog(logger = logger, level = level, mode = mode, msg = msg, config = config)
+    if (isLoggable(level, config)) {
+      publishLog(logger = logger, level = level, mode = mode, msg = msg, config = config)
+    }
   }
 }
 
