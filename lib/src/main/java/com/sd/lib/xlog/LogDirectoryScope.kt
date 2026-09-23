@@ -53,6 +53,8 @@ private fun zip(source: File, target: File): Boolean {
     return true
   } catch (e: Throwable) {
     libLog { "log zip error ${e.stackTraceToString()}" }
+    // 打包失败的压缩包不完整，不能留着
+    target.delete()
     return false
   }
 }

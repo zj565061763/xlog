@@ -182,7 +182,7 @@ private class DateLogHandler(
 
     val partSize = maxBytePerDay / 2
     if (logStore.size() < partSize) {
-      // 还未超过限制
+      // 还没写满当前文件
       return
     }
 

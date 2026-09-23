@@ -123,8 +123,7 @@ object FLog {
 
         for (file in files) {
           /**
-           * 以.开头的是库的内部目录（比如导出的日志压缩包），
-           * 它的生命周期由使用方决定，不受日志保留策略管辖，
+           * 以.开头的是库的内部目录（比如导出的日志压缩包），不受日志保留策略管辖，
            * 所以即使是删除全部日志也不动它。
            */
           if (file.name.startsWith(".")) continue
@@ -191,7 +190,7 @@ object FLog {
     checkLoggable(level)
 
     if (_level == FLogLevel.Off) {
-      /** 如果全局等级为[FLogLevel.Off]，不读取[FLoggerConfig]，不打印日志 */
+      /** 如果全局等级为[FLogLevel.Off]，忽略[FLoggerConfig]，不打印日志 */
       return false
     }
 
