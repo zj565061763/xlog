@@ -14,7 +14,6 @@
 ### 🐛 Bug Fixes
 
 - 日志写入失败后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
-- `logZipOf` 在该日期没有日志文件时仍返回压缩包，现在返回 null
 
 ### Migration
 

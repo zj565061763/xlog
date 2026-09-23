@@ -13,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.zip.ZipFile
 
 /**
  * 日志压缩包不参与日志保留策略
@@ -65,7 +66,7 @@ class LogZipTest {
     }
   }
 
-  /** 日期目录里没有文件，或者日期对应的不是目录，都算没有该日期的日志 */
+  /** 日期目录里没有日志文件时返回不含日志的压缩包，日期对应的不是目录时返回null */
   @Test
   fun testNoLog() {
     val dir = resetLogDir()
@@ -82,7 +83,8 @@ class LogZipTest {
       fileZip = logZipOf(fileDate)
     }
     awaitLogIdle()
-    assertEquals(null, emptyZip)
+    assertEquals(true, emptyZip?.exists())
+    assertEquals(false, ZipFile(emptyZip!!).use { zip -> zip.entries().asSequence().any { !it.isDirectory } })
     assertEquals(null, fileZip)
   }
 }

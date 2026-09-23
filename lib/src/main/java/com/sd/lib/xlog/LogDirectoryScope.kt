@@ -8,7 +8,8 @@ import java.util.zip.ZipOutputStream
 interface FLogDirectoryScope {
   /**
    * 把指定日期(yyyyMMdd)的日志打包成zip，包含该日期所有进程的日志。
-   * 日期不合法、没有该日期的日志或打包失败时返回null。
+   * 日期不合法、没有该日期的日志目录或打包失败时返回null。
+   * 日志目录存在但里面没有日志文件时，返回不含日志的压缩包。
    *
    * 压缩包只在本次进程运行期间有效，下次[FLog.init]时会被清空，需要长期保存请自行移走。
    */
@@ -32,8 +33,6 @@ internal class LogDirectoryScopeImpl(
 
     val dateDir = publisher.logDirOf(date)
     if (!dateDir.isDirectory) return null
-    // 目录里没有文件，也算没有该日期的日志
-    if (dateDir.walk().none { it.isFile }) return null
 
     val zipFile = publisher.zipFileOf(date)
     val zipResult = zip(source = dateDir, target = zipFile)
