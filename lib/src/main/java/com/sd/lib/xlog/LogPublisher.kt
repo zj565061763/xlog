@@ -181,7 +181,8 @@ private class DateLogHandler(
 
   private fun resetFormatter() {
     if (formatter is AutoCloseable) {
-      formatter.close()
+      // 出错不往外抛，否则会中断日志轮换，一直写回旧文件
+      libRunCatching { formatter.close() }
     }
   }
 

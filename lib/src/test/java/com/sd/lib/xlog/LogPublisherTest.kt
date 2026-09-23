@@ -70,6 +70,28 @@ class LogPublisherTest {
     assertTrue("应该有写入失败", failures > 0)
   }
 
+  /** 轮换的时候格式化器关闭失败，不能中断轮换，否则会一直写回旧文件 */
+  @Test
+  fun testFormatterCloseErrorOnRotate() {
+    val dir = folder.newFolder()
+    val publisher = defaultLogPublisher(
+      processProvider = { null },
+      directoryProvider = { dir },
+      filename = defaultLogFilename(),
+      formatter = CloseErrorFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    )
+
+    val maxByte = 400L
+    publisher.setMaxBytePerDay(maxByte)
+    repeat(42) { publisher.publish(testLogRecord()) }
+    publisher.close()
+
+    assertEquals(2, dir.logNames().size)
+    val totalSize = dir.totalSize()
+    assertTrue("日志总大小${totalSize}字节，超过了上限${maxByte}字节", totalSize <= maxByte)
+  }
+
   /** 写入失败之后，下一条日志不能省略tag，否则会被当成上一个tag的日志 */
   @Test
   fun testAppendErrorKeepTag() {
@@ -231,4 +253,10 @@ private fun File.createZip(): File {
   parentFile?.mkdirs()
   assertTrue(createNewFile())
   return this
+}
+
+private class CloseErrorFormatter : FLogFormatter, AutoCloseable {
+  private val _formatter = defaultLogFormatter()
+  override fun format(record: FLogRecord): String = _formatter.format(record)
+  override fun close() = error("close error")
 }

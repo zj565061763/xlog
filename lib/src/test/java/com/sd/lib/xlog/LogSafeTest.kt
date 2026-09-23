@@ -35,33 +35,10 @@ class LogSafeTest {
     publisher.close()
   }
 
-  /** 格式化器关闭时抛异常，关闭日志文件不抛异常 */
-  @Test
-  fun testCloseError() {
-    val publisher = defaultLogPublisher(
-      processProvider = { null },
-      directoryProvider = { folder.newFolder() },
-      filename = defaultLogFilename(),
-      formatter = CloseErrorFormatter(),
-      storeFactory = { defaultLogStore(it) },
-    )
-    publisher.publish(testLogRecord())
-    assertThrows(IllegalStateException::class.java) { publisher.close() }
-
-    publisher.publish(testLogRecord())
-    publisher.safePublisher().close()
-  }
-
   /** 包装多次只包一层 */
   @Test
   fun testWrapOnce() {
     val publisher = newPublisher(folder.newFolder()).safePublisher()
     assertSame(publisher, publisher.safePublisher())
   }
-}
-
-private class CloseErrorFormatter : FLogFormatter, AutoCloseable {
-  private val _formatter = defaultLogFormatter()
-  override fun format(record: FLogRecord): String = _formatter.format(record)
-  override fun close() = error("close error")
 }

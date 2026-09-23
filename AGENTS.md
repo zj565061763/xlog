@@ -51,6 +51,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
 - 异常隔离：`SafeLogPublisher`（`LogSafe.kt`）捕获并打印异常，保证日志失败不影响业务；`SafeLogStore`（`LogPublisher.kt`）出错时关闭再重抛。
+  - 格式化器的 `close()` 出错只打印不抛出：抛出会中断日志轮换，一直写回旧文件
 - 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，只在全局等级为 Off 时不输出。
   - 不要改回走 `flogX`：使用方调高等级后，写盘、打包失败会完全看不到
 - 格式（`LogFormatter.kt`）：`HH:mm:ss.SSS[tag|L|threadID] msg\n`，`L` 是 V/D/I/W/E；连续相同 tag 省略 tag，主线程省略 threadID。
