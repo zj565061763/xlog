@@ -54,6 +54,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 格式化器的 `close()` 出错只打印不抛出：抛出会中断日志轮换，一直写回旧文件
 - 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，只在全局等级为 Off 时不输出。
   - 不要改回走 `flogX`：使用方调高等级后，写盘、打包失败会完全看不到
+  - 只输出错误，成功等正常结果不要输出，否则会被当成出错
 - 格式（`LogFormatter.kt`）：`HH:mm:ss.SSS[tag|L|threadID] msg\n`，`L` 是 V/D/I/W/E；连续相同 tag 省略 tag，主线程省略 threadID。
 - 文件名和日期逻辑集中在 `LogFilename.kt`、`LogTime.kt`，日期格式 `yyyyMMdd`；`logNameOf`/`seqOf` 互为逆运算，不要在别处拼日志文件名。
 

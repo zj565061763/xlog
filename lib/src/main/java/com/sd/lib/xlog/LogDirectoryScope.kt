@@ -38,9 +38,9 @@ internal class LogDirectoryScopeImpl(
     if (!dateDir.isDirectory) return null
 
     val zipFile = publisher.zipFileOf(date)
-    val zipResult = zip(source = dateDir, target = zipFile)
-    libLog("log zip ${zipFile.name} $zipResult")
-    return if (zipResult && zipFile.exists()) zipFile else null
+    if (zip(source = dateDir, target = zipFile) && zipFile.exists()) return zipFile
+    libLog("log zip ${zipFile.name} failed")
+    return null
   }
 
   fun destroy() {
