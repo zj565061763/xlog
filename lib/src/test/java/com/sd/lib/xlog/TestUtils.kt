@@ -1,5 +1,22 @@
 package com.sd.lib.xlog
 
+import java.io.File
+
+/** 日志目录为[dir]、进程名为[process]的日志发布 */
+internal fun newPublisher(
+  dir: File,
+  process: String? = null,
+  storeFactory: FLogStore.Factory = FLogStore.Factory { defaultLogStore(it) },
+): DirectoryLogPublisher {
+  return defaultLogPublisher(
+    processProvider = { process },
+    directoryProvider = { dir },
+    filename = defaultLogFilename(),
+    formatter = defaultLogFormatter(),
+    storeFactory = storeFactory,
+  )
+}
+
 /** 测试日志记录的时间戳 */
 internal const val RECORD_MILLIS = 1_700_000_000_000L
 

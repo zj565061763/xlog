@@ -201,20 +201,18 @@ class LogPublisherTest {
     assertEquals(1, nextLines.size)
     assertTrue(nextLines[0], nextLines[0].contains("[T|"))
   }
-}
 
-private fun newPublisher(
-  dir: File,
-  process: String? = null,
-  storeFactory: FLogStore.Factory = FLogStore.Factory { defaultLogStore(it) },
-): DirectoryLogPublisher {
-  return defaultLogPublisher(
-    processProvider = { process },
-    directoryProvider = { dir },
-    filename = defaultLogFilename(),
-    formatter = defaultLogFormatter(),
-    storeFactory = storeFactory,
-  )
+  /** 日志按进程名分子目录，进程名里的:替换为_ */
+  @Test
+  fun testProcessDir() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+
+    newPublisher(dir, process = "com.sd.demo:remote").publish(testLogRecord())
+
+    assertEquals(true, dir.resolve(date).resolve("com.sd.demo_remote").resolve(filename.logNameOf(date, 0)).isFile)
+  }
 }
 
 /** 目录下的日志文件名，按序号排序。不能按文件名排序，序号位数不同的时候字典序和数值序不一致 */

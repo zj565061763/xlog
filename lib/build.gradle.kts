@@ -22,6 +22,11 @@ android {
   kotlinOptions {
     jvmTarget = "1.8"
   }
+
+  testOptions {
+    // JVM单元测试里android.util.Log等方法返回默认值，不抛异常，库内部日志libLog会用到
+    unitTests.isReturnDefaultValues = true
+  }
 }
 
 dependencies {

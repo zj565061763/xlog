@@ -110,6 +110,11 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 | `./gradlew :lib:test` | JVM 单元测试，无需设备，能访问 `internal`；纯逻辑（日期计算等）放这里，日期可构造成确定值 |
 | `./gradlew :app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，覆盖真实文件读写 |
 
+JVM 单元测试：
+
+- 开启了 `unitTests.isReturnDefaultValues`，`android.util.Log` 返回默认值不抛异常，所以会调用 `libLog` 的代码（打包、异常隔离）也放这里测。
+- 只跑部分用例用 `./gradlew :lib:testDebugUnitTest --tests '*XxxTest*'`；`:lib:test` 是聚合任务，不支持 `--tests`。
+
 instrumented 测试：
 
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
@@ -119,7 +124,7 @@ instrumented 测试：
 - `awaitLogIdle()` 不用 `FLog.logDirectory {}` 做屏障，`LogFileDeletedTest` 依赖这个语义：
   - `logDirectory` 第一件事是 `_publisher.close()`，会改变被测状态
   - `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它
-- 日期只能相对当前时间往前推（用 `dateOfDaysAgo`），因为 `deleteLog` 读的是 `System.currentTimeMillis()`。
+- 日期只能相对当前时间推算（用 `dateOfDaysAgo`，负数表示以后的日期），不能写死，因为 `deleteLog` 读的是 `System.currentTimeMillis()`。
 
 ## 依赖
 

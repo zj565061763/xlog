@@ -95,6 +95,12 @@ class LogFilenameTest {
    */
   @Test
   fun testDaylightSavingTime() {
+    /**
+     * [LogTime]的时区在首次使用时固定，先让它用原来的时区初始化，
+     * 否则会一直用这里临时设置的时区，影响其他测试。
+     */
+    LogTime.dateOf(0)
+
     // diffDays不依赖时区，这里设置时区是为了防止改回基于Calendar的算法
     TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
 

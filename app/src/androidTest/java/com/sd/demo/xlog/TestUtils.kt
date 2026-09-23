@@ -54,9 +54,7 @@ fun resetLogDir(): File {
   }
 }
 
-/**
- * 当前时间往前推[days]天对应的日志目录名，格式和[com.sd.lib.xlog.FLog]内部保持一致
- */
+/** 当前时间往前推[days]天对应的日志目录名，[days]为负数时表示以后的日期，格式和[com.sd.lib.xlog.FLog]内部保持一致 */
 fun dateOfDaysAgo(days: Int): String {
   val calendar = Calendar.getInstance().apply {
     add(Calendar.DAY_OF_MONTH, -days)
