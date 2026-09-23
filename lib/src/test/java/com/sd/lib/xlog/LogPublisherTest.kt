@@ -136,7 +136,7 @@ private const val RECORD_MILLIS = 1_700_000_000_000L
 
 /** 每条日志格式化之后约61字节 */
 private fun testLogRecord(recordTag: String = "T"): FLogRecord = object : FLogRecord {
-  override val logger: Class<out FLogger> = XLogLibLogger::class.java
+  override val logger: Class<out FLogger> = RecordLogger::class.java
   override val level: FLogLevel = FLogLevel.Info
   override val tag: String = recordTag
   override val msg: String = "0123456789012345678901234567890123456789"
@@ -156,3 +156,5 @@ private fun File.logNames(): List<String> {
 private fun File.totalSize(): Long {
   return walkTopDown().filter { it.isFile }.sumOf { it.length() }
 }
+
+private interface RecordLogger : FLogger

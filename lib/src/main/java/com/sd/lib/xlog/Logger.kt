@@ -1,5 +1,7 @@
 package com.sd.lib.xlog
 
+import android.util.Log
+
 /** 日志标识，一个日志标识代表一类相关的逻辑，默认的tag是子类的短类名 */
 interface FLogger
 
@@ -23,9 +25,7 @@ internal fun FLoggerConfig.isEmpty(): Boolean {
   return tag.isNullOrEmpty() && level == null && mode == null
 }
 
-internal inline fun libLog(block: () -> String) {
-  flogV<XLogLibLogger>(mode = FLogMode.Console, block = block)
+/** 库内部日志，不受日志等级和模式影响，直接输出到Logcat，tag带上库名前缀便于识别 */
+internal fun libLog(msg: String) {
+  Log.e("XLogLibLogger", msg)
 }
-
-/** 库内部日志的标识，类名就是Logcat里的tag，所以带上库名前缀 */
-internal class XLogLibLogger : FLogger

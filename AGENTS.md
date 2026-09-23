@@ -21,7 +21,6 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 ## 公共 API
 
 - 对外类型以 `F` 开头；内部实现用 `internal`，不加前缀。
-  - 例外：`XLogLibLogger` 的类名是库内部日志的 tag，带库名前缀 `X` 便于在 Logcat 里识别
 - `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，要在 CHANGELOG 的 Breaking Changes 里写明。
 - `FLog`（`Log.kt`）：单例总控，必须先 `init`，否则抛异常。
 - `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是短类名。
@@ -49,6 +48,8 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
 - 异常隔离：`SafeLogPublisher`（`LogSafe.kt`）捕获并打印异常，保证日志失败不影响业务；`SafeLogStore`（`LogPublisher.kt`）出错时关闭再重抛。
+- 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，不受日志等级和模式影响。
+  - 不要改回走 `flogX`：使用方调高等级或设为 Off 后，写盘、打包失败会完全看不到
 - 格式（`LogFormatter.kt`）：`HH:mm:ss.SSS[tag|L|threadID] msg\n`，`L` 是 V/D/I/W/E；连续相同 tag 省略 tag，主线程省略 threadID。
 - 文件名和日期逻辑集中在 `LogFilename.kt`、`LogTime.kt`，日期格式 `yyyyMMdd`；`logNameOf`/`seqOf` 互为逆运算，不要在别处拼日志文件名。
 

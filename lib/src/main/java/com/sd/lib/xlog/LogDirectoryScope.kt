@@ -24,7 +24,7 @@ internal class LogDirectoryScopeImpl(
 
   override fun logZipOf(date: String): File? {
     if (_destroyed) {
-      libLog { "log zip failed with destroyed state" }
+      libLog("log zip failed with destroyed state")
       return null
     }
 
@@ -36,7 +36,7 @@ internal class LogDirectoryScopeImpl(
 
     val zipFile = publisher.zipFileOf(date)
     val zipResult = zip(source = dateDir, target = zipFile)
-    libLog { "log zip ${zipFile.name} $zipResult" }
+    libLog("log zip ${zipFile.name} $zipResult")
     return if (zipResult && zipFile.exists()) zipFile else null
   }
 
@@ -53,7 +53,7 @@ private fun zip(source: File, target: File): Boolean {
     }
     return true
   } catch (e: Throwable) {
-    libLog { "log zip error ${e.stackTraceToString()}" }
+    libLog("log zip error ${e.stackTraceToString()}")
     // 打包失败的压缩包不完整，不能留着
     target.delete()
     return false

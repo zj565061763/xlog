@@ -217,7 +217,7 @@ private class DateLogHandler(
       val seq = filename.seqOf(file.name) ?: return@forEach
       if (seq <= _seq - KEEP_COUNT) {
         file.delete().also { deleted ->
-          if (!deleted) libLog { "delete old log file ${file.name} failed" }
+          if (!deleted) libLog("delete old log file ${file.name} failed")
         }
       }
     }
