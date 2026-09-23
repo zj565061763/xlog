@@ -13,6 +13,11 @@ data class FLoggerConfig(
   val mode: FLogMode? = null,
 )
 
+/** 默认tag是短类名，匿名类没有短类名，改用去掉包名的类名 */
+internal fun Class<out FLogger>.defaultLogTag(): String {
+  return simpleName.ifEmpty { name.substringAfterLast('.') }
+}
+
 /** 配置信息是否为空 */
 internal fun FLoggerConfig.isEmpty(): Boolean {
   return tag.isNullOrEmpty() && level == null && mode == null

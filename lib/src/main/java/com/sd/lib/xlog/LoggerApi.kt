@@ -45,6 +45,7 @@ inline fun FLogger.le(
  *
  * 日志标识是接收者的实际类型，而不是它实现的[FLogger]子接口，
  * 所以默认tag是实际类型的短类名，[FLogInitScope.configLogger]也要按实际类型配置。
+ * 接收者是匿名对象时，默认tag是去掉包名的类名，例如`SampleLog$onCreate$logger$1`。
  */
 inline fun FLogger.l(
   level: FLogLevel,

@@ -14,6 +14,7 @@
 ### 🐛 Bug Fixes
 
 - 日志写入失败后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
+- 在匿名对象上调用 `FLogger.lx` 时 tag 为空，现在使用去掉包名的类名
 
 ### Migration
 

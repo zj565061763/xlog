@@ -190,7 +190,7 @@ object FLog {
     config: FLoggerConfig?,
   ) {
     if (msg.isNullOrEmpty()) return
-    val tag = (config?.tag ?: "").ifEmpty { logger.simpleName }
+    val tag = (config?.tag ?: "").ifEmpty { logger.defaultLogTag() }
     when (mode ?: config?.mode ?: _mode) {
       FLogMode.Default -> {
         val record = newLogRecord(logger = logger, level = level, tag = tag, msg = msg)
