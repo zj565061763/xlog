@@ -38,7 +38,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`fLogDir()`
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
 - `LogDispatcherWrapper` 计数，队列排空时触发 `onIdle`：等级为 Off 则关闭 publisher，否则检查日志文件，被外部删除就关闭，下次写入时重建。
-- 文件路径（`<process>` 是进程名，`:` 替换为 `_`，取不到进程名时省略这一层）：
+- 文件路径（`<process>` 是进程名，`:` 替换为 `_`；系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层）：
   - 日志：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.<seq>.log`
   - 压缩包：`<dir>/.zip/<process>/<yyyyMMdd>.zip`
 - 日志滚动（`DateLogHandler`）：
@@ -90,6 +90,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 日志根目录永远保留，即使空了也不删，省掉下次写日志时重建目录。
 - `logZipOf` 返回的压缩包是临时产物：
   - 只保证本次进程运行期间有效，下次 `init` 清空本进程的压缩包子目录，不影响其他进程
+  - 取不到进程名时 `init` 不清空，此时压缩包目录是所有进程共用的
   - 需要长期保存由使用方自行移走，库不提供 target 参数，也不提供删除 API
   - 生命周期是“导出 → 上传/分享 → 丢弃”，刻意不受 `deleteLog` 管辖
 

@@ -19,9 +19,9 @@ fun Context.fLogDir(
   return rootDir.resolve(dirName)
 }
 
-/** 当前进程名 */
+/** 当前进程名，系统接口取不到时读取/proc/self/cmdline */
 internal fun Context.currentProcess(): String? {
-  return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+  val process = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
     Application.getProcessName()
   } else {
     val pid = Process.myPid()
@@ -30,4 +30,11 @@ internal fun Context.currentProcess(): String? {
       ?.firstOrNull { it.pid == pid }
       ?.processName
   }
+  return process?.ifEmpty { null }
+    ?: libRunCatching { processOfCmdline(File("/proc/self/cmdline").readText()) }.getOrNull()
+}
+
+/** 从cmdline的内容中解析出进程名，各参数以'\u0000'分隔，第一个就是进程名 */
+internal fun processOfCmdline(cmdline: String): String? {
+  return cmdline.substringBefore('\u0000').trim().ifEmpty { null }
 }

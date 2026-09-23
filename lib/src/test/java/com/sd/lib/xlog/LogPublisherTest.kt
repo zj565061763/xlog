@@ -120,11 +120,38 @@ class LogPublisherTest {
     assertEquals(1, processCount)
     assertEquals(1, directoryCount)
   }
+
+  /** 只删除本进程的压缩包目录，取不到进程名时不删，避免误删其他进程的压缩包 */
+  @Test
+  fun testDeleteZipDirectory() {
+    val dir = folder.newFolder()
+    val main = newPublisher(dir, process = "com.sd.demo")
+    val remote = newPublisher(dir, process = "com.sd.demo:remote")
+    val unknown = newPublisher(dir, process = null)
+
+    val mainZip = main.zipFileOf("20231125").createZip()
+    val remoteZip = remote.zipFileOf("20231125").createZip()
+    val unknownZip = unknown.zipFileOf("20231125").createZip()
+
+    unknown.deleteZipDirectory()
+    assertEquals(true, mainZip.exists())
+    assertEquals(true, remoteZip.exists())
+    assertEquals(true, unknownZip.exists())
+
+    main.deleteZipDirectory()
+    assertEquals(false, mainZip.exists())
+    assertEquals(true, remoteZip.exists())
+    assertEquals(true, unknownZip.exists())
+  }
 }
 
-private fun newPublisher(dir: File, storeFactory: FLogStore.Factory): DirectoryLogPublisher {
+private fun newPublisher(
+  dir: File,
+  process: String? = null,
+  storeFactory: FLogStore.Factory = FLogStore.Factory { defaultLogStore(it) },
+): DirectoryLogPublisher {
   return defaultLogPublisher(
-    processProvider = { null },
+    processProvider = { process },
     directoryProvider = { dir },
     filename = defaultLogFilename(),
     formatter = defaultLogFormatter(),
@@ -158,3 +185,9 @@ private fun File.totalSize(): Long {
 }
 
 private interface RecordLogger : FLogger
+
+private fun File.createZip(): File {
+  parentFile?.mkdirs()
+  assertTrue(createNewFile())
+  return this
+}

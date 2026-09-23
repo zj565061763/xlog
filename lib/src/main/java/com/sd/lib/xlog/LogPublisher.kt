@@ -20,12 +20,6 @@ internal interface DirectoryLogPublisher : LogPublisher {
   /** 日志文件名 */
   val filename: LogFilename
 
-  /**
-   * 日志压缩包目录，以.开头，不参与日志保留策略，
-   * 里面的内容只在本次进程运行期间有效，初始化的时候会清空。
-   */
-  val zipDirectory: File
-
   /** 限制每天日志文件大小(单位B)，小于等于0表示不限制大小 */
   fun setMaxBytePerDay(limit: Long)
 
@@ -34,6 +28,12 @@ internal interface DirectoryLogPublisher : LogPublisher {
 
   /** 指定日期的日志压缩包文件 */
   fun zipFileOf(date: String): File
+
+  /**
+   * 删除本进程的压缩包目录，初始化的时候调用。
+   * 取不到进程名时压缩包目录是所有进程共用的，不删除，避免误删其他进程的压缩包。
+   */
+  fun deleteZipDirectory()
 }
 
 internal fun defaultLogPublisher(
@@ -87,7 +87,8 @@ private class LogPublisherImpl(
     _handler?.onIdle()
   }
 
-  override val zipDirectory: File
+  /** 日志压缩包目录，以.开头，不参与日志保留策略，里面的内容只在本次进程运行期间有效 */
+  private val zipDirectory: File
     get() = directory.resolve(ZIP_DIR_NAME).resolveProcess()
 
   override fun logDirOf(date: String): File {
@@ -98,6 +99,11 @@ private class LogPublisherImpl(
   override fun zipFileOf(date: String): File {
     require(date.isNotEmpty())
     return zipDirectory.resolve("${date}.${ZIP_EXTENSION}")
+  }
+
+  override fun deleteZipDirectory() {
+    if (_process.isNullOrEmpty()) return
+    zipDirectory.deleteRecursively()
   }
 
   private fun getHandler(record: FLogRecord): DateLogHandler {

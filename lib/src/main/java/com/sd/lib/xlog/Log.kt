@@ -83,7 +83,7 @@ object FLog {
        * 清空上次运行遗留的压缩包。
        * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
        */
-      dispatch { libRunCatching { _publisher.zipDirectory.deleteRecursively() } }
+      dispatch { libRunCatching { _publisher.deleteZipDirectory() } }
       return true
     }
   }
