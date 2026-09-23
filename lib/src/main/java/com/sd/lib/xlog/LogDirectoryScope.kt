@@ -31,7 +31,9 @@ internal class LogDirectoryScopeImpl(
     if (!date.all { it.isDigit() }) return null
 
     val dateDir = publisher.logDirOf(date)
-    if (!dateDir.exists()) return null
+    if (!dateDir.isDirectory) return null
+    // 目录里没有文件，也算没有该日期的日志
+    if (dateDir.walk().none { it.isFile }) return null
 
     val zipFile = publisher.zipFileOf(date)
     val zipResult = zip(source = dateDir, target = zipFile)

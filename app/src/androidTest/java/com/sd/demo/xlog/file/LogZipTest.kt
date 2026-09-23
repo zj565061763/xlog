@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.demo.xlog.TestLogger
 import com.sd.demo.xlog.awaitLogIdle
 import com.sd.demo.xlog.dateOfDaysAgo
+import com.sd.demo.xlog.fCreateFile
 import com.sd.demo.xlog.resetLogDir
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
@@ -62,5 +63,26 @@ class LogZipTest {
       assertEquals(true, zip!!.exists())
       assertEquals(true, dir.exists())
     }
+  }
+
+  /** 日期目录里没有文件，或者日期对应的不是目录，都算没有该日期的日志 */
+  @Test
+  fun testNoLog() {
+    val dir = resetLogDir()
+    val emptyDate = dateOfDaysAgo(1)
+    val fileDate = dateOfDaysAgo(2)
+    assertEquals(true, dir.resolve(emptyDate).resolve("process").mkdirs())
+    assertEquals(true, dir.resolve(fileDate).fCreateFile())
+
+    // block里的断言失败会被捕获，所以把结果带出来再断言
+    var emptyZip: File? = null
+    var fileZip: File? = null
+    FLog.logDirectory {
+      emptyZip = logZipOf(emptyDate)
+      fileZip = logZipOf(fileDate)
+    }
+    awaitLogIdle()
+    assertEquals(null, emptyZip)
+    assertEquals(null, fileZip)
   }
 }
