@@ -21,7 +21,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 ## 公共 API
 
 - 对外类型以 `F` 开头；内部实现用 `internal`，不加前缀。
-- `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，要在 CHANGELOG 的 Breaking Changes 里写明。
+- `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，旧版本编译的调用方运行时会崩溃。
+  - 改实现时保留旧签名的函数转调新实现；实在要删，必须在 CHANGELOG 的 Breaking Changes 里写明
+  - `FLog.isLoggable(Class, FLogLevel)`、`FLog.log` 是 2.0.0 及之前版本的内联代码在调用，不能删除或改签名
 - `FLog`（`Log.kt`）：单例总控，必须先 `init`，否则抛异常。
 - `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是短类名。
 - `FLoggerConfig`：通过 `configLogger` 覆盖单个 logger 的 tag/level/mode。
