@@ -65,15 +65,16 @@ class LogFileLimitTest {
     awaitLogIdle()
     assertEquals(listOf("${today}.2.log", "${today}.3.log"), logDir.logNames())
 
+    // block里的断言失败会被捕获，所以把结果带出来再断言
     var scope: FLogDirectoryScope? = null
+    var zip: File? = null
     FLog.logDirectory {
       scope = this
-      logZipOf(today)!!.also { file ->
-        assertEquals(true, file.exists())
-        assertEquals(true, file.length() > 0)
-      }
+      zip = logZipOf(today)
     }
     awaitLogIdle()
+    assertEquals(true, zip?.exists())
+    assertEquals(true, (zip?.length() ?: 0) > 0)
     // 离开logDirectory之后scope已经销毁
     assertEquals(null, scope!!.logZipOf(today))
   }
