@@ -115,6 +115,7 @@ instrumented 测试：
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
 - 断言文件状态前必须先调 `awaitLogIdle()`。
 - 开头一律用 `resetLogDir()`，不要直接 `dir.deleteRecursively()`；上一个测试可能留着打开的句柄，删目录后写入仍会成功且文件不重建，结果取决于执行顺序。
+- `resetLogDir()` 同时把等级、模式、单日上限恢复为默认值；需要其他值的测试在它之后设置，不要依赖上一个测试留下的全局设置。
 - `awaitLogIdle()` 不用 `FLog.logDirectory {}` 做屏障，`LogFileDeletedTest` 依赖这个语义：
   - `logDirectory` 第一件事是 `_publisher.close()`，会改变被测状态
   - `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它

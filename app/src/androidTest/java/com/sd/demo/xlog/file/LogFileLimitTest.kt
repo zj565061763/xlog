@@ -6,9 +6,9 @@ import com.sd.demo.xlog.awaitLogIdle
 import com.sd.demo.xlog.dateOfDaysAgo
 import com.sd.demo.xlog.resetLogDir
 import com.sd.demo.xlog.testContext
+import com.sd.demo.xlog.zipFileNames
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogDirectoryScope
-import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -23,10 +23,9 @@ class LogFileLimitTest {
 
   @Test
   fun test() {
-    FLog.setLevel(FLogLevel.All)
+    val dir = resetLogDir()
     FLog.setMaxMBPerDay(1)
 
-    val dir = resetLogDir()
     flogI<TestLogger> { "info" }
     flogI<TestLogger> { "info" }
     awaitLogIdle()
@@ -73,8 +72,9 @@ class LogFileLimitTest {
       zip = logZipOf(today)
     }
     awaitLogIdle()
-    assertEquals(true, zip?.exists())
-    assertEquals(true, (zip?.length() ?: 0) > 0)
+    // 压缩包里是保留下来的两个文件
+    val processDir = "${today}/${testContext.packageName}"
+    assertEquals(listOf("${processDir}/${today}.2.log", "${processDir}/${today}.3.log"), zip!!.zipFileNames())
     // 离开logDirectory之后scope已经销毁
     assertEquals(null, scope!!.logZipOf(today))
   }

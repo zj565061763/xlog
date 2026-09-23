@@ -24,6 +24,23 @@ class LogDispatcherTest {
     assertEquals(2, idleCount)
   }
 
+  /** 任务执行过程中又提交了任务，全部执行完成之后才触发一次空闲回调 */
+  @Test
+  fun testNestedDispatch() {
+    var idleCount = 0
+    lateinit var dispatcher: FLogDispatcher
+    dispatcher = defaultLogDispatcher(
+      dispatcher = FLogDispatcher { it.run() },
+      onIdle = { idleCount++ },
+    )
+
+    dispatcher.dispatch {
+      dispatcher.dispatch { assertEquals(0, idleCount) }
+      assertEquals(0, idleCount)
+    }
+    assertEquals(1, idleCount)
+  }
+
   /** 任务本身抛异常，不影响计数，空闲回调照常触发，异常继续往外抛 */
   @Test
   fun testTaskError() {

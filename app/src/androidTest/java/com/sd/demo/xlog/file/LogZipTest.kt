@@ -6,8 +6,9 @@ import com.sd.demo.xlog.awaitLogIdle
 import com.sd.demo.xlog.dateOfDaysAgo
 import com.sd.demo.xlog.fCreateFile
 import com.sd.demo.xlog.resetLogDir
+import com.sd.demo.xlog.testContext
+import com.sd.demo.xlog.zipFileNames
 import com.sd.lib.xlog.FLog
-import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -23,8 +24,6 @@ class LogZipTest {
 
   @Test
   fun test() {
-    FLog.setLevel(FLogLevel.All)
-
     val dir = resetLogDir()
     flogI<TestLogger> { "info" }
     awaitLogIdle()
@@ -34,8 +33,8 @@ class LogZipTest {
     var zip: File? = null
     FLog.logDirectory { zip = logZipOf(today) }
     awaitLogIdle()
-    assertEquals(true, zip?.exists())
-    assertEquals(true, (zip?.length() ?: 0) > 0)
+    // 压缩包里的路径是 <日期>/<进程名>/<日志文件>
+    assertEquals(listOf("${today}/${testContext.packageName}/${today}.0.log"), zip!!.zipFileNames())
 
     // 压缩包在.开头的内部目录里，不在日志根目录下
     assertEquals(true, zip!!.startsWith(dir))

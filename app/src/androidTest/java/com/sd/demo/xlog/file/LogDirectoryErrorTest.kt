@@ -7,7 +7,6 @@ import com.sd.demo.xlog.dateOfDaysAgo
 import com.sd.demo.xlog.resetLogDir
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogDirectoryScope
-import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -22,8 +21,6 @@ class LogDirectoryErrorTest {
 
   @Test
   fun test() {
-    FLog.setLevel(FLogLevel.All)
-
     val dir = resetLogDir()
     flogI<TestLogger> { "info" }
     awaitLogIdle()

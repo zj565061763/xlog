@@ -5,7 +5,6 @@ import com.sd.demo.xlog.TestLogger
 import com.sd.demo.xlog.awaitLogIdle
 import com.sd.demo.xlog.resetLogDir
 import com.sd.lib.xlog.FLog
-import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -19,7 +18,6 @@ class LogFileDeletedTest {
 
   @Test
   fun test() {
-    FLog.setLevel(FLogLevel.All)
     val dir = resetLogDir()
 
     // 没有文件句柄了，这条日志会创建新文件

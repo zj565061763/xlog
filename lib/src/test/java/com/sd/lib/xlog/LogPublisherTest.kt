@@ -88,9 +88,9 @@ class LogPublisherTest {
       }
     }
 
-    publisher.publish(testLogRecord(recordTag = "A"))
-    runCatching { publisher.publish(testLogRecord(recordTag = "B")) }
-    publisher.publish(testLogRecord(recordTag = "B"))
+    publisher.publish(testLogRecord(tag = "A"))
+    runCatching { publisher.publish(testLogRecord(tag = "B")) }
+    publisher.publish(testLogRecord(tag = "B"))
 
     val lines = dir.walkTopDown().first { it.isFile }.readLines()
     assertEquals(2, lines.size)
@@ -143,6 +143,64 @@ class LogPublisherTest {
     assertEquals(true, remoteZip.exists())
     assertEquals(true, unknownZip.exists())
   }
+
+  /** 进程重启之后从已有文件的最大序号接着写，不动其他文件 */
+  @Test
+  fun testContinueSeq() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date).apply { mkdirs() }
+    listOf(1, 3).forEach { logDir.resolve(filename.logNameOf(date, it)).writeText("old\n") }
+
+    newPublisher(dir).publish(testLogRecord())
+
+    assertEquals(listOf(filename.logNameOf(date, 1), filename.logNameOf(date, 3)), dir.logNames())
+    val lines = logDir.resolve(filename.logNameOf(date, 3)).readLines()
+    assertEquals(2, lines.size)
+    assertEquals("old", lines[0])
+  }
+
+  /** 接着写的文件已经写满时，切到下一个序号，并删除当前和上一个之外的旧文件 */
+  @Test
+  fun testContinueSeqRotate() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date).apply { mkdirs() }
+    listOf(1, 2).forEach { logDir.resolve(filename.logNameOf(date, it)).writeText("old\n") }
+    // 上一次运行已经写到200字节，再写一条就超过一半上限
+    logDir.resolve(filename.logNameOf(date, 3)).writeText("0".repeat(199) + "\n")
+
+    val publisher = newPublisher(dir)
+    publisher.setMaxBytePerDay(400)
+
+    // 写进序号3之后切换，删除序号1和2，新文件惰性创建，还没有出现
+    publisher.publish(testLogRecord())
+    assertEquals(listOf(filename.logNameOf(date, 3)), dir.logNames())
+
+    publisher.publish(testLogRecord())
+    assertEquals(listOf(filename.logNameOf(date, 3), filename.logNameOf(date, 4)), dir.logNames())
+  }
+
+  /** 跨天时写到新日期的目录，新文件的第一条日志不能省略tag */
+  @Test
+  fun testDateChange() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val nextDayMillis = RECORD_MILLIS + 24 * 60 * 60 * 1000L
+    val date = filename.dateOf(RECORD_MILLIS)
+    val nextDate = filename.dateOf(nextDayMillis)
+
+    val publisher = newPublisher(dir)
+    publisher.publish(testLogRecord())
+    publisher.publish(testLogRecord(millis = nextDayMillis))
+
+    assertEquals(1, dir.resolve(date).resolve(filename.logNameOf(date, 0)).readLines().size)
+    val nextLines = dir.resolve(nextDate).resolve(filename.logNameOf(nextDate, 0)).readLines()
+    assertEquals(1, nextLines.size)
+    assertTrue(nextLines[0], nextLines[0].contains("[T|"))
+  }
 }
 
 private fun newPublisher(
@@ -159,19 +217,6 @@ private fun newPublisher(
   )
 }
 
-private const val RECORD_MILLIS = 1_700_000_000_000L
-
-/** 每条日志格式化之后约61字节 */
-private fun testLogRecord(recordTag: String = "T"): FLogRecord = object : FLogRecord {
-  override val logger: Class<out FLogger> = RecordLogger::class.java
-  override val level: FLogLevel = FLogLevel.Info
-  override val tag: String = recordTag
-  override val msg: String = "0123456789012345678901234567890123456789"
-  override val millis: Long = RECORD_MILLIS
-  override val isMainThread: Boolean = false
-  override val threadID: String = "1"
-}
-
 /** 目录下的日志文件名，按序号排序。不能按文件名排序，序号位数不同的时候字典序和数值序不一致 */
 private fun File.logNames(): List<String> {
   val filename = defaultLogFilename()
@@ -183,8 +228,6 @@ private fun File.logNames(): List<String> {
 private fun File.totalSize(): Long {
   return walkTopDown().filter { it.isFile }.sumOf { it.length() }
 }
-
-private interface RecordLogger : FLogger
 
 private fun File.createZip(): File {
   parentFile?.mkdirs()
