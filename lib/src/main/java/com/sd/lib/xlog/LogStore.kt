@@ -28,6 +28,7 @@ interface FLogStore {
     /**
      * 创建[file]对应的日志仓库。
      * 只应写入[file]，写到其他文件的话，日志轮换时不会被删除。
+     * [FLogStore.append]返回后[file]必须已经存在，否则每次空闲时都会被当作文件被外部删除而关闭。
      */
     fun create(file: File): FLogStore
   }
