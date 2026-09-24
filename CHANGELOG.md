@@ -18,6 +18,10 @@
 - 多进程时，打包期间其他进程删除了日志文件（日志滚动或清理日志）会导致 `logZipOf` 返回 null；现在跳过已被删除的文件
 - 自定义 `FLogFormatter` 的 `close()` 抛异常时，日志文件不再切换，`setMaxMBPerDay` 失效；现在忽略该异常
 
+### Migration
+
+- 混淆规则不再保留 `FLogger` 实现类的成员，依赖它保留成员的（例如通过反射、序列化或 `@JavascriptInterface` 访问），需要自行添加 keep 规则
+
 ## 2.0.0
 
 ### ⚠️ Breaking Changes
