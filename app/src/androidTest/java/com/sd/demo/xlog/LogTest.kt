@@ -5,12 +5,14 @@ import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogger
+import com.sd.lib.xlog.flog
 import com.sd.lib.xlog.flogD
 import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -57,6 +59,13 @@ class LogTest {
 
     FLog.setLevel(FLogLevel.Off)
     assertEquals("", logResult<AppLogger>())
+  }
+
+  /** 用All或Off打印日志时抛IllegalArgumentException */
+  @Test
+  fun testIllegalLevel() {
+    assertThrows(IllegalArgumentException::class.java) { flog<TestLogger>(FLogLevel.All) { "msg" } }
+    assertThrows(IllegalArgumentException::class.java) { flog<TestLogger>(FLogLevel.Off) { "msg" } }
   }
 }
 

@@ -1,9 +1,15 @@
 package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /** [FLogDispatcher]的契约 */
 class LogDispatcherTest {
@@ -99,5 +105,39 @@ class LogDispatcherTest {
       dispatcher.dispatch { throw RuntimeException("task error") }
     }
     assertEquals("task executed more than once.", thrown.message)
+  }
+
+  /** 默认调度器在同一个后台线程上按提交顺序执行，全部执行完成之后触发空闲回调 */
+  @Test
+  fun testDefaultDispatcher() {
+    val idleCount = AtomicInteger()
+    val idle = CountDownLatch(1)
+    val dispatcher = defaultLogDispatcher(
+      dispatcher = null,
+      onIdle = {
+        idleCount.incrementAndGet()
+        idle.countDown()
+      },
+    )
+
+    val results = Collections.synchronizedList(mutableListOf<Int>())
+    val threads = Collections.synchronizedSet(mutableSetOf<Thread>())
+
+    // 第一个任务等所有任务都提交之后再放行，保证空闲回调只在最后触发一次
+    val gate = CountDownLatch(1)
+    dispatcher.dispatch { gate.await(10, TimeUnit.SECONDS) }
+    repeat(10) { index ->
+      dispatcher.dispatch {
+        results.add(index)
+        threads.add(Thread.currentThread())
+      }
+    }
+    gate.countDown()
+
+    assertTrue(idle.await(10, TimeUnit.SECONDS))
+    assertEquals((0 until 10).toList(), results)
+    assertEquals(1, threads.size)
+    assertNotSame(Thread.currentThread(), threads.single())
+    assertEquals(1, idleCount.get())
   }
 }

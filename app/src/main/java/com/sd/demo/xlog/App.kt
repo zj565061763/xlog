@@ -2,6 +2,7 @@ package com.sd.demo.xlog
 
 import android.app.Application
 import com.sd.demo.xlog.log.AppLogger
+import com.sd.demo.xlog.log.ConsoleLogger
 import com.sd.demo.xlog.log.TestLogDispatcher
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
@@ -21,6 +22,10 @@ class App : Application() {
           level = FLogLevel.All,
           tag = "AppLoggerAppLogger",
         )
+      }
+
+      configLogger(ConsoleLogger::class.java) {
+        it.copy(mode = FLogMode.Console)
       }
     }
 

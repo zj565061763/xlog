@@ -24,6 +24,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，旧版本编译的调用方运行时会崩溃。
   - 改实现时保留旧签名的函数转调新实现；实在要删，必须在 CHANGELOG 的 Breaking Changes 里写明
   - `FLog.isLoggable(Class, FLogLevel)`、`FLog.log` 是 2.0.0 及之前版本的内联代码在调用，不能删除或改签名
+  - `FLog.configOf`、`FLog.isLoggable(FLogLevel, FLoggerConfig?)`、`FLog.publishLog` 是 2.1.0 的内联代码在调用，同样不能删除或改签名
+  - 不能加 `@JvmStatic`：内联代码通过 `FLog.INSTANCE` 调用，改成静态方法同样会崩溃
+  - `LogCompatTest` 检查这些方法的签名，新增 `@PublishedApi` 函数时一并加进去
 - `FLog`（`Log.kt`）：单例总控，必须先 `init`，否则抛异常。
 - `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是短类名。
 - `FLoggerConfig`：通过 `configLogger` 覆盖单个 logger 的 tag/level/mode。
@@ -117,11 +120,13 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 JVM 单元测试：
 
 - 开启了 `unitTests.isReturnDefaultValues`，`android.util.Log` 返回默认值不抛异常，所以会调用 `libLog` 的代码（打包、异常隔离）也放这里测。
+- 没有 Context，`FLog` 始终是未初始化状态，`LogTest` 依赖这一点测未初始化时的行为；需要初始化的逻辑放 instrumented 测试。
 - 只跑部分用例用 `./gradlew :lib:testDebugUnitTest --tests '*XxxTest*'`；`:lib:test` 是聚合任务，不支持 `--tests`。
 
 instrumented 测试：
 
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
+- `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`。
 - 断言文件状态前必须先调 `awaitLogIdle()`。
 - 开头一律用 `resetLogDir()`，不要直接 `dir.deleteRecursively()`；上一个测试可能留着打开的句柄，删目录后写入仍会成功且文件不重建，结果取决于执行顺序。
 - `resetLogDir()` 同时把等级、模式、单日上限恢复为默认值；需要其他值的测试在它之后设置，不要依赖上一个测试留下的全局设置。
