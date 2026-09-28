@@ -66,10 +66,15 @@ private class LogFilenameImpl(
     val index = body.lastIndexOf('.')
     if (index < 0) return null
 
-    val seq = body.substring(index + 1).toIntOrNull() ?: return null
-    return if (seq >= 0) seq else null
+    val seqText = body.substring(index + 1)
+    val seq = seqText.toIntOrNull() ?: return null
+    // 只接受logNameOf生成的格式，不接受正负号、前导零和非ASCII数字
+    return if (seq >= 0 && seqText == seq.toString()) seq else null
   }
 }
+
+/** 是否全是ASCII数字，不用[Char.isDigit]，它会接受全角等非ASCII数字 */
+internal fun String.isAsciiDigits(): Boolean = all { it in '0'..'9' }
 
 /**
  * 把yyyyMMdd转为距离1970-01-01的天数，日期不合法返回null。
@@ -78,6 +83,8 @@ private class LogFilenameImpl(
  */
 private fun epochDayOf(date: String): Long? {
   if (date.length != 8) return null
+  // toIntOrNull会接受正负号和非ASCII数字，要先检查
+  if (!date.isAsciiDigits()) return null
   val year = date.substring(0, 4).toIntOrNull() ?: return null
   val month = date.substring(4, 6).toIntOrNull() ?: return null
   val dayOfMonth = date.substring(6, 8).toIntOrNull() ?: return null

@@ -41,6 +41,11 @@ class LogFilenameTest {
     assertNull(_filename.seqOf("20231125.0.log.1"))
     // 序号不是数字
     assertNull(_filename.seqOf("20231125.abc.log"))
+    // 序号带正负号、前导零或非ASCII数字，logNameOf不会生成这种文件名
+    assertNull(_filename.seqOf("20231125.+1.log"))
+    assertNull(_filename.seqOf("20231125.01.log"))
+    assertNull(_filename.seqOf("20231125.00.log"))
+    assertNull(_filename.seqOf("20231125.１.log"))
     // 没有序号
     assertNull(_filename.seqOf("20231125.log"))
     // 旧版本的分片文件
@@ -165,6 +170,12 @@ class LogFilenameTest {
     // 不是数字
     assertNull(_filename.diffDays("20231125", "2023112a"))
     assertNull(_filename.diffDays("20231125", "abcdefgh"))
+    // 带正负号
+    assertNull(_filename.diffDays("20231125", "2023+1+5"))
+    assertNull(_filename.diffDays("20231125", "+2021125"))
+    assertNull(_filename.diffDays("20231125", "-2021125"))
+    // 非ASCII数字
+    assertNull(_filename.diffDays("20231125", "２０２３１１２５"))
     // 月份不合法
     assertNull(_filename.diffDays("20231125", "20230025"))
     assertNull(_filename.diffDays("20231125", "20231325"))

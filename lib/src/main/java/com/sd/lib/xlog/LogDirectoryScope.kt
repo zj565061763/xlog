@@ -33,7 +33,7 @@ internal class LogDirectoryScopeImpl(
     }
 
     if (date.length != 8) return null
-    if (!date.all { it.isDigit() }) return null
+    if (!date.isAsciiDigits()) return null
 
     val dateDir = publisher.logDirOf(date)
     if (!dateDir.isDirectory) return null
