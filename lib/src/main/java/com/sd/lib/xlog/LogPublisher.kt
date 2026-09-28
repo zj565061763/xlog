@@ -150,9 +150,8 @@ private class DateLogHandler(
 
   fun publish(record: FLogRecord, maxBytePerDay: Long) {
     val logStore = getLogStore()
-    val log = formatter.format(record)
     try {
-      logStore.append(log)
+      logStore.append(formatter.format(record))
     } catch (e: Throwable) {
       // 这条日志没写进去，要重置格式化器，否则下一条相同tag的日志会省略tag
       resetFormatter()

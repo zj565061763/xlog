@@ -119,6 +119,28 @@ class LogPublisherTest {
     assertTrue(lines[1], lines[1].contains("[B|"))
   }
 
+  /** 格式化失败之后，下一条日志不能省略tag，否则会被当成上一个tag的日志 */
+  @Test
+  fun testFormatErrorKeepTag() {
+    val dir = folder.newFolder()
+    val publisher = defaultLogPublisher(
+      processProvider = { null },
+      directoryProvider = { dir },
+      filename = defaultLogFilename(),
+      // 第2条日志格式化失败
+      formatter = FormatErrorFormatter(errorAt = 2),
+      storeFactory = { defaultLogStore(it) },
+    )
+
+    publisher.publish(testLogRecord(tag = "A"))
+    runCatching { publisher.publish(testLogRecord(tag = "B")) }
+    publisher.publish(testLogRecord(tag = "B"))
+
+    val lines = dir.walkTopDown().first { it.isFile }.readLines()
+    assertEquals(2, lines.size)
+    assertTrue(lines[1], lines[1].contains("[B|"))
+  }
+
   /** 获取进程名和目录可能有IPC或磁盘I/O，创建时不能获取，要等到调度线程上第一次用到 */
   @Test
   fun testLazyProcessAndDirectory() {
@@ -259,4 +281,20 @@ private class CloseErrorFormatter : FLogFormatter, AutoCloseable {
   private val _formatter = defaultLogFormatter()
   override fun format(record: FLogRecord): String = _formatter.format(record)
   override fun close() = error("close error")
+}
+
+/** 第[errorAt]次格式化时，先更新内部状态再抛异常 */
+private class FormatErrorFormatter(private val errorAt: Int) : FLogFormatter, AutoCloseable {
+  private val _formatter = defaultLogFormatter()
+  private var _count = 0
+
+  override fun format(record: FLogRecord): String {
+    val log = _formatter.format(record)
+    if (++_count == errorAt) error("format error")
+    return log
+  }
+
+  override fun close() {
+    (_formatter as AutoCloseable).close()
+  }
 }
