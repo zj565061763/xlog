@@ -10,7 +10,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.util.zip.ZipFile
 
-/** [LogDirectoryScopeImpl.logZipOf]和[inputStreamOrNull] */
+/** [LogDirectoryScopeImpl.logZipOf]、[inputStreamOrNull]和[listFilesOrNull] */
 class LogDirectoryScopeTest {
   @get:Rule
   val folder = TemporaryFolder()
@@ -85,6 +85,41 @@ class LogDirectoryScopeTest {
       assertNull(scope.logZipOf(DATE))
     } finally {
       log.setReadable(true)
+    }
+
+    assertEquals(bytes.toList(), zip.readBytes().toList())
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
+  /** 目录存在时正常列出 */
+  @Test
+  fun testListExists() {
+    val dir = folder.newFolder().apply { resolve("log").writeText("log") }
+    assertEquals(listOf("log"), dir.listFilesOrNull()?.map { it.name })
+  }
+
+  /** 目录在列出前被删除时返回null，打包时跳过 */
+  @Test
+  fun testListDeleted() {
+    val dir = folder.newFolder().apply { delete() }
+    assertNull(dir.listFilesOrNull())
+  }
+
+  /** 目录存在但读不了时打包失败，返回null，保留上次的压缩包，不留下临时文件 */
+  @Test
+  fun testListErrorKeepPrevious() {
+    val dir = folder.newFolder()
+    val processDir = checkNotNull(dir.createLog(DATE, "p").parentFile)
+    val scope = LogDirectoryScopeImpl(newPublisher(dir, process = "p"))
+    val zip = checkNotNull(scope.logZipOf(DATE))
+    val bytes = zip.readBytes()
+
+    // 以root运行时权限不生效，跳过
+    assumeTrue(processDir.setReadable(false) && processDir.listFiles() == null)
+    try {
+      assertNull(scope.logZipOf(DATE))
+    } finally {
+      processDir.setReadable(true)
     }
 
     assertEquals(bytes.toList(), zip.readBytes().toList())

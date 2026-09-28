@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.IOException
 import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -86,7 +87,8 @@ private fun compressFile(
     file.isDirectory -> {
       outputStream.putNextEntry(ZipEntry("${filename}/"))
       outputStream.closeEntry()
-      file.listFiles()?.forEach { item ->
+      // 列出之前可能被其他进程删除，这种目录跳过
+      file.listFilesOrNull()?.forEach { item ->
         compressFile(
           file = item,
           filename = "${filename}/${item.name}",
@@ -105,6 +107,11 @@ internal fun File.inputStreamOrNull(): InputStream? {
     if (exists()) throw e
     null
   }
+}
+
+/** 列出目录内容，目录已经不存在时返回null，其他原因读取失败照常抛出 */
+internal fun File.listFilesOrNull(): Array<File>? {
+  return listFiles() ?: if (exists()) throw IOException("list ${name} failed") else null
 }
 
 private fun File.deleteAndCreateNewFile(): Boolean {
