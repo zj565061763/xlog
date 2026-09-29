@@ -177,15 +177,32 @@ class LogPublisherTest {
     val remoteZip = remote.zipFileOf("20231125").createZip()
     val unknownZip = unknown.zipFileOf("20231125").createZip()
 
-    unknown.deleteZipDirectory()
+    unknown.deleteZipDirectory(dir)
     assertEquals(true, mainZip.exists())
     assertEquals(true, remoteZip.exists())
     assertEquals(true, unknownZip.exists())
 
-    main.deleteZipDirectory()
+    main.deleteZipDirectory(dir)
     assertEquals(false, mainZip.exists())
     assertEquals(true, remoteZip.exists())
     assertEquals(true, unknownZip.exists())
+  }
+
+  /** 默认目录回退到内部存储期间导出的压缩包，要能在另一个位置清空，同样只删本进程的 */
+  @Test
+  fun testDeleteZipDirectoryOfOtherDir() {
+    val dir = folder.newFolder()
+    val otherDir = folder.newFolder()
+    val main = newPublisher(otherDir, process = "com.sd.demo")
+    val remote = newPublisher(otherDir, process = "com.sd.demo:remote")
+
+    val mainZip = main.zipFileOf("20231125").createZip()
+    val remoteZip = remote.zipFileOf("20231125").createZip()
+
+    // 当前写在dir的同一进程，清空otherDir里的压缩包
+    newPublisher(dir, process = "com.sd.demo").deleteZipDirectory(otherDir)
+    assertEquals(false, mainZip.exists())
+    assertEquals(true, remoteZip.exists())
   }
 
   /** 进程重启之后从已有文件的最大序号接着写，不动其他文件 */
@@ -276,7 +293,7 @@ class LogPublisherTest {
       assertEquals(process, true, dir.resolve(date).resolve(filename.logNameOf(date, 0)).isFile)
 
       // 不删除压缩包目录，其他进程的压缩包还在
-      publisher.deleteZipDirectory()
+      publisher.deleteZipDirectory(dir)
       assertEquals(process, true, otherZip.exists())
     }
 

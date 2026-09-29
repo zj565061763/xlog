@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import android.content.Context
 import android.util.Log
+import com.sd.lib.xlog.FLog._hasInit
 import com.sd.lib.xlog.FLog.configOf
 import com.sd.lib.xlog.FLog.deleteLog
 import com.sd.lib.xlog.FLog.init
@@ -87,9 +88,16 @@ object FLog {
       /**
        * 清空上次运行遗留的压缩包。
        * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
+       * 默认目录两个位置都要清空，否则回退到内部存储期间导出的压缩包一直不删。
        * 要在[_hasInit]之前提交，排在其他线程的任务前面，否则可能删掉它们刚导出的压缩包。
        */
-      _dispatcher.dispatch { libRunCatching { _publisher.deleteZipDirectory() } }
+      _dispatcher.dispatch {
+        libRunCatching {
+          for (dir in logDirsOf(_publisher.directory)) {
+            _publisher.deleteZipDirectory(dir)
+          }
+        }
+      }
 
       _hasInit = true
       return true
@@ -133,10 +141,8 @@ object FLog {
     logDirectory { dir ->
       val filename = _publisher.filename
       val today = filename.dateOf(System.currentTimeMillis())
-      // 外部存储不可用时默认目录会回退到内部存储，两个位置都要删除，否则回退期间的日志一直不删
-      val defaultDirs = _defaultLogDirs()
-      val dirs = if (dir in defaultDirs) defaultDirs else listOf(dir)
-      for (item in dirs) {
+      // 默认目录两个位置都要删除，否则回退到内部存储期间的日志一直不删
+      for (item in logDirsOf(dir)) {
         deleteLogIn(dir = item, filename = filename, today = today, saveDays = saveDays)
       }
     }
@@ -222,6 +228,12 @@ object FLog {
     } else {
       _publisher.onIdle()
     }
+  }
+
+  /** [dir]是默认目录时返回外部存储和内部存储两个位置，否则只返回[dir] */
+  private fun logDirsOf(dir: File): List<File> {
+    val defaultDirs = _defaultLogDirs()
+    return if (dir in defaultDirs) defaultDirs else listOf(dir)
   }
 
   private fun checkInit() {

@@ -30,10 +30,10 @@ internal interface DirectoryLogPublisher : LogPublisher {
   fun zipFileOf(date: String): File
 
   /**
-   * 删除本进程的压缩包目录，初始化的时候调用。
+   * 删除日志目录[dir]下本进程的压缩包目录，初始化的时候调用。
    * 取不到进程名时压缩包目录是所有进程共用的，不删除，避免误删其他进程的压缩包。
    */
-  fun deleteZipDirectory()
+  fun deleteZipDirectory(dir: File)
 }
 
 internal fun defaultLogPublisher(
@@ -87,10 +87,6 @@ private class LogPublisherImpl(
     _handler?.onIdle()
   }
 
-  /** 日志压缩包目录，以.开头，不参与日志保留策略，里面的内容只在本次进程运行期间有效 */
-  private val zipDirectory: File
-    get() = directory.resolve(ZIP_DIR_NAME).resolveProcess()
-
   override fun logDirOf(date: String): File {
     require(date.isNotEmpty())
     return directory.resolve(date)
@@ -98,13 +94,16 @@ private class LogPublisherImpl(
 
   override fun zipFileOf(date: String): File {
     require(date.isNotEmpty())
-    return zipDirectory.resolve("${date}.${ZIP_EXTENSION}")
+    return zipDirectoryOf(directory).resolve("${date}.${ZIP_EXTENSION}")
   }
 
-  override fun deleteZipDirectory() {
+  override fun deleteZipDirectory(dir: File) {
     if (_process.isNullOrEmpty()) return
-    zipDirectory.deleteRecursively()
+    zipDirectoryOf(dir).deleteRecursively()
   }
+
+  /** 日志目录[dir]下的压缩包目录，以.开头，不参与日志保留策略，里面的内容只在本次进程运行期间有效 */
+  private fun zipDirectoryOf(dir: File): File = dir.resolve(ZIP_DIR_NAME).resolveProcess()
 
   private fun getHandler(record: FLogRecord): DateLogHandler {
     val date = filename.dateOf(record.millis)
