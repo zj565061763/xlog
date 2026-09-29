@@ -6,6 +6,7 @@
 
 - 日志目录读取失败时，`logZipOf` 返回缺少日志的压缩包，并替换上次的；现在返回 null，保留上次的压缩包
 - 自定义 `FLogFormatter` 的 `format()` 抛异常后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
+- 开启 R8 混淆时，嵌套类、局部类 logger 的默认 tag 可能带上外部类名（例如 `Feature$Logger`），和未混淆时不一致
 
 ## 2.1.0
 

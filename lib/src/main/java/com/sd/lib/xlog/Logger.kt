@@ -15,9 +15,14 @@ data class FLoggerConfig(
   val mode: FLogMode? = null,
 )
 
-/** 默认tag是短类名，匿名类没有短类名，改用去掉包名的类名 */
+/**
+ * 默认tag是短类名，匿名类没有短类名，改用去掉包名的类名。
+ * 从类名推算，不用[Class.getSimpleName]：R8可能移除它依赖的内部类信息，嵌套类的tag会带上外部类名。
+ */
 internal fun Class<out FLogger>.defaultLogTag(): String {
-  return simpleName.ifEmpty { name.substringAfterLast('.') }
+  val className = name.substringAfterLast('.')
+  // 嵌套类、局部类取最后一个$之后的部分，Java局部类带数字前缀，匿名类只有数字
+  return className.substringAfterLast('$').trimStart { it in '0'..'9' }.ifEmpty { className }
 }
 
 /** 配置信息是否为空 */

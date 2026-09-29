@@ -97,6 +97,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `lib/consumer-rules.pro` 用 `-keepnames` 保留 `FLogger` 实现类的类名。
   - 默认 tag 是短类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
   - 不要改回 `-keep`：它会阻止 R8 移除没用到的实现类
+- 默认 tag 从类名推算，不要改回 `simpleName`。
+  - `simpleName` 依赖内部类信息，外部类没被 keep 时 R8 会移除它，嵌套类、局部类的 tag 会带上外部类名
+  - 加 `-keepattributes InnerClasses` 也没用：AGP 默认配置已经有这一条
 - Logcat 单条日志超过约 4KB 会被系统截断，这是平台限制，不分段输出。
   - 日志文件里是完整内容
 - 打包时列出的条目读不到属性（比如所在目录没有执行权限），`isFile`、`isDirectory`、`exists()` 都返回 false，会按已删除跳过，不让打包失败。
