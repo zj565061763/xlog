@@ -50,10 +50,14 @@ internal class LogDirectoryScopeImpl(
 }
 
 private fun zip(source: File, target: File): Boolean {
-  // 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的
-  val tempFile = target.resolveSibling("${target.name}.tmp")
+  /**
+   * 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的。
+   * 临时文件名随机生成，取不到进程名时多个进程共用压缩包目录，同时打包同一日期不会互相覆盖。
+   */
+  var tempFile: File? = null
   try {
-    if (!tempFile.deleteAndCreateNewFile()) return false
+    target.parentFile?.mkdirs()
+    tempFile = File.createTempFile("${target.name}.", ".tmp", target.parentFile)
     ZipOutputStream(tempFile.outputStream().buffered()).use { outputStream ->
       compressFile(file = source, filename = source.name, outputStream = outputStream)
     }
@@ -64,7 +68,7 @@ private fun zip(source: File, target: File): Boolean {
     return false
   } finally {
     // 失败时临时文件不完整，成功时已经被重命名，删除不影响结果
-    tempFile.delete()
+    tempFile?.delete()
   }
 }
 
@@ -112,10 +116,4 @@ internal fun File.inputStreamOrNull(): InputStream? {
 /** 列出目录内容，目录已经不存在时返回null，其他原因读取失败照常抛出 */
 internal fun File.listFilesOrNull(): Array<File>? {
   return listFiles() ?: if (exists()) throw IOException("list ${name} failed") else null
-}
-
-private fun File.deleteAndCreateNewFile(): Boolean {
-  deleteRecursively()
-  parentFile?.mkdirs()
-  return createNewFile()
 }

@@ -91,6 +91,24 @@ class LogDirectoryScopeTest {
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 
+  /** 取不到进程名时多个进程共用压缩包目录，打包不能删除或替换其他进程的临时文件 */
+  @Test
+  fun testKeepOtherTempFile() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val publisher = newPublisher(dir, process = null)
+    val zipFile = publisher.zipFileOf(DATE)
+    val otherTemp = zipFile.resolveSibling("${zipFile.name}.tmp").apply {
+      parentFile?.mkdirs()
+      writeText("other")
+    }
+
+    val zip = checkNotNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    assertEquals(listOf("${DATE}/p/${DATE}.0.log"), zip.zipFileNames())
+    assertEquals("other", otherTemp.readText())
+    assertEquals(setOf(zip.name, otherTemp.name), zip.parentFile?.list()?.toSet())
+  }
+
   /** 目录存在时正常列出 */
   @Test
   fun testListExists() {
