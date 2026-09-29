@@ -52,6 +52,8 @@ object FLog {
   private lateinit var _dispatcher: FLogDispatcher
   /** [FLogger]配置信息 */
   private lateinit var _configHolder: Map<Class<out FLogger>, FLoggerConfig>
+  /** 获取默认日志目录可能在的位置 */
+  private lateinit var _defaultLogDirs: () -> List<File>
 
   /**
    * 初始化
@@ -80,6 +82,7 @@ object FLog {
       )
 
       _configHolder = initScope.configHolder.toMap()
+      _defaultLogDirs = { appContext.defaultLogDirs() }
 
       /**
        * 清空上次运行遗留的压缩包。
@@ -122,27 +125,19 @@ object FLog {
   /**
    * 删除日志，在调度器上执行。
    * 不会删除[FLogDirectoryScope.logZipOf]导出的压缩包。
+   * 日志目录是[fLogDir]的默认目录时，外部存储和内部存储两个位置的日志都会删除。
    * @param saveDays 要保留的日志天数，1表示只保留当天，小于等于0表示删除全部日志
    */
   @JvmStatic
   fun deleteLog(saveDays: Int) {
     logDirectory { dir ->
-      val files = dir.listFiles()
-      if (!files.isNullOrEmpty()) {
-        val filename = _publisher.filename
-        val today = filename.dateOf(System.currentTimeMillis())
-
-        for (file in files) {
-          /**
-           * 以.开头的是库的内部目录（比如导出的日志压缩包），不受日志保留策略管辖，
-           * 所以即使是删除全部日志也不动它。
-           */
-          if (file.name.startsWith(".")) continue
-
-          if (filename.shouldDeleteLog(today = today, date = file.name, saveDays = saveDays)) {
-            file.deleteRecursively()
-          }
-        }
+      val filename = _publisher.filename
+      val today = filename.dateOf(System.currentTimeMillis())
+      // 外部存储不可用时默认目录会回退到内部存储，两个位置都要删除，否则回退期间的日志一直不删
+      val defaultDirs = _defaultLogDirs()
+      val dirs = if (dir in defaultDirs) defaultDirs else listOf(dir)
+      for (item in dirs) {
+        deleteLogIn(dir = item, filename = filename, today = today, saveDays = saveDays)
       }
     }
   }
@@ -312,6 +307,23 @@ object FLog {
   @PublishedApi
   internal fun isLoggable(logger: Class<out FLogger>, level: FLogLevel): Boolean {
     return isLoggable(level, configOf(logger))
+  }
+}
+
+/** 按保留天数删除[dir]里的日志 */
+private fun deleteLogIn(dir: File, filename: LogFilename, today: String, saveDays: Int) {
+  val files = dir.listFiles()
+  if (files.isNullOrEmpty()) return
+  for (file in files) {
+    /**
+     * 以.开头的是库的内部目录（比如导出的日志压缩包），不受日志保留策略管辖，
+     * 所以即使是删除全部日志也不动它。
+     */
+    if (file.name.startsWith(".")) continue
+
+    if (filename.shouldDeleteLog(today = today, date = file.name, saveDays = saveDays)) {
+      file.deleteRecursively()
+    }
   }
 }
 

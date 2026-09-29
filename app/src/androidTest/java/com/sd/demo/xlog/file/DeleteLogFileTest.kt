@@ -6,9 +6,12 @@ import com.sd.demo.xlog.awaitLogIdle
 import com.sd.demo.xlog.dateOfDaysAgo
 import com.sd.demo.xlog.fCreateFile
 import com.sd.demo.xlog.resetLogDir
+import com.sd.demo.xlog.testContext
 import com.sd.lib.xlog.FLog
+import com.sd.lib.xlog.fLogDir
 import com.sd.lib.xlog.flogI
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -71,6 +74,37 @@ class DeleteLogFileTest {
       assertEquals(true, dir.exists())
       assertEquals(true, dir.listFiles()?.isEmpty())
     }
+  }
+
+  /** 外部存储不可用时默认目录会回退到内部存储，回退位置的日志也按保留天数删除 */
+  @Test
+  fun testFallbackDir() {
+    val dir = resetLogDir()
+    val fallbackDir = testContext.fLogDir(preferExternal = false).apply { deleteRecursively() }
+    // 当前用的是外部存储，内部存储才是回退位置
+    assertNotEquals(dir, fallbackDir)
+
+    val today = fallbackDir.resolve(dateOfDaysAgo(0)).createLogDir()
+    val yesterday = fallbackDir.resolve(dateOfDaysAgo(1)).createLogDir()
+    val zip = fallbackDir.resolve(".zip").resolve("process").resolve("${dateOfDaysAgo(1)}.zip").apply { fCreateFile() }
+
+    kotlin.run {
+      FLog.deleteLog(1)
+      awaitLogIdle()
+      assertEquals(true, today.exists())
+      assertEquals(false, yesterday.exists())
+    }
+
+    kotlin.run {
+      FLog.deleteLog(0)
+      awaitLogIdle()
+      assertEquals(false, today.exists())
+      // 压缩包和目录本身保留，和当前目录的规则一致
+      assertEquals(true, zip.exists())
+      assertEquals(true, fallbackDir.exists())
+    }
+
+    fallbackDir.deleteRecursively()
   }
 }
 

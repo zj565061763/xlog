@@ -19,6 +19,11 @@ fun Context.fLogDir(
   return rootDir.resolve(dirName)
 }
 
+/** 默认日志目录可能在的位置，外部存储不可用时[fLogDir]会回退到内部存储 */
+internal fun Context.defaultLogDirs(): List<File> {
+  return listOf(fLogDir(preferExternal = true), fLogDir(preferExternal = false)).distinct()
+}
+
 /** 当前进程名，系统接口取不到时读取/proc/self/cmdline */
 internal fun Context.currentProcess(): String? {
   val process = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
