@@ -257,6 +257,31 @@ class LogPublisherTest {
 
     assertEquals(true, dir.resolve(date).resolve("com.sd.demo_remote").resolve(filename.logNameOf(date, 0)).isFile)
   }
+
+  /** 进程名含路径分隔符或者是.和..时会跳出所在目录，按取不到进程名处理 */
+  @Test
+  fun testInvalidProcessName() {
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val outside = folder.newFolder()
+
+    for (process in listOf(".", "..", "a/../..", outside.absolutePath)) {
+      val dir = folder.newFolder()
+      val otherZip = newPublisher(dir, process = "other").zipFileOf(date).createZip()
+      val publisher = newPublisher(dir, process = process)
+
+      // 日志直接写在日期目录下，不分进程子目录
+      publisher.publish(testLogRecord())
+      publisher.close()
+      assertEquals(process, true, dir.resolve(date).resolve(filename.logNameOf(date, 0)).isFile)
+
+      // 不删除压缩包目录，其他进程的压缩包还在
+      publisher.deleteZipDirectory()
+      assertEquals(process, true, otherZip.exists())
+    }
+
+    assertEquals(emptyList<String>(), outside.list()?.toList())
+  }
 }
 
 /** 目录下的日志文件名，按序号排序。不能按文件名排序，序号位数不同的时候字典序和数值序不一致 */

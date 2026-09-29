@@ -60,7 +60,7 @@ private class LogPublisherImpl(
   private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
   /** 获取进程名和目录可能有IPC或磁盘I/O，等到调度线程上第一次用到时再获取 */
-  private val _process by lazy(processProvider)
+  private val _process by lazy { processProvider()?.takeIf { it.isValidDirName() } }
   override val directory: File by lazy(directoryProvider)
 
   private var _handler: DateLogHandler? = null
@@ -127,6 +127,9 @@ private class LogPublisherImpl(
     return if (process.isNullOrEmpty()) this else resolve(process.replace(":", "_"))
   }
 }
+
+/** 能否用作一层目录名，含路径分隔符或者是.和..时会跳出所在目录 */
+private fun String.isValidDirName(): Boolean = '/' !in this && this != "." && this != ".."
 
 /** 日志压缩包目录名，以.开头表示是库的内部目录，不参与日志保留策略 */
 private const val ZIP_DIR_NAME = ".zip"

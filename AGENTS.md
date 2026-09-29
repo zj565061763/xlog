@@ -44,9 +44,12 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
   - 保持 `Executors.newSingleThreadExecutor()` 的默认线程工厂，不要为了命名或调优先级自定义：线程优先级 nice ≥ 10 时，Android 12 及以下会把线程移到后台调度组，队列积压，崩溃时丢失排队中的日志
 - `LogDispatcherWrapper` 计数，队列排空时触发 `onIdle`：等级为 Off 则关闭 publisher，否则检查日志文件，被外部删除就关闭，下次写入时重建。
-- 文件路径（`<process>` 是进程名，`:` 替换为 `_`；系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层）：
+- 文件路径：
   - 日志：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.<seq>.log`
   - 压缩包：`<dir>/.zip/<process>/<yyyyMMdd>.zip`
+  - `<process>` 是进程名，`:` 替换为 `_`
+  - 系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层
+  - 进程名含 `/` 或者是 `.`、`..` 时按取不到处理，否则会跳出日志目录，`init` 清空压缩包时还会删到别处
 - 日志滚动（`DateLogHandler`）：
   - 当前文件达到 `maxBytePerDay` 的一半时关闭，序号加一继续写，并删除当前和上一个序号之外的旧文件；所以最多两个文件，总量约等于上限
   - 创建时扫描目录取最大序号接着写，进程重启后能续上
