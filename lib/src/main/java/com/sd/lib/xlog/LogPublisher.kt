@@ -224,9 +224,7 @@ private class DateLogHandler(
     logDir.listFiles()?.forEach { file ->
       val seq = filename.seqOf(file.name) ?: return@forEach
       if (seq <= _seq - KEEP_COUNT) {
-        file.delete().also { deleted ->
-          if (!deleted) libLog("delete old log file ${file.name} failed")
-        }
+        if (!file.deleteOrAbsent()) libLog("delete old log file ${file.name} failed")
       }
     }
   }
@@ -234,6 +232,9 @@ private class DateLogHandler(
 
 /** 保留的日志文件个数，当前文件加上一个写满的文件 */
 private const val KEEP_COUNT = 2
+
+/** 删除文件，已经不存在也算成功，比如列出之后被其他进程删除 */
+internal fun File.deleteOrAbsent(): Boolean = delete() || !exists()
 
 private class SafeLogStore(
   private val instance: FLogStore,

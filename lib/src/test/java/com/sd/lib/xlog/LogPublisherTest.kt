@@ -1,6 +1,7 @@
 package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -203,6 +204,21 @@ class LogPublisherTest {
     newPublisher(dir, process = "com.sd.demo").deleteZipDirectory(otherDir)
     assertEquals(false, mainZip.exists())
     assertEquals(true, remoteZip.exists())
+  }
+
+  /** 删除旧日志时，文件已经被其他进程删除不算失败，否则会误报错误日志 */
+  @Test
+  fun testDeleteOrAbsent() {
+    val file = folder.newFile()
+    assertTrue(file.deleteOrAbsent())
+    assertFalse(file.exists())
+
+    // 已经不存在
+    assertTrue(file.deleteOrAbsent())
+
+    // 存在但删除失败
+    val dir = folder.newFolder().apply { resolve("log").writeText("log") }
+    assertFalse(dir.deleteOrAbsent())
   }
 
   /** 进程重启之后从已有文件的最大序号接着写，不动其他文件 */
