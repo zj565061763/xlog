@@ -80,13 +80,15 @@ object FLog {
       )
 
       _configHolder = initScope.configHolder.toMap()
-      _hasInit = true
 
       /**
        * 清空上次运行遗留的压缩包。
        * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
+       * 要在[_hasInit]之前提交，排在其他线程的任务前面，否则可能删掉它们刚导出的压缩包。
        */
-      dispatch { libRunCatching { _publisher.deleteZipDirectory() } }
+      _dispatcher.dispatch { libRunCatching { _publisher.deleteZipDirectory() } }
+
+      _hasInit = true
       return true
     }
   }
