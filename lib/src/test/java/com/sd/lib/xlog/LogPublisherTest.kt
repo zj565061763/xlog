@@ -143,6 +143,44 @@ class LogPublisherTest {
     assertTrue(lines[1], lines[1].contains("[B|"))
   }
 
+  /** 获取大小失败时仓库已经关闭，要和关闭日志文件一样重置格式化器 */
+  @Test
+  fun testSizeErrorResetFormatter() {
+    val dir = folder.newFolder()
+    val formatter = CloseCountFormatter()
+    var sizeCount = 0
+    var storeCloseCount = 0
+
+    val publisher = defaultLogPublisher(
+      processProvider = { null },
+      directoryProvider = { dir },
+      filename = defaultLogFilename(),
+      formatter = formatter,
+      storeFactory = { file ->
+        val store = defaultLogStore(file)
+        object : FLogStore by store {
+          override fun size(): Long {
+            // 第1次获取大小失败
+            if (++sizeCount == 1) error("size error")
+            return store.size()
+          }
+
+          override fun close() {
+            storeCloseCount++
+            store.close()
+          }
+        }
+      },
+    )
+
+    // 设置上限之后每条日志都会获取大小
+    publisher.setMaxBytePerDay(1024 * 1024)
+
+    assertTrue(runCatching { publisher.publish(testLogRecord()) }.isFailure)
+    assertEquals(1, storeCloseCount)
+    assertEquals(1, formatter.closeCount)
+  }
+
   /** 获取进程名和目录可能有IPC或磁盘I/O，创建时不能获取，要等到调度线程上第一次用到 */
   @Test
   fun testLazyProcessAndDirectory() {
@@ -390,6 +428,21 @@ private class FormatErrorFormatter(private val errorAt: Int) : FLogFormatter, Au
   }
 
   override fun close() {
+    (_formatter as AutoCloseable).close()
+  }
+}
+
+/** 记录[close]的调用次数 */
+private class CloseCountFormatter : FLogFormatter, AutoCloseable {
+  private val _formatter = defaultLogFormatter()
+
+  var closeCount = 0
+    private set
+
+  override fun format(record: FLogRecord): String = _formatter.format(record)
+
+  override fun close() {
+    closeCount++
     (_formatter as AutoCloseable).close()
   }
 }

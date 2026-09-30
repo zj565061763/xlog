@@ -166,12 +166,15 @@ private class DateLogHandler(
     val logStore = getLogStore()
     try {
       logStore.append(formatter.format(record))
+      checkLogSize(logStore, maxBytePerDay)
     } catch (e: Throwable) {
-      // 这条日志没写进去，要重置格式化器，否则下一条相同tag的日志会省略tag
+      /**
+       * 仓库出错时已经关闭，和关闭日志文件一样要重置格式化器。
+       * 写入失败时这条日志没写进去，不重置的话下一条相同tag的日志会省略tag。
+       */
       resetFormatter()
       throw e
     }
-    checkLogSize(logStore, maxBytePerDay)
   }
 
   private fun getLogStore(): FLogStore {

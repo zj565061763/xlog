@@ -13,6 +13,7 @@
 
 - 日志目录读取失败时，`logZipOf` 返回缺少日志的压缩包，并替换上次的；现在返回 null，保留上次的压缩包
 - 自定义 `FLogFormatter` 的 `format()` 抛异常后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
+- 设置了单日大小上限时，自定义 `FLogStore` 的 `size()` 抛异常会关闭日志文件，但不调用格式化器的 `close()` 重置状态
 - 开启 R8 混淆时，嵌套类、局部类 logger 的默认 tag 可能带上外部类名（例如 `Feature$Logger`），和未混淆时不一致
 - 日志切换时旧文件已被其他进程删除，Logcat 会误报删除失败
 - 私有进程（如 `com.example:worker`）和名为 `com.example_worker` 的全局进程会写进同一个日志文件，`init` 时还会清空对方的压缩包
