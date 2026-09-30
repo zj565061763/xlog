@@ -1,20 +1,30 @@
 # Changelog
 
-## 2.1.1
+## 2.2.0
+
+### ⚠️ Breaking Changes
+
+- `FLogInitScope.setLogDirectory` 的参数由 `File` 改为获取目录的方法 `() -> File?`，在调度线程上调用
+- 取不到日志目录（返回 null）时，这次写日志、`deleteLog`、`logDirectory` 都不执行；取到之后本进程一直使用该目录
+- `fLogDir` 移除 `preferExternal` 参数，只返回外部存储的目录，外部存储不可用时返回 null
+- 默认日志目录不再回退到内部存储，外部存储不可用时不写日志文件，Logcat 照常输出
 
 ### 🐛 Bug Fixes
 
 - 日志目录读取失败时，`logZipOf` 返回缺少日志的压缩包，并替换上次的；现在返回 null，保留上次的压缩包
 - 自定义 `FLogFormatter` 的 `format()` 抛异常后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
 - 开启 R8 混淆时，嵌套类、局部类 logger 的默认 tag 可能带上外部类名（例如 `Feature$Logger`），和未混淆时不一致
-- 外部存储暂时不可用时，默认目录的日志会写到内部存储，之后不会被 `deleteLog` 清理
-- 外部存储暂时不可用期间导出的压缩包，之后的 `init` 不会清空
 - 日志切换时旧文件已被其他进程删除，Logcat 会误报删除失败
 - 私有进程（如 `com.example:worker`）和名为 `com.example_worker` 的全局进程会写进同一个日志文件，`init` 时还会清空对方的压缩包
 - 其他进程持续写日志时，`logZipOf` 会一直读取新写入的内容，打包变慢甚至不结束，期间本进程的日志排队等待写入；现在每个文件只打包开始读取时已有的内容
 
 ### Migration
 
+- `setLogDirectory(dir)` 改为 `setLogDirectory { dir }`
+- `fLogDir(preferExternal = false)` 改为 `filesDir.resolve("sd.lib.xlog")`
+- 使用 `fLogDir()` 返回值的，需要处理返回 null 的情况
+- 需要写到内部存储或 Direct Boot 期间可用的设备加密存储的，通过 `setLogDirectory` 返回对应目录
+- 之前版本外部存储不可用时写到 `filesDir/sd.lib.xlog` 的日志和压缩包不再被清理，需要时手动删除
 - 私有进程的日志和压缩包目录名由 `com.example_worker` 改为 `com.example-worker`，按目录名识别进程的需要同步修改
 - 之前版本私有进程导出的压缩包不会再被 `init` 清空，需要时手动删除 `.zip/com.example_worker`
 

@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -166,6 +167,41 @@ class LogPublisherTest {
     assertEquals(1, directoryCount)
   }
 
+  /** 取不到日志目录时丢弃日志、不删压缩包，每次用到都重新获取；取到之后固定不变 */
+  @Test
+  fun testNullDirectory() {
+    val dir = folder.newFolder()
+    val date = defaultLogFilename().dateOf(RECORD_MILLIS)
+    val zip = newPublisher(dir, process = "com.sd.demo").zipFileOf(date).createZip()
+    var directory: File? = null
+    var directoryCount = 0
+
+    val publisher = defaultLogPublisher(
+      processProvider = { "com.sd.demo" },
+      directoryProvider = { directoryCount++; directory },
+      filename = defaultLogFilename(),
+      formatter = defaultLogFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    )
+
+    publisher.publish(testLogRecord())
+    publisher.deleteZipDirectory()
+    assertNull(publisher.logDirOf(date))
+    assertNull(publisher.zipFileOf(date))
+    assertEquals(4, directoryCount)
+    assertEquals(false, dir.resolve(date).exists())
+    assertEquals(true, zip.exists())
+
+    directory = dir
+    publisher.publish(testLogRecord())
+    publisher.publish(testLogRecord())
+    assertEquals(2, dir.resolve(date).walkTopDown().first { it.isFile }.readLines().size)
+
+    directory = null
+    assertEquals(dir.resolve(date), publisher.logDirOf(date))
+    assertEquals(5, directoryCount)
+  }
+
   /** 只删除本进程的压缩包目录，取不到进程名时不删，避免误删其他进程的压缩包 */
   @Test
   fun testDeleteZipDirectory() {
@@ -178,32 +214,15 @@ class LogPublisherTest {
     val remoteZip = remote.zipFileOf("20231125").createZip()
     val unknownZip = unknown.zipFileOf("20231125").createZip()
 
-    unknown.deleteZipDirectory(dir)
+    unknown.deleteZipDirectory()
     assertEquals(true, mainZip.exists())
     assertEquals(true, remoteZip.exists())
     assertEquals(true, unknownZip.exists())
 
-    main.deleteZipDirectory(dir)
+    main.deleteZipDirectory()
     assertEquals(false, mainZip.exists())
     assertEquals(true, remoteZip.exists())
     assertEquals(true, unknownZip.exists())
-  }
-
-  /** 默认目录回退到内部存储期间导出的压缩包，要能在另一个位置清空，同样只删本进程的 */
-  @Test
-  fun testDeleteZipDirectoryOfOtherDir() {
-    val dir = folder.newFolder()
-    val otherDir = folder.newFolder()
-    val main = newPublisher(otherDir, process = "com.sd.demo")
-    val remote = newPublisher(otherDir, process = "com.sd.demo:remote")
-
-    val mainZip = main.zipFileOf("20231125").createZip()
-    val remoteZip = remote.zipFileOf("20231125").createZip()
-
-    // 当前写在dir的同一进程，清空otherDir里的压缩包
-    newPublisher(dir, process = "com.sd.demo").deleteZipDirectory(otherDir)
-    assertEquals(false, mainZip.exists())
-    assertEquals(true, remoteZip.exists())
   }
 
   /** 删除旧日志时，文件已经被其他进程删除不算失败，否则会误报错误日志 */
@@ -304,7 +323,7 @@ class LogPublisherTest {
     assertEquals(listOf("com.sd.demo-remote", "com.sd.demo_remote"), dir.resolve(date).list()?.sorted())
 
     val globalZip = globalProcess.zipFileOf(date).createZip()
-    privateProcess.deleteZipDirectory(dir)
+    privateProcess.deleteZipDirectory()
     assertEquals(true, globalZip.exists())
   }
 
@@ -326,7 +345,7 @@ class LogPublisherTest {
       assertEquals(process, true, dir.resolve(date).resolve(filename.logNameOf(date, 0)).isFile)
 
       // 不删除压缩包目录，其他进程的压缩包还在
-      publisher.deleteZipDirectory(dir)
+      publisher.deleteZipDirectory()
       assertEquals(process, true, otherZip.exists())
     }
 
@@ -346,10 +365,11 @@ private fun File.totalSize(): Long {
   return walkTopDown().filter { it.isFile }.sumOf { it.length() }
 }
 
-private fun File.createZip(): File {
-  parentFile?.mkdirs()
-  assertTrue(createNewFile())
-  return this
+private fun File?.createZip(): File {
+  val file = checkNotNull(this)
+  file.parentFile?.mkdirs()
+  assertTrue(file.createNewFile())
+  return file
 }
 
 private class CloseErrorFormatter : FLogFormatter, AutoCloseable {

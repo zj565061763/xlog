@@ -7,21 +7,13 @@ import android.os.Build
 import android.os.Process
 import java.io.File
 
-/** 默认的日志目录 */
+/** 默认的日志目录，在外部存储的应用专属目录下，外部存储不可用时返回null */
 fun Context.fLogDir(
-  /** 是否优先使用外部存储 */
-  preferExternal: Boolean = true,
   /** 日志目录名称 */
   dirName: String = "sd.lib.xlog",
-): File {
+): File? {
   require(dirName.isNotEmpty()) { "dirName is empty" }
-  val rootDir = if (preferExternal) (getExternalFilesDir(null) ?: filesDir) else filesDir
-  return rootDir.resolve(dirName)
-}
-
-/** 默认日志目录可能在的位置，外部存储不可用时[fLogDir]会回退到内部存储 */
-internal fun Context.defaultLogDirs(): List<File> {
-  return listOf(fLogDir(preferExternal = true), fLogDir(preferExternal = false)).distinct()
+  return getExternalFilesDir(null)?.resolve(dirName)
 }
 
 /** 当前进程名，系统接口取不到时读取/proc/self/cmdline */

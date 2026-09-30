@@ -48,7 +48,7 @@ fun resetLogDir(): File {
   FLog.setMaxMBPerDay(0)
   FLog.logDirectory { }
   awaitLogIdle()
-  return testContext.fLogDir().apply {
+  return checkNotNull(testContext.fLogDir()).apply {
     deleteRecursively()
     assertEquals(false, exists())
   }

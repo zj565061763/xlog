@@ -124,7 +124,7 @@ class LogDirectoryScopeTest {
     val dir = folder.newFolder()
     dir.createLog(DATE, "p")
     val publisher = newPublisher(dir, process = null)
-    val zipFile = publisher.zipFileOf(DATE)
+    val zipFile = checkNotNull(publisher.zipFileOf(DATE))
     val otherTemp = zipFile.resolveSibling("${zipFile.name}.tmp").apply {
       parentFile?.mkdirs()
       writeText("other")

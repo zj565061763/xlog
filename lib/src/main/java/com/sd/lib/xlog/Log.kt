@@ -53,8 +53,6 @@ object FLog {
   private lateinit var _dispatcher: FLogDispatcher
   /** [FLogger]配置信息 */
   private lateinit var _configHolder: Map<Class<out FLogger>, FLoggerConfig>
-  /** 获取默认日志目录可能在的位置 */
-  private lateinit var _defaultLogDirs: () -> List<File>
 
   /**
    * 初始化
@@ -67,11 +65,10 @@ object FLog {
       if (_hasInit) return false
       val initScope = LogInitScopeImpl().apply(initBlock)
       val appContext = context.applicationContext ?: context
-      val directory = initScope.directory
 
       _publisher = defaultLogPublisher(
         processProvider = { appContext.currentProcess() },
-        directoryProvider = { directory ?: appContext.fLogDir() },
+        directoryProvider = initScope.directory ?: { appContext.fLogDir() },
         filename = defaultLogFilename(),
         formatter = initScope.formatter ?: defaultLogFormatter(),
         storeFactory = initScope.storeFactory ?: FLogStore.Factory { defaultLogStore(it) },
@@ -83,20 +80,14 @@ object FLog {
       )
 
       _configHolder = initScope.configHolder.toMap()
-      _defaultLogDirs = { appContext.defaultLogDirs() }
 
       /**
        * 清空上次运行遗留的压缩包。
        * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
-       * 默认目录两个位置都要清空，否则回退到内部存储期间导出的压缩包一直不删。
        * 要在[_hasInit]之前提交，排在其他线程的任务前面，否则可能删掉它们刚导出的压缩包。
        */
       _dispatcher.dispatch {
-        libRunCatching {
-          for (dir in logDirsOf(_publisher.directory)) {
-            _publisher.deleteZipDirectory(dir)
-          }
-        }
+        libRunCatching { _publisher.deleteZipDirectory() }
       }
 
       _hasInit = true
@@ -132,8 +123,7 @@ object FLog {
 
   /**
    * 删除日志，在调度器上执行。
-   * 不会删除[FLogDirectoryScope.logZipOf]导出的压缩包。
-   * 日志目录是[fLogDir]的默认目录时，外部存储和内部存储两个位置的日志都会删除。
+   * 不会删除[FLogDirectoryScope.logZipOf]导出的压缩包，取不到日志目录时不删除。
    * @param saveDays 要保留的日志天数，1表示只保留当天，小于等于0表示删除全部日志
    */
   @JvmStatic
@@ -141,25 +131,24 @@ object FLog {
     logDirectory { dir ->
       val filename = _publisher.filename
       val today = filename.dateOf(System.currentTimeMillis())
-      // 默认目录两个位置都要删除，否则回退到内部存储期间的日志一直不删
-      for (item in logDirsOf(dir)) {
-        deleteLogIn(dir = item, filename = filename, today = today, saveDays = saveDays)
-      }
+      deleteLogIn(dir = dir, filename = filename, today = today, saveDays = saveDays)
     }
   }
 
   /**
    * 访问日志目录，[block]在调度器上执行，执行前会先关闭当前的日志文件。
+   * 取不到日志目录时不执行[block]。
    * 目录只能存放日志，[deleteLog]会删除其中不是日志的文件。
    */
   @JvmStatic
   fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
     dispatch {
       _publisher.close()
+      val directory = _publisher.directory ?: return@dispatch
       val scope = LogDirectoryScopeImpl(_publisher)
       try {
         // 避免外部传入的[block]抛异常导致App崩溃
-        libRunCatching { scope.block(_publisher.directory) }
+        libRunCatching { scope.block(directory) }
       } finally {
         scope.destroy()
       }
@@ -228,12 +217,6 @@ object FLog {
     } else {
       _publisher.onIdle()
     }
-  }
-
-  /** [dir]是默认目录时返回外部存储和内部存储两个位置，否则只返回[dir] */
-  private fun logDirsOf(dir: File): List<File> {
-    val defaultDirs = _defaultLogDirs()
-    return if (dir in defaultDirs) defaultDirs else listOf(dir)
   }
 
   private fun checkInit() {

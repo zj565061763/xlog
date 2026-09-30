@@ -39,10 +39,10 @@ internal class LogDirectoryScopeImpl(
     if (date.length != 8) return null
     if (!date.isAsciiDigits()) return null
 
-    val dateDir = publisher.logDirOf(date)
+    val dateDir = publisher.logDirOf(date) ?: return null
     if (!dateDir.isDirectory) return null
 
-    val zipFile = publisher.zipFileOf(date)
+    val zipFile = publisher.zipFileOf(date) ?: return null
     if (zip(source = dateDir, target = zipFile, openFile = openFile) && zipFile.exists()) return zipFile
     libLog("log zip ${zipFile.name} failed")
     return null

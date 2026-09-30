@@ -1,5 +1,6 @@
 package com.sd.lib.xlog
 
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Rule
@@ -19,7 +20,7 @@ class LogSafeTest {
     publisher.safePublisher().publish(testLogRecord())
   }
 
-  /** 获取日志目录失败时，发布和空闲回调都不抛异常 */
+  /** 获取日志目录失败时，取目录、发布和空闲回调都不抛异常，取目录按取不到处理 */
   @Test
   fun testDirectoryError() {
     val publisher = defaultLogPublisher(
@@ -30,6 +31,7 @@ class LogSafeTest {
       storeFactory = { defaultLogStore(it) },
     ).safePublisher()
 
+    assertNull(publisher.directory)
     publisher.publish(testLogRecord())
     publisher.onIdle()
     publisher.close()

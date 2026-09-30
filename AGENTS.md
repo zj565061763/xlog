@@ -40,7 +40,11 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 
 - 写入链路：`flogX` → `FLog.publishLog()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
-  - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`fLogDir()`、`defaultLogDirs()`
+  - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`fLogDir()`
+- 日志目录（`LogPublisherImpl.directory`）：
+  - 默认 `fLogDir()`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
+  - 在调度线程上获取，取到非 null 后缓存，本进程之后一直用它
+  - 为 null 时取消这次操作：写日志丢弃，`deleteLog`、`logDirectory` 不执行，`init` 不清空压缩包
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
   - 保持 `Executors.newSingleThreadExecutor()` 的默认线程工厂，不要为了命名或调优先级自定义：线程优先级 nice ≥ 10 时，Android 12 及以下会把线程移到后台调度组，队列积压，崩溃时丢失排队中的日志
 - `LogDispatcherWrapper` 计数，队列排空时触发 `onIdle`：等级为 Off 则关闭 publisher，否则检查日志文件，被外部删除就关闭，下次写入时重建。
@@ -61,6 +65,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
 - 异常隔离：`SafeLogPublisher`（`LogSafe.kt`）捕获并打印异常，保证日志失败不影响业务；`SafeLogStore`（`LogPublisher.kt`）出错时关闭再重抛。
   - 格式化器的 `close()` 出错只打印不抛出：抛出会中断日志轮换，一直写回旧文件
+  - `directory` 也要捕获，抛异常时按取不到处理：它会调用使用方提供的方法，`logDirectory` 在 block 外面取目录，不捕获会让 App 崩溃
 - 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，只在全局等级为 Off 时不输出。
   - 不要改回走 `flogX`：使用方调高等级后，写盘、打包失败会完全看不到
   - 只输出错误，成功等正常结果不要输出，否则会被当成出错
@@ -110,17 +115,15 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 能区分的 `java.nio.file` 要求 API 26，`Os.stat` 在 JVM 单元测试里测不了，只剩重新列出父目录这种启发式判断
   - 日志目录由应用自己创建，只有应用自身或 root 能改权限，外部存储上 `chmod` 不生效
   - 目录没有执行权限时写日志同样失败，压缩包缺文件只是次要问题
-- 默认目录回退到内部存储后，本进程不切回外部存储，回退期间的日志也不导出。
-  - `directory` 只获取一次，外部存储不可用时 `fLogDir()` 回退到内部存储，本进程一直写在那里
-  - 切回的代价：同一进程同一天的日志分散在两个目录、`logDirectory` 要固定目录快照、`init` 清空的压缩包目录对不上
-  - 合并两个位置打包会有同名的进程目录和日志文件，不值得处理
-  - 占用由 `deleteLog`（日志）和 `init`（压缩包）清理两个位置兜底
-  - 代价是开机早期拉起的长驻进程，整个生命周期的日志都导不出来
-- 写在外部存储的进程，在外部存储暂时不可用时调用 `deleteLog`，这次不清理内部存储。
-  - 此时 `defaultLogDirs()` 只取得到内部存储，日志目录不在其中，按自定义目录只处理自己
-  - 只是推迟清理：外部存储恢复后的下一次 `deleteLog`、任意进程重启后的 `deleteLog`、回退进程的 `deleteLog` 都会清理内部存储
-  - 修复要在 `init` 时记下是否设置了日志目录，多一份状态，不值得
-  - 压缩包不适用这条：它只由 `init` 清空，`deleteLog` 不管，所以 `init` 必须清空两个位置
+- 日志目录取到后不再重新获取，之后外部存储被卸载时按普通的写入失败处理。
+  - 默认实现 `getExternalFilesDir` 每次都有 IPC，不能每条日志都调用
+  - 目录不切换，就不会出现同一天的日志分散在两个目录、`deleteLog` 和 `init` 要处理两个位置的问题
+- 日志目录为 null 时，每条日志都重新获取一次，不节流。
+  - 只在外部存储不可用期间发生，比如 Direct Boot 首次解锁前
+- 日志目录为 null 时丢弃日志，不输出 `libLog`。
+  - 外部存储未挂载、使用方主动返回 null 都是预期状态，输出会被当成出错
+- `init` 时日志目录为 null，这次不清空压缩包，留到下次 `init`。
+  - 遗留的压缩包只占空间，不影响打包：同一日期再次打包会替换它
 
 ## 日志清理与压缩包
 
@@ -131,14 +134,8 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `deleteLog` 跳过所有 `.` 开头的条目；历史上 zip 落在日志根目录，文件名解析不出日期而被误删。
 - `deleteLog(0)` 同样不删压缩包，常见用法是“导出 zip → 清空日志 → 上传 zip”；所以不能用 `dir.deleteRecursively()`。
 - 日志根目录永远保留，即使空了也不删，省掉下次写日志时重建目录。
-- 日志目录是默认目录的某个位置时，`deleteLog` 对外部存储和内部存储两个位置执行相同的规则。
-  - 不这样做的话，回退到内部存储期间的日志永远不删
-  - 只处理库自己的默认目录名，自定义目录不处理：无法确定另一个位置只放日志，会误删使用方的文件
-  - 每次 `deleteLog` 都重新获取两个位置，回退进程里外部存储恢复后也能清理
 - `logZipOf` 返回的压缩包是临时产物：
   - 只保证本次进程运行期间有效，下次 `init` 清空本进程的压缩包子目录，不影响其他进程
-  - 日志目录是默认目录的某个位置时，`init` 清空两个位置的本进程压缩包子目录，否则回退到内部存储期间导出的压缩包一直不删
-  - 同一进程名同一时间只有一个进程在跑，清空另一个位置不会删到正在用的压缩包
   - 取不到进程名时 `init` 不清空，此时压缩包目录是所有进程共用的
   - 需要长期保存由使用方自行移走，库不提供 target 参数，也不提供删除 API
   - 生命周期是“导出 → 上传/分享 → 丢弃”，刻意不受 `deleteLog` 管辖
