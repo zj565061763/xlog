@@ -8,7 +8,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /** [FLogDispatcher]的契约 */
@@ -139,5 +141,97 @@ class LogDispatcherTest {
     assertEquals(1, threads.size)
     assertNotSame(Thread.currentThread(), threads.single())
     assertEquals(1, idleCount.get())
+  }
+
+  /** 多线程提交的任务不丢失、不重复，串行执行并保持每个提交线程的顺序 */
+  @Test
+  fun testConcurrentDispatch() {
+    val producerCount = 8
+    val tasksPerProducer = 250
+    val producers = Executors.newFixedThreadPool(producerCount)
+    val start = CountDownLatch(1)
+    val gate = CountDownLatch(1)
+    val idle = CountDownLatch(1)
+    val timedOut = AtomicBoolean()
+    val running = AtomicInteger()
+    val maxRunning = AtomicInteger()
+    val idleCount = AtomicInteger()
+    val results = Collections.synchronizedList(mutableListOf<Pair<Int, Int>>())
+    val dispatcher = defaultLogDispatcher(null) {
+      idleCount.incrementAndGet()
+      idle.countDown()
+    }
+
+    try {
+      dispatcher.dispatch { if (!gate.await(10, TimeUnit.SECONDS)) timedOut.set(true) }
+      val submitted = (0 until producerCount).map { producer ->
+        producers.submit {
+          check(start.await(10, TimeUnit.SECONDS))
+          repeat(tasksPerProducer) { index ->
+            dispatcher.dispatch {
+              val count = running.incrementAndGet()
+              maxRunning.accumulateAndGet(count, ::maxOf)
+              try {
+                results.add(producer to index)
+              } finally {
+                running.decrementAndGet()
+              }
+            }
+          }
+        }
+      }
+      start.countDown()
+      submitted.forEach { it.get(10, TimeUnit.SECONDS) }
+      gate.countDown()
+
+      assertTrue(idle.await(10, TimeUnit.SECONDS))
+      assertEquals(false, timedOut.get())
+      assertEquals(1, maxRunning.get())
+      assertEquals(1, idleCount.get())
+      assertEquals(producerCount * tasksPerProducer, results.size)
+      assertEquals(results.size, results.toSet().size)
+      repeat(producerCount) { producer ->
+        assertEquals((0 until tasksPerProducer).toList(), results.filter { it.first == producer }.map { it.second })
+      }
+    } finally {
+      start.countDown()
+      gate.countDown()
+      producers.shutdownNow()
+    }
+  }
+
+  /** 空闲回调期间提交的新任务等待回调结束，执行后仍会再次触发空闲回调 */
+  @Test
+  fun testDispatchDuringIdle() {
+    val firstIdle = CountDownLatch(1)
+    val releaseIdle = CountDownLatch(1)
+    val secondIdle = CountDownLatch(1)
+    val idleCount = AtomicInteger()
+    val timedOut = AtomicBoolean()
+    val events = Collections.synchronizedList(mutableListOf<String>())
+    val dispatcher = defaultLogDispatcher(null) {
+      val count = idleCount.incrementAndGet()
+      events.add("idle-$count")
+      if (count == 1) {
+        firstIdle.countDown()
+        if (!releaseIdle.await(10, TimeUnit.SECONDS)) timedOut.set(true)
+      } else {
+        secondIdle.countDown()
+      }
+    }
+
+    try {
+      dispatcher.dispatch { events.add("first") }
+      assertTrue(firstIdle.await(10, TimeUnit.SECONDS))
+      dispatcher.dispatch { events.add("second") }
+      assertEquals(listOf("first", "idle-1"), events.toList())
+      releaseIdle.countDown()
+
+      assertTrue(secondIdle.await(10, TimeUnit.SECONDS))
+      assertEquals(false, timedOut.get())
+      assertEquals(listOf("first", "idle-1", "second", "idle-2"), events.toList())
+    } finally {
+      releaseIdle.countDown()
+    }
   }
 }

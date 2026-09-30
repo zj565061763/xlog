@@ -3,6 +3,7 @@ package com.sd.lib.xlog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +71,74 @@ class LogPublisherTest {
     val totalSize = dir.totalSize()
     assertTrue("日志总大小${totalSize}字节，超过了上限${maxByte}字节", totalSize <= maxByte)
     assertTrue("应该有写入失败", failures > 0)
+  }
+
+  /** 轮换时创建仓库暂时失败，恢复后继续写新文件，不回写旧文件 */
+  @Test
+  fun testStoreCreateRecovery() {
+    val dir = folder.newFolder()
+    var createCount = 0
+    val publisher = newPublisher(dir) { file ->
+      if (++createCount == 2) error("create error")
+      defaultLogStore(file)
+    }
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date)
+    publisher.setMaxBytePerDay(100)
+
+    try {
+      publisher.publish(testLogRecord(msg = "x".repeat(80)))
+      val oldFile = logDir.resolve(filename.logNameOf(date, 0))
+      val oldText = oldFile.readText()
+      assertThrows(IllegalStateException::class.java) { publisher.publish(testLogRecord(msg = "lost")) }
+      publisher.publish(testLogRecord(msg = "recovered"))
+
+      assertEquals(3, createCount)
+      assertEquals(oldText, oldFile.readText())
+      val text = logDir.resolve(filename.logNameOf(date, 1)).readText()
+      assertTrue(text, text.contains("[T|"))
+      assertTrue(text, text.endsWith("] recovered\n"))
+
+      publisher.publish(testLogRecord(msg = "x".repeat(80)))
+      publisher.publish(testLogRecord(msg = "tail"))
+      assertEquals(listOf(filename.logNameOf(date, 1), filename.logNameOf(date, 2)), dir.logNames())
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 仓库关闭时抛异常不阻断轮换，新文件首条日志仍包含tag */
+  @Test
+  fun testStoreCloseErrorOnRotate() {
+    val dir = folder.newFolder()
+    var closeCount = 0
+    val publisher = newPublisher(dir) { file ->
+      val store = defaultLogStore(file)
+      object : FLogStore by store {
+        override fun close() {
+          store.close()
+          closeCount++
+          error("close error")
+        }
+      }
+    }
+    publisher.setMaxBytePerDay(100)
+
+    try {
+      repeat(3) { publisher.publish(testLogRecord(msg = "x".repeat(80))) }
+      publisher.publish(testLogRecord(msg = "tail"))
+
+      val filename = defaultLogFilename()
+      val date = filename.dateOf(RECORD_MILLIS)
+      assertEquals(3, closeCount)
+      assertEquals(listOf(filename.logNameOf(date, 2), filename.logNameOf(date, 3)), dir.logNames())
+      val text = dir.resolve(date).resolve(filename.logNameOf(date, 3)).readText()
+      assertTrue(text, text.contains("[T|"))
+      assertTrue(text, text.endsWith("] tail\n"))
+    } finally {
+      publisher.close()
+    }
   }
 
   /** 轮换的时候格式化器重置失败，不能中断轮换，否则会一直写回旧文件 */
@@ -143,7 +212,7 @@ class LogPublisherTest {
     assertTrue(lines[1], lines[1].contains("[B|"))
   }
 
-  /** 获取大小失败时仓库已经关闭，要和关闭日志文件一样重置格式化器 */
+  /** 获取大小失败后恢复写入和轮换，下一条日志不省略tag */
   @Test
   fun testSizeErrorResetFormatter() {
     val dir = folder.newFolder()
@@ -173,12 +242,28 @@ class LogPublisherTest {
       },
     )
 
-    // 设置上限之后每条日志都会获取大小
-    publisher.setMaxBytePerDay(1024 * 1024)
+    publisher.setMaxBytePerDay(400)
+    try {
+      assertThrows(IllegalStateException::class.java) { publisher.publish(testLogRecord(msg = "first")) }
+      assertEquals(1, storeCloseCount)
+      assertEquals(1, formatter.resetCount)
 
-    assertTrue(runCatching { publisher.publish(testLogRecord()) }.isFailure)
-    assertEquals(1, storeCloseCount)
-    assertEquals(1, formatter.resetCount)
+      publisher.publish(testLogRecord(msg = "recovered"))
+      val lines = dir.walkTopDown().first { it.isFile }.readLines()
+      assertEquals(listOf("first", "recovered"), lines.map { it.substringAfter("] ") })
+      assertTrue(lines[1], lines[1].contains("[T|"))
+
+      repeat(3) { publisher.publish(testLogRecord(msg = "x".repeat(200))) }
+      publisher.publish(testLogRecord(msg = "tail"))
+      val filename = defaultLogFilename()
+      val date = filename.dateOf(RECORD_MILLIS)
+      assertEquals(listOf(filename.logNameOf(date, 2), filename.logNameOf(date, 3)), dir.logNames())
+      val text = dir.resolve(date).resolve(filename.logNameOf(date, 3)).readText()
+      assertTrue(text, text.contains("[T|"))
+      assertTrue(text, text.endsWith("] tail\n"))
+    } finally {
+      publisher.close()
+    }
   }
 
   /** 获取进程名和目录可能有IPC或磁盘I/O，创建时不能获取，要等到调度线程上第一次用到 */

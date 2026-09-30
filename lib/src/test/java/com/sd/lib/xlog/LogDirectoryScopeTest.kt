@@ -1,5 +1,6 @@
 package com.sd.lib.xlog
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assume.assumeTrue
@@ -10,6 +11,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
+import java.io.IOException
 import java.util.zip.ZipFile
 
 /** [LogDirectoryScopeImpl.logZipOf]、[inputStreamOrNull]、[listFilesOrNull]和[copyLimitedTo] */
@@ -154,6 +156,33 @@ class LogDirectoryScopeTest {
     }
 
     assertEquals(bytes.toList(), zip.readBytes().toList())
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
+  /** 已读取部分日志后打包失败，保留上次压缩包并删除本次临时文件 */
+  @Test
+  fun testReadErrorKeepPrevious() {
+    val dir = folder.newFolder()
+    val log = dir.createLog(DATE, "p")
+    log.writeText("x".repeat(DEFAULT_BUFFER_SIZE * 3))
+    val publisher = newPublisher(dir, process = "p")
+    val zip = checkNotNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    val bytes = zip.readBytes()
+    var readCount = 0
+    var copiedBytes = 0
+    val scope = LogDirectoryScopeImpl(publisher, openFile = { file ->
+      object : FileInputStream(file) {
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+          if (++readCount == 2) throw IOException("read error")
+          return super.read(b, off, len).also { copiedBytes += it }
+        }
+      }
+    })
+
+    assertNull(scope.logZipOf(DATE))
+    assertEquals(2, readCount)
+    assertEquals(DEFAULT_BUFFER_SIZE, copiedBytes)
+    assertArrayEquals(bytes, zip.readBytes())
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 

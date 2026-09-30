@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "xlog"
 include(":app")
 include(":lib")
+include(":test-app")

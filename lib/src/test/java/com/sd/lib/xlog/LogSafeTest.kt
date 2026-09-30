@@ -1,5 +1,6 @@
 package com.sd.lib.xlog
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -35,6 +36,32 @@ class LogSafeTest {
     publisher.publish(testLogRecord())
     publisher.onIdle()
     publisher.close()
+  }
+
+  /** 获取目录暂时失败后可以恢复写入，取到目录之后不再获取 */
+  @Test
+  fun testDirectoryRecovery() {
+    val dir = folder.newFolder()
+    var directoryCount = 0
+    val publisher = defaultLogPublisher(
+      processProvider = { null },
+      directoryProvider = { if (++directoryCount == 1) error("directory error") else dir },
+      filename = defaultLogFilename(),
+      formatter = defaultLogFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    ).safePublisher()
+
+    try {
+      publisher.publish(testLogRecord(msg = "lost"))
+      publisher.publish(testLogRecord(msg = "one"))
+      publisher.publish(testLogRecord(msg = "two"))
+
+      assertEquals(2, directoryCount)
+      val lines = dir.walkTopDown().first { it.isFile }.readLines()
+      assertEquals(listOf("one", "two"), lines.map { it.substringAfter("] ") })
+    } finally {
+      publisher.close()
+    }
   }
 
   /** 包装多次只包一层 */
