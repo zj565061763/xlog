@@ -6,11 +6,12 @@ import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileNotFoundException
 import java.util.zip.ZipFile
 
-/** [LogDirectoryScopeImpl.logZipOf]、[inputStreamOrNull]和[listFilesOrNull] */
+/** [LogDirectoryScopeImpl.logZipOf]、[inputStreamOrNull]、[listFilesOrNull]和[copyLimitedTo] */
 class LogDirectoryScopeTest {
   @get:Rule
   val folder = TemporaryFolder()
@@ -44,7 +45,32 @@ class LogDirectoryScopeTest {
 
     val zip = checkNotNull(LogDirectoryScopeImpl(newPublisher(dir, process = "p1")).logZipOf(DATE))
     assertEquals(listOf("${DATE}/p1/${DATE}.0.log", "${DATE}/p2/${DATE}.0.log"), zip.zipFileNames())
+    assertEquals("log\n", zip.zipEntryText("${DATE}/p2/${DATE}.0.log"))
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
+  /** 最多复制limit字节，提前读到末尾时停止 */
+  @Test
+  fun testCopyLimited() {
+    val bytes = ByteArray(20_000) { it.toByte() }
+    fun copy(limit: Long) = ByteArrayOutputStream().also { bytes.inputStream().copyLimitedTo(it, limit) }.toByteArray().toList()
+
+    assertEquals(emptyList<Byte>(), copy(0))
+    assertEquals(bytes.take(10_000), copy(10_000))
+    assertEquals(bytes.toList(), copy(30_000))
+  }
+
+  /** 其他进程在打开之后追加的内容不复制，否则写入不比压缩慢时一直读不完 */
+  @Test
+  fun testCopyAppended() {
+    val file = folder.newFile().apply { writeText("log\n") }
+    val out = ByteArrayOutputStream()
+    checkNotNull(file.inputStreamOrNull()).use { input ->
+      val size = input.channel.size()
+      file.appendText("new\n")
+      input.copyLimitedTo(out, size)
+    }
+    assertEquals("log\n", out.toString())
   }
 
   /** 日期不合法、没有该日期的日志目录时返回null */
@@ -158,4 +184,9 @@ private fun File.createLog(date: String, process: String): File {
 /** 压缩包里的文件条目，不包括目录，按名称排序 */
 private fun File.zipFileNames(): List<String> {
   return ZipFile(this).use { zip -> zip.entries().asSequence().filter { !it.isDirectory }.map { it.name }.sorted().toList() }
+}
+
+/** 压缩包里[name]条目的内容 */
+private fun File.zipEntryText(name: String): String {
+  return ZipFile(this).use { zip -> zip.getInputStream(zip.getEntry(name)).use { it.readBytes().decodeToString() } }
 }

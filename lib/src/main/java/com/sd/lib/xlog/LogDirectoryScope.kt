@@ -1,9 +1,11 @@
 package com.sd.lib.xlog
 
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -82,8 +84,10 @@ private fun compressFile(
       // 列出之后可能被其他进程删除，比如日志滚动或者清理日志，这种文件跳过
       val input = file.inputStreamOrNull() ?: return
       input.use { inputStream ->
+        // 其他进程可能还在追加，只复制打开时的长度，否则写入不比压缩慢时一直读不完
+        val size = inputStream.channel.size()
         outputStream.putNextEntry(ZipEntry(filename))
-        inputStream.copyTo(outputStream)
+        inputStream.copyLimitedTo(outputStream, size)
         outputStream.closeEntry()
       }
     }
@@ -104,12 +108,24 @@ private fun compressFile(
 }
 
 /** 打开文件，文件已经不存在时返回null，其他原因打开失败照常抛出 */
-internal fun File.inputStreamOrNull(): InputStream? {
+internal fun File.inputStreamOrNull(): FileInputStream? {
   return try {
     inputStream()
   } catch (e: FileNotFoundException) {
     if (exists()) throw e
     null
+  }
+}
+
+/** 最多复制[limit]字节到[out]，提前读到末尾时停止 */
+internal fun InputStream.copyLimitedTo(out: OutputStream, limit: Long) {
+  val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+  var remaining = limit
+  while (remaining > 0) {
+    val count = read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+    if (count < 0) break
+    out.write(buffer, 0, count)
+    remaining -= count
   }
 }
 
