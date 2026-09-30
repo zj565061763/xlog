@@ -46,12 +46,12 @@ class LogFormatterTest {
     )
   }
 
-  /** 关闭时重置状态，下一条日志不省略tag */
+  /** 重置状态之后，下一条日志不省略tag */
   @Test
-  fun testClose() {
+  fun testReset() {
     val formatter = defaultLogFormatter()
     formatter.format(testLogRecord(tag = "A", msg = "msg"))
-    (formatter as AutoCloseable).close()
+    formatter.reset()
     assertEquals("${_time}[A|I|1] msg\n", formatter.format(testLogRecord(tag = "A", msg = "msg")))
   }
 

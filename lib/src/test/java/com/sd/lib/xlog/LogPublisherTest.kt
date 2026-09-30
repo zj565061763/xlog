@@ -72,15 +72,15 @@ class LogPublisherTest {
     assertTrue("应该有写入失败", failures > 0)
   }
 
-  /** 轮换的时候格式化器关闭失败，不能中断轮换，否则会一直写回旧文件 */
+  /** 轮换的时候格式化器重置失败，不能中断轮换，否则会一直写回旧文件 */
   @Test
-  fun testFormatterCloseErrorOnRotate() {
+  fun testFormatterResetErrorOnRotate() {
     val dir = folder.newFolder()
     val publisher = defaultLogPublisher(
       processProvider = { null },
       directoryProvider = { dir },
       filename = defaultLogFilename(),
-      formatter = CloseErrorFormatter(),
+      formatter = ResetErrorFormatter(),
       storeFactory = { defaultLogStore(it) },
     )
 
@@ -147,7 +147,7 @@ class LogPublisherTest {
   @Test
   fun testSizeErrorResetFormatter() {
     val dir = folder.newFolder()
-    val formatter = CloseCountFormatter()
+    val formatter = ResetCountFormatter()
     var sizeCount = 0
     var storeCloseCount = 0
 
@@ -178,7 +178,7 @@ class LogPublisherTest {
 
     assertTrue(runCatching { publisher.publish(testLogRecord()) }.isFailure)
     assertEquals(1, storeCloseCount)
-    assertEquals(1, formatter.closeCount)
+    assertEquals(1, formatter.resetCount)
   }
 
   /** 获取进程名和目录可能有IPC或磁盘I/O，创建时不能获取，要等到调度线程上第一次用到 */
@@ -410,14 +410,14 @@ private fun File?.createZip(): File {
   return file
 }
 
-private class CloseErrorFormatter : FLogFormatter, AutoCloseable {
+private class ResetErrorFormatter : FLogFormatter {
   private val _formatter = defaultLogFormatter()
   override fun format(record: FLogRecord): String = _formatter.format(record)
-  override fun close() = error("close error")
+  override fun reset() = error("reset error")
 }
 
 /** 第[errorAt]次格式化时，先更新内部状态再抛异常 */
-private class FormatErrorFormatter(private val errorAt: Int) : FLogFormatter, AutoCloseable {
+private class FormatErrorFormatter(private val errorAt: Int) : FLogFormatter {
   private val _formatter = defaultLogFormatter()
   private var _count = 0
 
@@ -427,22 +427,22 @@ private class FormatErrorFormatter(private val errorAt: Int) : FLogFormatter, Au
     return log
   }
 
-  override fun close() {
-    (_formatter as AutoCloseable).close()
+  override fun reset() {
+    _formatter.reset()
   }
 }
 
-/** 记录[close]的调用次数 */
-private class CloseCountFormatter : FLogFormatter, AutoCloseable {
+/** 记录[reset]的调用次数 */
+private class ResetCountFormatter : FLogFormatter {
   private val _formatter = defaultLogFormatter()
 
-  var closeCount = 0
+  var resetCount = 0
     private set
 
   override fun format(record: FLogRecord): String = _formatter.format(record)
 
-  override fun close() {
-    closeCount++
-    (_formatter as AutoCloseable).close()
+  override fun reset() {
+    resetCount++
+    _formatter.reset()
   }
 }

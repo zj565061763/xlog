@@ -8,12 +8,13 @@
 - 取不到日志目录（返回 null）时，这次写日志、`deleteLog`、`logDirectory` 都不执行；取到之后本进程一直使用该目录
 - `fLogDir` 移除 `preferExternal` 参数，只返回外部存储的目录，外部存储不可用时返回 null
 - 默认日志目录不再回退到内部存储，外部存储不可用时不写日志文件，Logcat 照常输出
+- `FLogFormatter` 新增 `reset()` 用来重置状态，实现 `AutoCloseable` 的格式化器不再调用 `close()`
 
 ### 🐛 Bug Fixes
 
 - 日志目录读取失败时，`logZipOf` 返回缺少日志的压缩包，并替换上次的；现在返回 null，保留上次的压缩包
 - 自定义 `FLogFormatter` 的 `format()` 抛异常后，下一条相同 tag 的日志会省略 tag，看起来像属于上一个 tag
-- 设置了单日大小上限时，自定义 `FLogStore` 的 `size()` 抛异常会关闭日志文件，但不调用格式化器的 `close()` 重置状态
+- 设置了单日大小上限时，自定义 `FLogStore` 的 `size()` 抛异常会关闭日志文件，但不重置格式化器的状态
 - 开启 R8 混淆时，嵌套类、局部类 logger 的默认 tag 可能带上外部类名（例如 `Feature$Logger`），和未混淆时不一致
 - 日志切换时旧文件已被其他进程删除，Logcat 会误报删除失败
 - 私有进程（如 `com.example:worker`）和名为 `com.example_worker` 的全局进程会写进同一个日志文件，`init` 时还会清空对方的压缩包
@@ -28,6 +29,8 @@
 - 之前版本外部存储不可用时写到 `filesDir/sd.lib.xlog` 的日志和压缩包不再被清理，需要时手动删除
 - 私有进程的日志和压缩包目录名由 `com.example_worker` 改为 `com.example-worker`，按目录名识别进程的需要同步修改
 - 之前版本私有进程导出的压缩包不会再被 `init` 清空，需要时手动删除 `.zip/com.example_worker`
+- 格式化器在 `AutoCloseable.close()` 里重置状态的，改为重写 `reset()`
+- 用 Java 实现 `FLogFormatter` 的，需要实现 `reset()`，没有状态时留空
 
 ## 2.1.0
 
