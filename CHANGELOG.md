@@ -6,7 +6,7 @@
 
 - `FLogInitScope.setLogDirectory` 的参数由 `File` 改为获取目录的方法 `() -> File?`，在调度线程上调用
 - 取不到日志目录（返回 null）时，这次写日志、`deleteLog`、`logDirectory` 都不执行；取到之后本进程一直使用该目录
-- `fLogDir` 移除 `preferExternal` 参数，只返回外部存储的目录，外部存储不可用时返回 null
+- 移除 `fLogDir`
 - 默认日志目录不再回退到内部存储，外部存储不可用时不写日志文件，Logcat 照常输出
 - `FLogFormatter` 新增 `reset()` 用来重置状态，实现 `AutoCloseable` 的格式化器不再调用 `close()`
 
@@ -24,9 +24,8 @@
 ### Migration
 
 - `setLogDirectory(dir)` 改为 `setLogDirectory { dir }`
+- `fLogDir()` 改为 `getExternalFilesDir(null)?.resolve("sd.lib.xlog")`，外部存储不可用时为 null
 - `fLogDir(preferExternal = false)` 改为 `filesDir.resolve("sd.lib.xlog")`
-- 使用 `fLogDir()` 返回值的，需要处理返回 null 的情况
-- Java 调用 `LogDirKt.fLogDir` 的，改为 `UtilsKt.fLogDir`
 - 需要写到内部存储或 Direct Boot 期间可用的设备加密存储的，通过 `setLogDirectory` 返回对应目录
 - 之前版本外部存储不可用时写到 `filesDir/sd.lib.xlog` 的日志和压缩包不再被清理，需要时手动删除
 - 私有进程的日志和压缩包目录名由 `com.example_worker` 改为 `com.example-worker`，按目录名识别进程的需要同步修改

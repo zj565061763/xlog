@@ -7,15 +7,6 @@ import android.os.Build
 import android.os.Process
 import java.io.File
 
-/** 默认的日志目录，在外部存储的应用专属目录下，外部存储不可用时返回null */
-fun Context.fLogDir(
-  /** 日志目录名称 */
-  dirName: String = "sd.lib.xlog",
-): File? {
-  require(dirName.isNotEmpty()) { "dirName is empty" }
-  return getExternalFilesDir(null)?.resolve(dirName)
-}
-
 /** 当前进程名，系统接口出错或取不到时读取/proc/self/cmdline */
 internal fun Context.currentProcess(): String? {
   return processOf(

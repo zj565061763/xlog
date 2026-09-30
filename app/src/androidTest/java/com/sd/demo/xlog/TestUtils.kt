@@ -7,7 +7,6 @@ import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogMode
 import com.sd.lib.xlog.FLogger
-import com.sd.lib.xlog.fLogDir
 import org.junit.Assert.assertEquals
 import java.io.File
 import java.util.Calendar
@@ -48,7 +47,7 @@ fun resetLogDir(): File {
   FLog.setMaxMBPerDay(0)
   FLog.logDirectory { }
   awaitLogIdle()
-  return checkNotNull(testContext.fLogDir()).apply {
+  return checkNotNull(testContext.getExternalFilesDir(null)).resolve("sd.lib.xlog").apply {
     deleteRecursively()
     assertEquals(false, exists())
   }

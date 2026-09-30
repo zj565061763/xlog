@@ -68,7 +68,7 @@ object FLog {
 
       _publisher = defaultLogPublisher(
         processProvider = { appContext.currentProcess() },
-        directoryProvider = initScope.directory ?: { appContext.fLogDir() },
+        directoryProvider = initScope.directory ?: { appContext.getExternalFilesDir(null)?.resolve("sd.lib.xlog") },
         filename = defaultLogFilename(),
         formatter = initScope.formatter ?: defaultLogFormatter(),
         storeFactory = initScope.storeFactory ?: FLogStore.Factory { defaultLogStore(it) },

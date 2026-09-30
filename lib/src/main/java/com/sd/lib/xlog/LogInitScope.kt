@@ -5,7 +5,7 @@ import java.io.File
 /** 初始化配置，在[FLog.init]的block里调用 */
 interface FLogInitScope {
   /**
-   * 设置获取日志目录的方法，默认为[fLogDir]，在调度线程上调用。
+   * 设置获取日志目录的方法，在调度线程上调用，默认为外部存储`getExternalFilesDir(null)`下的sd.lib.xlog目录。
    * 返回null时取消这次操作（写日志、删除日志、访问目录），下次再获取；返回非null后本进程一直使用该目录。
    * 目录只能存放日志，[FLog.deleteLog]会删除其中不是日志的文件。
    */

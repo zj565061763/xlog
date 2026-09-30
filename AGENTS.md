@@ -41,9 +41,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 
 - 写入链路：`flogX` → `FLog.publishLog()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
-  - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`fLogDir()`
+  - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`getExternalFilesDir()`
 - 日志目录（`LogPublisherImpl.directory`）：
-  - 默认 `fLogDir()`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
+  - 默认 `getExternalFilesDir(null)/sd.lib.xlog`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
   - 在调度线程上获取，取到非 null 后缓存，本进程之后一直用它
   - 为 null 时取消这次操作：写日志丢弃，`deleteLog`、`logDirectory` 不执行，`init` 不清空压缩包
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
