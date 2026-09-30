@@ -26,6 +26,7 @@
 - `setLogDirectory(dir)` 改为 `setLogDirectory { dir }`
 - `fLogDir(preferExternal = false)` 改为 `filesDir.resolve("sd.lib.xlog")`
 - 使用 `fLogDir()` 返回值的，需要处理返回 null 的情况
+- Java 调用 `LogDirKt.fLogDir` 的，改为 `UtilsKt.fLogDir`
 - 需要写到内部存储或 Direct Boot 期间可用的设备加密存储的，通过 `setLogDirectory` 返回对应目录
 - 之前版本外部存储不可用时写到 `filesDir/sd.lib.xlog` 的日志和压缩包不再被清理，需要时手动删除
 - 私有进程的日志和压缩包目录名由 `com.example_worker` 改为 `com.example-worker`，按目录名识别进程的需要同步修改

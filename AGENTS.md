@@ -13,6 +13,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 | 路径 | 说明 |
 |---|---|
 | `lib/` | 发布的库，namespace `com.sd.lib.xlog`，`minSdk 21`，纯 Kotlin，运行时零依赖 |
+| `lib/src/main/java/com/sd/lib/xlog/Utils.kt` | 工具方法，新增的工具方法也放这里 |
 | `lib/src/test/` | JVM 单元测试 |
 | `app/` | 演示 App，`App.kt` 是初始化示例 |
 | `app/src/androidTest/` | instrumented 测试，公共工具在 `TestUtils.kt` |

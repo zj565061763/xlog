@@ -5,7 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** [processOf]、[processOfCmdline] */
-class LogDirTest {
+class UtilsTest {
   /** 系统接口取到时直接用，不读取cmdline */
   @Test
   fun testProcessOfSystem() {
