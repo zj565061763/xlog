@@ -18,6 +18,7 @@
 - 开启 R8 混淆时，嵌套类、局部类 logger 的默认 tag 可能带上外部类名（例如 `Feature$Logger`），和未混淆时不一致
 - 日志切换时旧文件已被其他进程删除，Logcat 会误报删除失败
 - 私有进程（如 `com.example:worker`）和名为 `com.example_worker` 的全局进程会写进同一个日志文件，`init` 时还会清空对方的压缩包
+- Android 7.0–8.1 获取进程名出错时，日志不写入文件，`logZipOf` 抛出异常；现在改为读取 `/proc/self/cmdline` 获取进程名
 - 其他进程持续写日志时，`logZipOf` 会一直读取新写入的内容，打包变慢甚至不结束，期间本进程的日志排队等待写入；现在每个文件只打包开始读取时已有的内容
 
 ### Migration

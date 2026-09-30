@@ -56,6 +56,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
     - 不要改回 `_`：全局进程名可以含 `_`，`com.example:worker` 和 `com.example_worker` 会共用目录，日志混写，`init` 还会清空对方的压缩包
     - 2.1.0 及之前私有进程的压缩包目录（如 `.zip/com.example_worker`）不清理，分不清它属于旧版本还是同名的全局进程
   - 系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层
+    - 系统接口出错时要捕获后继续读 cmdline：Android 7.0–8.1 的 `runningAppProcesses` 会抛异常，进程名懒加载失败会每次重试，日志一直写不进文件
   - 进程名含 `/` 或者是 `.`、`..` 时按取不到处理，否则会跳出日志目录，`init` 清空压缩包时还会删到别处
 - 日志滚动（`DateLogHandler`）：
   - 当前文件达到 `maxBytePerDay` 的一半时关闭，序号加一继续写，并删除当前和上一个序号之外的旧文件；所以最多两个文件，总量约等于上限
