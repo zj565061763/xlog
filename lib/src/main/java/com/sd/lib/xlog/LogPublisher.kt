@@ -120,10 +120,14 @@ private class LogPublisherImpl(
     return checkNotNull(_handler)
   }
 
-  /** 按进程名分子目录，取不到进程名时不分 */
+  /**
+   * 按进程名分子目录，取不到进程名时不分。
+   * :在FAT文件名里不合法，替换为进程名里不会出现的-；
+   * 不能替换为_，全局进程名可以含_，com.example:worker会和com.example_worker共用目录。
+   */
   private fun File.resolveProcess(): File {
     val process = _process
-    return if (process.isNullOrEmpty()) this else resolve(process.replace(":", "_"))
+    return if (process.isNullOrEmpty()) this else resolve(process.replace(":", "-"))
   }
 }
 

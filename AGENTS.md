@@ -47,7 +47,10 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 文件路径：
   - 日志：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.<seq>.log`
   - 压缩包：`<dir>/.zip/<process>/<yyyyMMdd>.zip`
-  - `<process>` 是进程名，`:` 替换为 `_`
+  - `<process>` 是进程名，`:` 替换为 `-`
+    - `:` 在 FAT 文件名里不合法，`-` 合法，而且合法的进程名里不会出现
+    - 不要改回 `_`：全局进程名可以含 `_`，`com.example:worker` 和 `com.example_worker` 会共用目录，日志混写，`init` 还会清空对方的压缩包
+    - 2.1.0 及之前私有进程的压缩包目录（如 `.zip/com.example_worker`）不清理，分不清它属于旧版本还是同名的全局进程
   - 系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层
   - 进程名含 `/` 或者是 `.`、`..` 时按取不到处理，否则会跳出日志目录，`init` 清空压缩包时还会删到别处
 - 日志滚动（`DateLogHandler`）：

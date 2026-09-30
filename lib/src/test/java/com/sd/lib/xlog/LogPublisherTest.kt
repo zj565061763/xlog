@@ -279,7 +279,7 @@ class LogPublisherTest {
     assertTrue(nextLines[0], nextLines[0].contains("[T|"))
   }
 
-  /** 日志按进程名分子目录，进程名里的:替换为_ */
+  /** 日志按进程名分子目录，进程名里的:替换为- */
   @Test
   fun testProcessDir() {
     val dir = folder.newFolder()
@@ -288,7 +288,24 @@ class LogPublisherTest {
 
     newPublisher(dir, process = "com.sd.demo:remote").publish(testLogRecord())
 
-    assertEquals(true, dir.resolve(date).resolve("com.sd.demo_remote").resolve(filename.logNameOf(date, 0)).isFile)
+    assertEquals(true, dir.resolve(date).resolve("com.sd.demo-remote").resolve(filename.logNameOf(date, 0)).isFile)
+  }
+
+  /** 私有进程和名字相近的全局进程不能共用目录，否则日志混写，init时还会清空对方的压缩包 */
+  @Test
+  fun testProcessDirConflict() {
+    val dir = folder.newFolder()
+    val date = defaultLogFilename().dateOf(RECORD_MILLIS)
+    val privateProcess = newPublisher(dir, process = "com.sd.demo:remote")
+    val globalProcess = newPublisher(dir, process = "com.sd.demo_remote")
+
+    privateProcess.publish(testLogRecord())
+    globalProcess.publish(testLogRecord())
+    assertEquals(listOf("com.sd.demo-remote", "com.sd.demo_remote"), dir.resolve(date).list()?.sorted())
+
+    val globalZip = globalProcess.zipFileOf(date).createZip()
+    privateProcess.deleteZipDirectory(dir)
+    assertEquals(true, globalZip.exists())
   }
 
   /** 进程名含路径分隔符或者是.和..时会跳出所在目录，按取不到进程名处理 */

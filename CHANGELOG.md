@@ -10,6 +10,12 @@
 - 外部存储暂时不可用时，默认目录的日志会写到内部存储，之后不会被 `deleteLog` 清理
 - 外部存储暂时不可用期间导出的压缩包，之后的 `init` 不会清空
 - 日志切换时旧文件已被其他进程删除，Logcat 会误报删除失败
+- 私有进程（如 `com.example:worker`）和名为 `com.example_worker` 的全局进程会写进同一个日志文件，`init` 时还会清空对方的压缩包
+
+### Migration
+
+- 私有进程的日志和压缩包目录名由 `com.example_worker` 改为 `com.example-worker`，按目录名识别进程的需要同步修改
+- 之前版本私有进程导出的压缩包不会再被 `init` 清空，需要时手动删除 `.zip/com.example_worker`
 
 ## 2.1.0
 
