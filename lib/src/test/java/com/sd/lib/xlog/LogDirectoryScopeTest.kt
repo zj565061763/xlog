@@ -8,6 +8,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.util.zip.ZipFile
 
@@ -60,17 +61,17 @@ class LogDirectoryScopeTest {
     assertEquals(bytes.toList(), copy(30_000))
   }
 
-  /** 其他进程在打开之后追加的内容不复制，否则写入不比压缩慢时一直读不完 */
+  /** 打包期间其他进程追加的内容不打包，否则写入不比压缩慢时一直读不完 */
   @Test
-  fun testCopyAppended() {
-    val file = folder.newFile().apply { writeText("log\n") }
-    val out = ByteArrayOutputStream()
-    checkNotNull(file.inputStreamOrNull()).use { input ->
-      val size = input.channel.size()
-      file.appendText("new\n")
-      input.copyLimitedTo(out, size)
-    }
-    assertEquals("log\n", out.toString())
+  fun testZipAppended() {
+    val dir = folder.newFolder()
+    val log = dir.createLog(DATE, "p")
+    val scope = LogDirectoryScopeImpl(newPublisher(dir, process = "p"), openFile = { AppendOnReadInputStream(it) })
+
+    val zip = checkNotNull(scope.logZipOf(DATE))
+    // 确认读取时确实追加了，否则这个测试什么也没验证
+    assertEquals("log\nnew\n", log.readText())
+    assertEquals("log\n", zip.zipEntryText("${DATE}/p/${DATE}.0.log"))
   }
 
   /** 日期不合法、没有该日期的日志目录时返回null */
@@ -184,6 +185,32 @@ private fun File.createLog(date: String, process: String): File {
 /** 压缩包里的文件条目，不包括目录，按名称排序 */
 private fun File.zipFileNames(): List<String> {
   return ZipFile(this).use { zip -> zip.entries().asSequence().filter { !it.isDirectory }.map { it.name }.sorted().toList() }
+}
+
+/** 第一次读取前往文件追加一行，模拟打包期间其他进程还在写 */
+private class AppendOnReadInputStream(private val file: File) : FileInputStream(file) {
+  private var _appended = false
+
+  override fun read(): Int {
+    appendOnce()
+    return super.read()
+  }
+
+  override fun read(b: ByteArray): Int {
+    appendOnce()
+    return super.read(b)
+  }
+
+  override fun read(b: ByteArray, off: Int, len: Int): Int {
+    appendOnce()
+    return super.read(b, off, len)
+  }
+
+  private fun appendOnce() {
+    if (_appended) return
+    _appended = true
+    file.appendText("new\n")
+  }
 }
 
 /** 压缩包里[name]条目的内容 */

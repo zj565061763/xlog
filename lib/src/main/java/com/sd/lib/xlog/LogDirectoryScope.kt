@@ -24,6 +24,8 @@ interface FLogDirectoryScope {
 
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
+  /** 打开要打包的文件，测试时替换成打包期间会被追加的文件 */
+  private val openFile: (File) -> FileInputStream? = { it.inputStreamOrNull() },
 ) : FLogDirectoryScope {
   @Volatile
   private var _destroyed = false
@@ -41,7 +43,7 @@ internal class LogDirectoryScopeImpl(
     if (!dateDir.isDirectory) return null
 
     val zipFile = publisher.zipFileOf(date)
-    if (zip(source = dateDir, target = zipFile) && zipFile.exists()) return zipFile
+    if (zip(source = dateDir, target = zipFile, openFile = openFile) && zipFile.exists()) return zipFile
     libLog("log zip ${zipFile.name} failed")
     return null
   }
@@ -51,7 +53,7 @@ internal class LogDirectoryScopeImpl(
   }
 }
 
-private fun zip(source: File, target: File): Boolean {
+private fun zip(source: File, target: File, openFile: (File) -> FileInputStream?): Boolean {
   /**
    * 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的。
    * 临时文件名随机生成，取不到进程名时多个进程共用压缩包目录，同时打包同一日期不会互相覆盖。
@@ -61,7 +63,7 @@ private fun zip(source: File, target: File): Boolean {
     target.parentFile?.mkdirs()
     tempFile = File.createTempFile("${target.name}.", ".tmp", target.parentFile)
     ZipOutputStream(tempFile.outputStream().buffered()).use { outputStream ->
-      compressFile(file = source, filename = source.name, outputStream = outputStream)
+      compressFile(file = source, filename = source.name, outputStream = outputStream, openFile = openFile)
     }
     if (target.isDirectory) target.deleteRecursively()
     return tempFile.renameTo(target)
@@ -78,11 +80,12 @@ private fun compressFile(
   file: File,
   filename: String,
   outputStream: ZipOutputStream,
+  openFile: (File) -> FileInputStream?,
 ) {
   when {
     file.isFile -> {
       // 列出之后可能被其他进程删除，比如日志滚动或者清理日志，这种文件跳过
-      val input = file.inputStreamOrNull() ?: return
+      val input = openFile(file) ?: return
       input.use { inputStream ->
         // 其他进程可能还在追加，只复制打开时的长度，否则写入不比压缩慢时一直读不完
         val size = inputStream.channel.size()
@@ -101,6 +104,7 @@ private fun compressFile(
           file = item,
           filename = "${filename}/${item.name}",
           outputStream = outputStream,
+          openFile = openFile,
         )
       }
     }
