@@ -35,6 +35,10 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - `FLogger.lv/ld/li/lw/le { "msg" }`（`LoggerApi.kt`）
   - 消息 block 惰性求值，等级不满足时不执行
 - 扩展点在 `FLogInitScope`（`FLog.init {}` 里设置）：日志目录、`FLogFormatter`、`FLogStore.Factory`、`FLogDispatcher`。
+  - 扩展点里打印日志会循环，KDoc 已写明禁止，不要删掉
+  - 获取目录的方法：取不到目录时每条日志都会调用它，它打印的日志又会调用它，调度线程空转，队列排不空，`onIdle` 不再触发
+  - 格式化器、仓库：每条日志都会触发下一条
+  - 调度器：`dispatch` 里打印日志会同步递归，直到栈溢出
 
 ## 关键架构
 

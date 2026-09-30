@@ -25,7 +25,10 @@ import java.util.concurrent.atomic.AtomicInteger
  * 出现文件句柄泄漏、文件大小统计错乱进而[FLog.setMaxMBPerDay]失效等问题。
  */
 fun interface FLogDispatcher {
-  /** 提交任务[task]，不能抛异常，执行要求见[FLogDispatcher] */
+  /**
+   * 提交任务[task]，执行要求见[FLogDispatcher]。
+   * 不能抛异常；也不能打印日志，否则会递归调用直到栈溢出。
+   */
   fun dispatch(task: Runnable)
 }
 

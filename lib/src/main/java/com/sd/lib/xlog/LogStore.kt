@@ -9,6 +9,7 @@ import java.io.OutputStream
  *
  * 所有方法都在调度线程上调用。
  * [close]之后仍可能继续调用[append]，实现需要支持重新打开。
+ * 不要在里面打印日志，否则会一直循环调用。
  */
 interface FLogStore {
   /** 追加日志 */
