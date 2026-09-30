@@ -74,6 +74,45 @@ class LogDirectoryScopeTest {
     assertEquals("log\n", zip.zipEntryText("${DATE}/p/${DATE}.0.log"))
   }
 
+  /**
+   * 打开之后被其他进程删除的文件，照样打包打开时的内容。
+   * 长度要从句柄取，用file.length()会得到0。
+   */
+  @Test
+  fun testZipDeletedAfterOpen() {
+    val dir = folder.newFolder()
+    val log = dir.createLog(DATE, "p")
+    val scope = LogDirectoryScopeImpl(
+      newPublisher(dir, process = "p"),
+      openFile = { file -> file.inputStreamOrNull()?.also { file.delete() } },
+    )
+
+    val zip = checkNotNull(scope.logZipOf(DATE))
+    // 确认打开之后确实删除了，否则这个测试什么也没验证
+    assertEquals(false, log.exists())
+    assertEquals("log\n", zip.zipEntryText("${DATE}/p/${DATE}.0.log"))
+  }
+
+  /** 列出之后、打开之前被其他进程删除的文件跳过，其他文件照常打包 */
+  @Test
+  fun testZipSkipDeleted() {
+    val dir = folder.newFolder()
+    val deleted = dir.createLog(DATE, "p1")
+    dir.createLog(DATE, "p2")
+    val scope = LogDirectoryScopeImpl(
+      newPublisher(dir, process = "p1"),
+      openFile = { file ->
+        if (file == deleted) file.delete()
+        file.inputStreamOrNull()
+      },
+    )
+
+    val zip = checkNotNull(scope.logZipOf(DATE))
+    // 确认打开前确实删除了，否则这个测试什么也没验证
+    assertEquals(false, deleted.exists())
+    assertEquals(listOf("${DATE}/p2/${DATE}.0.log"), zip.zipFileNames())
+  }
+
   /** 日期不合法、没有该日期的日志目录时返回null */
   @Test
   fun testInvalidDate() {

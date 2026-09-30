@@ -31,6 +31,21 @@ class LogTest {
     assertThrows(IllegalArgumentException::class.java) { FLog.isLoggable(FLogLevel.Off, null) }
   }
 
+  /** 配置的等级覆盖全局等级，比全局等级严格时也按配置判断 */
+  @Test
+  fun testConfigLevel() {
+    // 未初始化时全局等级是默认的All
+    assertEquals(FLogLevel.All, FLog.level)
+
+    val config = FLoggerConfig(level = FLogLevel.Warning)
+    assertEquals(false, FLog.isLoggable(FLogLevel.Info, config))
+    assertEquals(true, FLog.isLoggable(FLogLevel.Warning, config))
+    assertEquals(false, FLog.isLoggable(FLogLevel.Error, FLoggerConfig(level = FLogLevel.Off)))
+
+    // 配置里没有等级时按全局等级
+    assertEquals(true, FLog.isLoggable(FLogLevel.Verbose, FLoggerConfig(tag = "tag")))
+  }
+
   /** 系统接口取到时直接用，不读取cmdline */
   @Test
   fun testProcessOfSystem() {
