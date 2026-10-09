@@ -41,6 +41,8 @@ internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
   /** 打开要打包的文件，测试时替换成打包期间会被追加的文件 */
   private val openFile: (File) -> FileInputStream? = { it.inputStreamOrNull() },
+  /** 打开压缩包的临时文件，测试时替换成写入会失败的流 */
+  private val openOutput: (File) -> OutputStream = { it.outputStream() },
 ) : FLogDirectoryScope {
   @Volatile
   private var _destroyed = false
@@ -58,7 +60,8 @@ internal class LogDirectoryScopeImpl(
     if (!dateDir.isDirectory) return null
 
     val zipFile = publisher.zipFileOf(date) ?: return null
-    if (zip(source = dateDir, target = zipFile, openFile = openFile) && zipFile.exists()) return zipFile
+    val zipped = zip(source = dateDir, target = zipFile, openFile = openFile, openOutput = openOutput)
+    if (zipped && zipFile.exists()) return zipFile
     libLog("log zip ${zipFile.name} failed")
     return null
   }
@@ -68,17 +71,30 @@ internal class LogDirectoryScopeImpl(
   }
 }
 
-private fun zip(source: File, target: File, openFile: (File) -> FileInputStream?): Boolean {
+private fun zip(
+  source: File,
+  target: File,
+  openFile: (File) -> FileInputStream?,
+  openOutput: (File) -> OutputStream,
+): Boolean {
   /**
    * 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的。
    * 临时文件名随机生成，取不到进程名时多个进程共用压缩包目录，同时打包同一日期不会互相覆盖。
    */
   var tempFile: File? = null
   try {
+    // 目录在调用方检查之后可能被其他进程删除，这时按打包失败处理，不生成没有任何条目的压缩包
+    val items = source.listFilesOrNull() ?: return false
     target.parentFile?.mkdirs()
     tempFile = File.createTempFile("${target.name}.", ".tmp", target.parentFile)
-    ZipOutputStream(tempFile.outputStream().buffered()).use { outputStream ->
-      compressFile(file = source, filename = source.name, outputStream = outputStream, openFile = openFile)
+    /**
+     * 文件流单独关闭，不能只靠[ZipOutputStream]关闭：
+     * 写入失败时，它关闭前的收尾写入会再次抛异常，不再关闭底层的流，句柄要等GC才释放。
+     */
+    openOutput(tempFile).use { output ->
+      ZipOutputStream(output.buffered()).use { outputStream ->
+        compressDirectory(items = items, filename = source.name, outputStream = outputStream, openFile = openFile)
+      }
     }
     if (target.isDirectory) target.deleteRecursively()
     return tempFile.renameTo(target)
@@ -110,19 +126,29 @@ private fun compressFile(
       }
     }
 
-    file.isDirectory -> {
-      outputStream.putNextEntry(ZipEntry("${filename}/"))
-      outputStream.closeEntry()
-      // 列出之前可能被其他进程删除，这种目录跳过
-      file.listFilesOrNull()?.forEach { item ->
-        compressFile(
-          file = item,
-          filename = "${filename}/${item.name}",
-          outputStream = outputStream,
-          openFile = openFile,
-        )
-      }
+    // 列出之前可能被其他进程删除，这种目录跳过
+    file.isDirectory -> file.listFilesOrNull()?.also { items ->
+      compressDirectory(items = items, filename = filename, outputStream = outputStream, openFile = openFile)
     }
+  }
+}
+
+/** 写入目录[filename]的条目，再打包目录里的[items] */
+private fun compressDirectory(
+  items: Array<File>,
+  filename: String,
+  outputStream: ZipOutputStream,
+  openFile: (File) -> FileInputStream?,
+) {
+  outputStream.putNextEntry(ZipEntry("${filename}/"))
+  outputStream.closeEntry()
+  items.forEach { item ->
+    compressFile(
+      file = item,
+      filename = "${filename}/${item.name}",
+      outputStream = outputStream,
+      openFile = openFile,
+    )
   }
 }
 

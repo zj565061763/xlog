@@ -47,7 +47,7 @@ class LogPublisherTest {
     }
   }
 
-  /** 调小上限后下一条日志就切换，超限的旧文件保留到下次切换才删除；上限设为0后不再切换 */
+  /** 调小上限后下一条日志就切换，超限的旧文件保留到下次切换才删除；上限设为0或负数后不再切换 */
   @Test
   fun testMaxByteChange() {
     val dir = folder.newFolder()
@@ -81,6 +81,12 @@ class LogPublisherTest {
       repeat(10) { publisher.publish(testLogRecord()) }
       assertEquals(listOf(filename.logNameOf(date, 1), filename.logNameOf(date, 2)), dir.logNames())
       assertEquals(11, logDir.resolve(filename.logNameOf(date, 2)).readLines().size)
+
+      // 负数同样表示不限制
+      publisher.setMaxBytePerDay(-1)
+      repeat(10) { publisher.publish(testLogRecord()) }
+      assertEquals(listOf(filename.logNameOf(date, 1), filename.logNameOf(date, 2)), dir.logNames())
+      assertEquals(21, logDir.resolve(filename.logNameOf(date, 2)).readLines().size)
     } finally {
       publisher.close()
     }
@@ -385,6 +391,43 @@ class LogPublisherTest {
       val lines = dir.walkTopDown().first { it.isFile }.readLines()
       assertEquals(2, lines.size)
       assertTrue(lines[1], lines[1].contains("[B|"))
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 写入失败之后关闭仓库，下一条日志重新打开再写入 */
+  @Test
+  fun testAppendErrorCloseStore() {
+    val dir = folder.newFolder()
+    var appendCount = 0
+    var closeCount = 0
+
+    val publisher = newPublisher(dir) { file ->
+      val store = defaultLogStore(file)
+      object : FLogStore by store {
+        override fun append(log: String) {
+          // 第2条日志写入失败
+          if (++appendCount == 2) error("append error")
+          store.append(log)
+        }
+
+        override fun close() {
+          closeCount++
+          store.close()
+        }
+      }
+    }
+
+    try {
+      publisher.publish(testLogRecord(msg = "one"))
+      assertEquals(0, closeCount)
+      assertThrows(IllegalStateException::class.java) { publisher.publish(testLogRecord(msg = "lost")) }
+      assertEquals(1, closeCount)
+
+      publisher.publish(testLogRecord(msg = "two"))
+      val lines = dir.walkTopDown().first { it.isFile }.readLines()
+      assertEquals(listOf("one", "two"), lines.map { it.substringAfter("] ") })
     } finally {
       publisher.close()
     }

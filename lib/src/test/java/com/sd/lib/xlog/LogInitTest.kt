@@ -77,8 +77,8 @@ class LogInitTest {
     FLog.setLevel(FLogLevel.Off)
     assertTrue(dispatcher.await())
     assertEquals(1, formatter.resetCount)
-    // 全局等级为Off时兼容方法也忽略配置
-    assertFalse(FLog.isLoggable(InitLogger::class.java, FLogLevel.Error))
+    // 全局等级为Off时兼容方法也忽略配置的等级
+    assertFalse(FLog.isLoggable(LevelLogger::class.java, FLogLevel.Error))
 
     // 访问目录拿到的是设置的目录，能打包
     FLog.setLevel(FLogLevel.All)

@@ -83,6 +83,9 @@ class LogTest {
     // 内容为空时取不到
     assertNull(processOfCmdline(""))
     assertNull(processOfCmdline("\u0000"))
+    // 前后的空白不算进程名，只有空白时取不到
+    assertEquals("com.sd.demo.xlog", processOfCmdline(" com.sd.demo.xlog\n\u0000"))
+    assertNull(processOfCmdline(" \n\u0000"))
   }
 }
 

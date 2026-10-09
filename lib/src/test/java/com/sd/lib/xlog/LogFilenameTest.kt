@@ -95,6 +95,7 @@ class LogFilenameTest {
     assertEquals(1, _filename.diffDays("19000301", "19000228"))
     // 能被400整除，是闰年
     assertEquals(2, _filename.diffDays("20000301", "20000228"))
+    assertEquals(1, _filename.diffDays("20000301", "20000229"))
   }
 
   /** 0000年的1、2月在算法里归到上一年，年份变成负数；0000年是闰年 */
@@ -198,6 +199,9 @@ class LogFilenameTest {
     assertNull(_filename.diffDays("20231125", "20230230"))
     // 平年没有2月29号
     assertNull(_filename.diffDays("20231125", "20230229"))
+    // 能被100整除但不能被400整除，不是闰年
+    assertNull(_filename.diffDays("20231125", "19000229"))
+    assertNull(_filename.diffDays("20231125", "21000229"))
     // 第一个参数不合法
     assertNull(_filename.diffDays("2023112a", "20231125"))
   }

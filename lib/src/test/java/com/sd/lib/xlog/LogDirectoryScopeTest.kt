@@ -12,7 +12,9 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.io.OutputStream
 import java.util.zip.ZipFile
+import kotlin.random.Random
 
 /** [LogDirectoryScopeImpl.logZipOf]、[accessDirectory]、[inputStreamOrNull]、[listFilesOrNull]和[copyLimitedTo] */
 class LogDirectoryScopeTest {
@@ -214,17 +216,40 @@ class LogDirectoryScopeTest {
     assertEquals(listOf("${DATE}/p2/${DATE}.0.log"), zip.zipFileNames())
   }
 
-  /** 日期不合法、没有该日期的日志目录时返回null */
+  /** 日期不合法时返回null，即使有同名的目录；没有该日期的日志目录时也返回null */
   @Test
   fun testInvalidDate() {
     val dir = folder.newFolder()
     dir.createLog(DATE, "p")
     val scope = LogDirectoryScopeImpl(newPublisher(dir, process = "p"))
 
-    for (date in listOf("", "2023112", "202311250", "2023112a", "abcdefgh")) {
+    // 给不合法的日期也建好目录，确认是被校验拦下的，而不是因为目录不存在
+    for (date in listOf("2023112", "202311250", "2023112a", "abcdefgh", "２０２３１１２５")) {
+      dir.createLog(date, "p")
       assertNull(date, scope.logZipOf(date))
     }
+    assertNull(scope.logZipOf(""))
     assertNull(scope.logZipOf("20231126"))
+  }
+
+  /** 日期目录在检查之后被其他进程删除，返回null，不生成没有任何条目的压缩包 */
+  @Test
+  fun testDirectoryDeletedBeforeZip() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val real = newPublisher(dir, process = "p")
+    val publisher = object : DirectoryLogPublisher by real {
+      // 取压缩包路径在目录检查之后、打包之前，在这里删除目录
+      override fun zipFileOf(date: String): File? {
+        dir.resolve(date).deleteRecursively()
+        return real.zipFileOf(date)
+      }
+    }
+
+    assertNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    // 确认目录确实删除了，否则这个测试什么也没验证
+    assertEquals(false, dir.resolve(DATE).exists())
+    assertEquals(false, real.zipFileOf(DATE)?.parentFile?.exists())
   }
 
   /** 离开[FLog.logDirectory]之后返回null */
@@ -281,6 +306,27 @@ class LogDirectoryScopeTest {
     assertNull(scope.logZipOf(DATE))
     assertEquals(2, readCount)
     assertEquals(DEFAULT_BUFFER_SIZE, copiedBytes)
+    assertArrayEquals(bytes, zip.readBytes())
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
+  /** 写入压缩包失败时关闭文件流，返回null，保留上次的压缩包，不留下临时文件 */
+  @Test
+  fun testWriteErrorCloseOutput() {
+    val dir = folder.newFolder()
+    // 随机内容压缩不了，写入量超过缓冲区，写到一半就失败
+    dir.createLog(DATE, "p").writeBytes(Random(0).nextBytes(100_000))
+    val publisher = newPublisher(dir, process = "p")
+    val zip = checkNotNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    val bytes = zip.readBytes()
+
+    var output: FailingOutputStream? = null
+    val scope = LogDirectoryScopeImpl(publisher, openOutput = {
+      FailingOutputStream(failAfter = 20_000).also { output = it }
+    })
+
+    assertNull(scope.logZipOf(DATE))
+    assertEquals(true, output?.closed)
     assertArrayEquals(bytes, zip.readBytes())
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
@@ -400,6 +446,28 @@ private class AppendOnReadInputStream(private val file: File) : FileInputStream(
     if (_appended) return
     _appended = true
     file.appendText("new\n")
+  }
+}
+
+/** 写入超过[failAfter]字节之后一直失败，模拟磁盘写满 */
+private class FailingOutputStream(private val failAfter: Int) : OutputStream() {
+  private var _count = 0
+
+  var closed = false
+    private set
+
+  override fun write(b: Int) {
+    if (_count >= failAfter) throw IOException("disk full")
+    _count++
+  }
+
+  override fun write(b: ByteArray, off: Int, len: Int) {
+    if (_count + len > failAfter) throw IOException("disk full")
+    _count += len
+  }
+
+  override fun close() {
+    closed = true
   }
 }
 
