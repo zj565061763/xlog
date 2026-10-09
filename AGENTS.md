@@ -116,6 +116,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 默认 tag 从类名推算，不要改回 `simpleName`。
   - `simpleName` 依赖内部类信息，外部类没被 keep 时 R8 会移除它，嵌套类、局部类的 tag 会带上外部类名
   - 加 `-keepattributes InnerClasses` 也没用：AGP 默认配置已经有这一条
+  - 每条日志都重新推算，不缓存：缓存会一直占用内存，几次字符串操作的开销可以接受
 - Logcat 单条日志超过约 4KB 会被系统截断，这是平台限制，不分段输出。
   - 日志文件里是完整内容
 - 打包时列出的条目读不到属性（比如所在目录没有执行权限），`isFile`、`isDirectory`、`exists()` 都返回 false，会按已删除跳过，不让打包失败。
