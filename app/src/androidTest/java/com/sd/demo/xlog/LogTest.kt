@@ -12,6 +12,11 @@ import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
 import com.sd.lib.xlog.l
+import com.sd.lib.xlog.ld
+import com.sd.lib.xlog.le
+import com.sd.lib.xlog.li
+import com.sd.lib.xlog.lv
+import com.sd.lib.xlog.lw
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -62,6 +67,21 @@ class LogTest {
     assertEquals("", logResult<AppLogger>())
   }
 
+  /** [FLogger]扩展API同样按全局等级过滤 */
+  @Test
+  fun testLoggerApiLevel() {
+    val logger = object : TestLogger {}
+
+    FLog.setLevel(FLogLevel.All)
+    assertEquals("vdiwe", logger.loggerResult())
+
+    FLog.setLevel(FLogLevel.Warning)
+    assertEquals("we", logger.loggerResult())
+
+    FLog.setLevel(FLogLevel.Off)
+    assertEquals("", logger.loggerResult())
+  }
+
   /** 用All或Off打印日志时抛IllegalArgumentException，[FLogger]扩展API同样 */
   @Test
   fun testIllegalLevel() {
@@ -94,6 +114,32 @@ private inline fun <reified T : FLogger> logResult(): String {
     ""
   }
   flogE<T> {
+    result += "e"
+    ""
+  }
+  return result
+}
+
+/** 用[FLogger]扩展API依次打印V/D/I/W/E日志，返回执行了消息block的等级，block返回空串，不会真正写日志 */
+private fun FLogger.loggerResult(): String {
+  var result = ""
+  lv {
+    result += "v"
+    ""
+  }
+  ld {
+    result += "d"
+    ""
+  }
+  li {
+    result += "i"
+    ""
+  }
+  lw {
+    result += "w"
+    ""
+  }
+  le {
     result += "e"
     ""
   }

@@ -628,6 +628,64 @@ class LogPublisherTest {
     }
   }
 
+  /** 进程目录里不是日志的文件不参与序号扫描，轮换时也不删除 */
+  @Test
+  fun testIgnoreNonLogFile() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date).apply { mkdirs() }
+    // 旧版本的分片文件和其他文件，名字里的数字比当前序号大，不能被当作序号
+    val others = listOf("${date}.log.9", "${date}.9.zip", "notes.txt").map { logDir.resolve(it).apply { writeText("other\n") } }
+    // 上一次运行已经写到200字节，再写一条就超过一半上限
+    logDir.resolve(filename.logNameOf(date, 0)).writeText("0".repeat(199) + "\n")
+
+    val publisher = newPublisher(dir)
+    publisher.setMaxBytePerDay(400)
+
+    try {
+      // 第1条写进序号0后切换，第2到5条写满序号1后切换并删除序号0，第6条写进序号2
+      repeat(6) { publisher.publish(testLogRecord()) }
+      assertEquals(listOf(1, 2).map { filename.logNameOf(date, it) }, logDir.logNamesOf(filename))
+      assertEquals(listOf("other\n", "other\n", "other\n"), others.map { it.readText() })
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 刚切换、新文件还没创建时关闭再打开，扫描到的最大序号仍是写满的文件，往里多写一条再切换 */
+  @Test
+  fun testCloseAfterRotate() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date)
+    val publisher = newPublisher(dir)
+    publisher.setMaxBytePerDay(400)
+
+    try {
+      // 4条写满序号0并切换，序号1还没创建
+      repeat(4) { publisher.publish(testLogRecord()) }
+      publisher.close()
+      assertEquals(listOf(filename.logNameOf(date, 0)), dir.logNames())
+
+      // 重新打开后接着序号0写，首条带tag，写完再次切换
+      publisher.publish(testLogRecord(msg = "extra"))
+      assertEquals(listOf(filename.logNameOf(date, 0)), dir.logNames())
+      val lines = logDir.resolve(filename.logNameOf(date, 0)).readLines()
+      assertEquals(5, lines.size)
+      assertTrue(lines[4], lines[4].contains("[T|"))
+      assertTrue(lines[4], lines[4].endsWith("] extra"))
+
+      publisher.publish(testLogRecord(msg = "next"))
+      assertEquals(listOf(filename.logNameOf(date, 0), filename.logNameOf(date, 1)), dir.logNames())
+      val text = logDir.resolve(filename.logNameOf(date, 1)).readText()
+      assertTrue(text, text.endsWith("] next\n"))
+    } finally {
+      publisher.close()
+    }
+  }
+
   /** 跨天时写到新日期的目录，新文件的第一条日志不能省略tag */
   @Test
   fun testDateChange() {
@@ -743,6 +801,11 @@ private fun File.logNames(): List<String> {
   return walkTopDown().filter { it.isFile }.map { it.name }
     .sortedBy { filename.seqOf(it) }
     .toList()
+}
+
+/** 目录下直接存放的日志文件名，按序号排序，不包括其他文件 */
+private fun File.logNamesOf(filename: LogFilename): List<String> {
+  return list()?.filter { filename.seqOf(it) != null }?.sortedBy { filename.seqOf(it) } ?: emptyList()
 }
 
 private fun File.totalSize(): Long {

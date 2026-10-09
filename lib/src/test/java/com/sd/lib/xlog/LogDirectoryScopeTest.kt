@@ -303,6 +303,24 @@ class LogDirectoryScopeTest {
     assertEquals(setOf(zip.name, otherTemp.name), zip.parentFile?.list()?.toSet())
   }
 
+  /** 所在目录没有执行权限时读不到文件属性，这些文件按已删除跳过，打包不失败 */
+  @Test
+  fun testZipSkipUnreadableAttributes() {
+    val dir = folder.newFolder()
+    val log = dir.createLog(DATE, "p")
+    val processDir = checkNotNull(log.parentFile)
+    val scope = LogDirectoryScopeImpl(newPublisher(dir, process = "p"))
+
+    // 以root运行时权限不生效，跳过
+    assumeTrue(processDir.setExecutable(false) && !log.isFile)
+    try {
+      val zip = checkNotNull(scope.logZipOf(DATE))
+      assertEquals(listOf("${DATE}/", "${DATE}/p/"), zip.zipEntryNames())
+    } finally {
+      processDir.setExecutable(true)
+    }
+  }
+
   /** 目录存在时正常列出 */
   @Test
   fun testListExists() {

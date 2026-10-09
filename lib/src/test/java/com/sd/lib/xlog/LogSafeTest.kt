@@ -1,6 +1,7 @@
 package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -21,7 +22,7 @@ class LogSafeTest {
     publisher.safePublisher().publish(testLogRecord())
   }
 
-  /** 获取日志目录失败时，取目录、发布和空闲回调都不抛异常，取目录按取不到处理 */
+  /** 获取日志目录失败时，取目录、发布、空闲回调和访问目录都不抛异常，取目录按取不到处理 */
   @Test
   fun testDirectoryError() {
     val publisher = defaultLogPublisher(
@@ -36,6 +37,11 @@ class LogSafeTest {
     publisher.publish(testLogRecord())
     publisher.onIdle()
     publisher.close()
+
+    // 取不到目录，不执行block
+    var called = false
+    publisher.accessDirectory { called = true }
+    assertFalse(called)
   }
 
   /** 获取目录暂时失败后可以恢复写入，取到目录之后不再获取 */

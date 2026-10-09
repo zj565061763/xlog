@@ -47,9 +47,15 @@ class LogInitTest {
       }
       setLogDispatcher(dispatcher)
       configLogger(InitLogger::class.java) { it.copy(tag = "init") }
+      configLogger(LevelLogger::class.java) { it.copy(level = FLogLevel.Warning) }
     }
     assertTrue(init)
     assertFalse(FLog.init(ContextWrapper(null)))
+
+    // 2.0.0及之前版本的内联代码调用的兼容方法，有配置时按配置的等级判断，没有时按全局等级
+    assertTrue(FLog.isLoggable(InitLogger::class.java, FLogLevel.Verbose))
+    assertFalse(FLog.isLoggable(LevelLogger::class.java, FLogLevel.Info))
+    assertTrue(FLog.isLoggable(LevelLogger::class.java, FLogLevel.Warning))
 
     // init不在调用线程上获取目录
     assertEquals(emptyList<Thread>(), directoryThreads.filter { it == initThread })
@@ -74,6 +80,8 @@ class LogInitTest {
     FLog.setLevel(FLogLevel.Off)
     assertTrue(dispatcher.await())
     assertEquals(1, formatter.resetCount)
+    // 全局等级为Off时兼容方法也忽略配置
+    assertFalse(FLog.isLoggable(InitLogger::class.java, FLogLevel.Error))
 
     // 访问目录拿到的是设置的目录，能打包
     FLog.setLevel(FLogLevel.All)
@@ -99,10 +107,19 @@ class LogInitTest {
     assertTrue(dispatcher.await())
     assertNotNull(storeFiles.getOrNull(1))
     assertEquals("init:again\n", logFile.readText())
+
+    // 配置里只有等级没有tag时用默认tag，等级不满足的不写入
+    flogI<LevelLogger> { "dropped" }
+    flogW<LevelLogger> { "level" }
+    assertTrue(dispatcher.await())
+    assertEquals("init:again\nLevelLogger:level\n", logFile.readText())
   }
 }
 
 private interface InitLogger : FLogger
+
+/** 只配置了等级的日志标识 */
+private interface LevelLogger : FLogger
 
 /** 单线程调度器，记录执行任务的线程，[await]等待已提交的任务执行完成 */
 private class AwaitDispatcher : FLogDispatcher {

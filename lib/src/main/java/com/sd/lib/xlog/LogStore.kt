@@ -27,7 +27,7 @@ interface FLogStore {
   /** 日志仓库工厂 */
   fun interface Factory {
     /**
-     * 创建[file]对应的日志仓库。
+     * 创建[file]对应的日志仓库，[file]的父目录可能不存在，需要自行创建。
      * 只应写入[file]，写到其他文件的话，日志轮换时不会被删除。
      * [FLogStore.append]返回后[file]必须已经存在，否则每次空闲时都会被当作文件被外部删除而关闭。
      */
