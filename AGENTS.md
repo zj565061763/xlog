@@ -197,6 +197,8 @@ JVM 单元测试：
 | 测试类 | 覆盖范围 |
 |---|---|
 | `LogInitTest` | `init` 的扩展点接线 |
+| `LogInitErrorTest` | `initBlock` 抛异常后仍是未初始化状态，再次 `init` 成功，失败那次的设置不残留 |
+| `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器写入、空闲时关闭、文件被删除后重建 |
 | `LogJavaApiTest` | Java API 的两种重载、等级和模式，通过 `JavaApi.java` 从 Java 调用 |
 | `LogMaxMBTest` | `setMaxMBPerDay` 换算成字节不溢出 |
 | `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
