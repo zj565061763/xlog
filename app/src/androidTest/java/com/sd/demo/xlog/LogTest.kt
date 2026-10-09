@@ -11,6 +11,7 @@ import com.sd.lib.xlog.flogE
 import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
+import com.sd.lib.xlog.l
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -61,11 +62,15 @@ class LogTest {
     assertEquals("", logResult<AppLogger>())
   }
 
-  /** 用All或Off打印日志时抛IllegalArgumentException */
+  /** 用All或Off打印日志时抛IllegalArgumentException，[FLogger]扩展API同样 */
   @Test
   fun testIllegalLevel() {
     assertThrows(IllegalArgumentException::class.java) { flog<TestLogger>(FLogLevel.All) { "msg" } }
     assertThrows(IllegalArgumentException::class.java) { flog<TestLogger>(FLogLevel.Off) { "msg" } }
+
+    val logger = object : TestLogger {}
+    assertThrows(IllegalArgumentException::class.java) { logger.l(FLogLevel.All) { "msg" } }
+    assertThrows(IllegalArgumentException::class.java) { logger.l(FLogLevel.Off) { "msg" } }
   }
 }
 

@@ -160,16 +160,22 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 | 命令 | 说明 |
 |---|---|
 | `./gradlew :lib:test` | JVM 单元测试，无需设备，能访问 `internal`；纯逻辑（日期计算等）放这里，日期可构造成确定值 |
-| `./gradlew :app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，覆盖真实文件读写 |
+| `./gradlew :app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，覆盖真实文件读写，跑在 app 的 `minified` 构建上（开启 R8 混淆） |
 
 JVM 单元测试：
 
 - 开启了 `unitTests.isReturnDefaultValues`，`android.util.Log` 返回默认值不抛异常，所以会调用 `libLog` 的代码（打包、异常隔离）也放这里测。
-- 没有 Context，`FLog` 始终是未初始化状态，`LogTest` 依赖这一点测未初始化时的行为；需要初始化的逻辑放 instrumented 测试。
+- 没有 Context，`FLog` 默认是未初始化状态，`LogTest` 依赖这一点测未初始化时的行为。
+- `LogInitTest` 用 `ContextWrapper(null)` 初始化 `FLog`，测 `init` 的扩展点接线；初始化后无法重置，所以 `lib/build.gradle.kts` 设了 `forkEvery = 1`，每个测试类单独一个 JVM。
+- 需要真实 Context 的逻辑（默认目录、进程名）放 instrumented 测试。
 - 只跑部分用例用 `./gradlew :lib:testDebugUnitTest --tests '*XxxTest*'`；`:lib:test` 是聚合任务，不支持 `--tests`。
 
 instrumented 测试：
 
+- 跑在 app 的 `minified` 构建上：基于 debug 开启 R8，并设 `isDebuggable = false`，debuggable 时 AGP 会加 `-dontobfuscate`，不会真正混淆。
+  - `app/proguard-minified-rules.pro` 只在这个构建里生效：保留测试 APK 引用的 app 和 lib 类（允许重命名，测试 APK 会套用 mapping），以及 app 提供给测试 APK 的共享依赖（AGP 会把 app 已有的依赖从测试 APK 里去掉）
+  - `app/proguard-test-rules.pro` 让测试 APK 不混淆、不裁剪，测试里按类名断言的 tag 才稳定
+  - `LogObfuscationTest` 验证混淆后的默认 tag：`ObfuscationLoggers` 刻意不 keep，R8 会移除它，测试只能通过 `logObfuscation()` 调用，不要直接引用它
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
 - `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`、`LogProcessTest`。
 - 多进程由 `LogProcessTest` 覆盖：启动运行在 `:custom` 进程的 `SampleLogProcess`，它不在测试进程里，只能轮询文件系统等待。

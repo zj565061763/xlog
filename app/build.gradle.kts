@@ -14,10 +14,14 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    testProguardFiles("proguard-test-rules.pro")
     vectorDrawables {
       useSupportLibrary = true
     }
   }
+
+  // instrumented 测试跑在 R8 混淆后的 minified 构建上，验证 lib 的混淆规则和默认 tag
+  testBuildType = "minified"
 
   signingConfigs {
     create("release") {
@@ -34,6 +38,16 @@ android {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+    }
+
+    // 只给 instrumented 测试用：在 debug 基础上开启 R8，额外保留测试 APK 依赖 app 提供的类
+    create("minified") {
+      initWith(getByName("debug"))
+      // debuggable 的构建 AGP 会加 -dontobfuscate，关掉才会真正混淆
+      isDebuggable = false
+      isMinifyEnabled = true
+      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro", "proguard-minified-rules.pro")
+      matchingFallbacks += "debug"
     }
   }
 

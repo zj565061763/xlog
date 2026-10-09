@@ -83,6 +83,39 @@ class LogProcessTest {
     )
   }
 
+  /**
+   * 本进程删除全部日志后，其他进程打开的日志文件也被删掉，它空闲时发现文件不存在就关闭，下次写入时重建。
+   * 删除之后的第一个burst写到已删除的句柄上会丢失，所以多启动几次，直到文件重建。
+   */
+  @Test
+  fun testDeleteLogRebuild() {
+    val dir = resetLogDir()
+    val today = dateOfDaysAgo(0)
+    val customLog = dir.resolve(today).resolve(_customDirName).resolve("${today}.0.log")
+    startCustomProcessActivity()
+    awaitUntil { customLog.isFile && customLog.readText().contains("in thread") }
+
+    flogI<TestLogger> { "main" }
+    awaitLogIdle()
+    FLog.deleteLog(0)
+    awaitLogIdle()
+    assertEquals(false, dir.resolve(today).exists())
+
+    var rebuilt = false
+    repeat(3) {
+      if (rebuilt) return@repeat
+      startCustomProcessActivity()
+      rebuilt = tryAwaitUntil(3_000) { customLog.isFile && customLog.readText().contains("in thread") }
+    }
+    assertTrue("custom process log not rebuilt", rebuilt)
+
+    // 本进程的文件在deleteLog时已经关闭，下一条日志直接重建
+    flogI<TestLogger> { "main again" }
+    awaitLogIdle()
+    val mainLog = dir.resolve(today).resolve(_mainProcess).resolve("${today}.0.log")
+    assertEquals(listOf("main again"), mainLog.readLines().map { it.substringAfter("] ") })
+  }
+
   /** 从测试进程启动：页面没有exported，只有同一个uid能启动；adb启动的测试进程有后台启动权限 */
   private fun startCustomProcessActivity() {
     val intent = Intent(testContext, SampleLogProcess::class.java)
@@ -102,9 +135,15 @@ class LogProcessTest {
 
 /** 轮询等待[condition]成立，超时则断言失败 */
 private fun awaitUntil(timeoutMillis: Long = 10_000, condition: () -> Boolean) {
+  assertTrue("wait timeout", tryAwaitUntil(timeoutMillis, condition))
+}
+
+/** 轮询等待[condition]成立，返回是否在超时前成立 */
+private fun tryAwaitUntil(timeoutMillis: Long, condition: () -> Boolean): Boolean {
   val deadline = SystemClock.uptimeMillis() + timeoutMillis
   while (!condition()) {
-    assertTrue("wait timeout", SystemClock.uptimeMillis() < deadline)
+    if (SystemClock.uptimeMillis() >= deadline) return false
     Thread.sleep(50)
   }
+  return true
 }

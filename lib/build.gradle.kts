@@ -29,6 +29,12 @@ android {
   }
 }
 
+tasks.withType<Test>().configureEach {
+  // LogInitTest 会初始化 FLog 单例且无法重置，LogTest 依赖未初始化状态，所以每个测试类单独一个 JVM
+  forkEvery = 1
+  maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+}
+
 dependencies {
   testImplementation(libs.junit)
 }
