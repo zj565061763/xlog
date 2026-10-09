@@ -115,11 +115,12 @@ private class LogPublisherImpl(
   private fun getHandler(record: FLogRecord): DateLogHandler? {
     val date = filename.dateOf(record.millis)
     if (_handler?.date != date) {
-      val logDir = logDirOf(date) ?: return null
+      val dateDir = logDirOf(date) ?: return null
       close()
       _handler = DateLogHandler(
         date = date,
-        logDir = logDir.resolveProcess(),
+        dateDir = dateDir,
+        logDir = dateDir.resolveProcess(),
         filename = filename,
         formatter = formatter,
         storeFactory = storeFactory,
@@ -148,11 +149,18 @@ private const val ZIP_EXTENSION = "zip"
 
 private class DateLogHandler(
   val date: String,
+  /** 日期目录 */
+  private val dateDir: File,
+  /** 存放日志文件的目录，有进程名时是[dateDir]下的进程目录，否则就是[dateDir] */
   private val logDir: File,
   private val filename: LogFilename,
   private val formatter: FLogFormatter,
   private val storeFactory: FLogStore.Factory,
 ) {
+  init {
+    deleteOccupiedDirs()
+  }
+
   /** 当前日志文件的序号，进程重启之后从已有的文件里恢复，接着往下写 */
   private var _seq: Int = logDir.listFiles()
     ?.mapNotNull { filename.seqOf(it.name) }
@@ -187,12 +195,23 @@ private class DateLogHandler(
     } else {
       // 文件不存在，关闭后会重新创建
       close()
+      deleteOccupiedDirs()
     }
   }
 
   fun close() {
     _logStore?.close()
     resetFormatter()
+  }
+
+  /**
+   * 日期目录、进程目录被同名文件占用时删掉，否则当天的日志一直写不进文件。
+   * 只处理日志目录里面的这两层：日志目录只能存放日志，不用担心误删；
+   * 日志目录本身和它上层的路径不属于日志库，被文件占用时不能删。
+   */
+  private fun deleteOccupiedDirs() {
+    if (dateDir.isFile) dateDir.delete()
+    if (logDir.isFile) logDir.delete()
   }
 
   private fun resetFormatter() {

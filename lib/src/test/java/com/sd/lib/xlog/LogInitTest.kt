@@ -11,9 +11,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.util.Collections
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
  * [FLog.init]的扩展点接线：目录、格式化器、仓库工厂、调度器和logger配置传进去之后真的生效。
@@ -52,7 +49,7 @@ class LogInitTest {
     assertTrue(init)
     assertFalse(FLog.init(ContextWrapper(null)))
 
-    // 2.0.0及之前版本的内联代码调用的兼容方法，有配置时按配置的等级判断，没有时按全局等级
+    // 1.6.0到2.0.0版本的内联代码调用的兼容方法，有配置时按配置的等级判断，没有时按全局等级
     assertTrue(FLog.isLoggable(InitLogger::class.java, FLogLevel.Verbose))
     assertFalse(FLog.isLoggable(LevelLogger::class.java, FLogLevel.Info))
     assertTrue(FLog.isLoggable(LevelLogger::class.java, FLogLevel.Warning))
@@ -120,28 +117,6 @@ private interface InitLogger : FLogger
 
 /** 只配置了等级的日志标识 */
 private interface LevelLogger : FLogger
-
-/** 单线程调度器，记录执行任务的线程，[await]等待已提交的任务执行完成 */
-private class AwaitDispatcher : FLogDispatcher {
-  private val _executor = Executors.newSingleThreadExecutor()
-
-  @Volatile
-  var thread: Thread? = null
-    private set
-
-  override fun dispatch(task: Runnable) {
-    _executor.execute {
-      thread = Thread.currentThread()
-      task.run()
-    }
-  }
-
-  fun await(): Boolean {
-    val latch = CountDownLatch(1)
-    _executor.execute { latch.countDown() }
-    return latch.await(10, TimeUnit.SECONDS)
-  }
-}
 
 /** 格式为 tag:msg，记录重置次数 */
 private class TagMsgFormatter : FLogFormatter {

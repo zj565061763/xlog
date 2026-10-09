@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.sd.demo.xlog.databinding.ActivityMainBinding
 import com.sd.lib.xlog.FLog
 import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
   private val _binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
@@ -27,7 +28,8 @@ class MainActivity : AppCompatActivity() {
   override fun onResume() {
     super.onResume()
     FLog.logDirectory {
-      val date = SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis())
+      // 固定用Locale.US：默认locale下阿拉伯语、波斯语等会输出非ASCII数字，logZipOf识别不了
+      val date = SimpleDateFormat("yyyyMMdd", Locale.US).format(System.currentTimeMillis())
       logZipOf(date)
     }
   }

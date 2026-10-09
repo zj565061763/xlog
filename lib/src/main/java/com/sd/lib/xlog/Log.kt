@@ -277,7 +277,7 @@ object FLog {
     log(logger, FLogLevel.Error, mode, msg)
   }
 
-  /** 检查等级后打印日志，给Java API和2.0.0及之前版本编译的内联代码调用，不能删除或改签名 */
+  /** 检查等级后打印日志，给Java API和1.6.0到2.0.0版本编译的内联代码调用，不能删除或改签名 */
   @PublishedApi
   internal fun log(
     logger: Class<out FLogger>,
@@ -291,7 +291,7 @@ object FLog {
     }
   }
 
-  /** [logger]的[level]是否可以打印，给2.0.0及之前版本编译的内联代码调用，不能删除或改签名 */
+  /** [logger]的[level]是否可以打印，给1.6.0到2.0.0版本编译的内联代码调用，不能删除或改签名 */
   @PublishedApi
   internal fun isLoggable(logger: Class<out FLogger>, level: FLogLevel): Boolean {
     return isLoggable(level, configOf(logger))

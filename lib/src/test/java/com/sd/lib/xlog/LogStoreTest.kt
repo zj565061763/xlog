@@ -1,9 +1,11 @@
 package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.IOException
 
 /** [defaultLogStore] */
 class LogStoreTest {
@@ -50,19 +52,32 @@ class LogStoreTest {
     assertEquals(8L, store.size())
   }
 
-  /** 路径上的目录被同名文件占用时，删掉文件再创建目录，日志照常写入 */
+  /** 大小按字节计算，不是字符数，多字节字符原样写入 */
   @Test
-  fun testReplaceParentFile() {
-    val occupied = folder.newFile("date")
-    assertEquals(true, occupied.isFile)
+  fun testMultiByte() {
+    val file = folder.newFile()
+    val store = defaultLogStore(file)
+
+    // 4个汉字各3字节，加上换行共13字节
+    store.append("中文日志\n")
+    assertEquals(13L, store.size())
+    store.close()
+
+    assertEquals(13L, file.length())
+    assertEquals("中文日志\n", file.readText())
+  }
+
+  /** 上层路径被同名文件占用时不删除它，写入失败；仓库不知道日志目录在哪，往上删会删到日志目录外面 */
+  @Test
+  fun testParentFileOccupied() {
+    val occupied = folder.newFile("date").apply { writeText("data") }
     val file = occupied.resolve("process").resolve("test.log")
 
     val store = defaultLogStore(file)
-    store.append("log\n")
+    assertThrows(IOException::class.java) { store.append("log\n") }
     store.close()
 
-    assertEquals(true, occupied.isDirectory)
-    assertEquals("log\n", file.readText())
+    assertEquals("data", occupied.readText())
   }
 
   /** 日志路径被同名目录占用时，替换成文件再写入 */

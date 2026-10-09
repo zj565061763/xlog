@@ -1,6 +1,9 @@
 package com.sd.lib.xlog
 
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /** 日志目录为[dir]、进程名为[process]的日志发布 */
 internal fun newPublisher(
@@ -38,3 +41,25 @@ internal fun testLogRecord(
 }
 
 private interface RecordLogger : FLogger
+
+/** 单线程调度器，记录执行任务的线程，[await]等待已提交的任务执行完成 */
+internal class AwaitDispatcher : FLogDispatcher {
+  private val _executor = Executors.newSingleThreadExecutor()
+
+  @Volatile
+  var thread: Thread? = null
+    private set
+
+  override fun dispatch(task: Runnable) {
+    _executor.execute {
+      thread = Thread.currentThread()
+      task.run()
+    }
+  }
+
+  fun await(): Boolean {
+    val latch = CountDownLatch(1)
+    _executor.execute { latch.countDown() }
+    return latch.await(10, TimeUnit.SECONDS)
+  }
+}

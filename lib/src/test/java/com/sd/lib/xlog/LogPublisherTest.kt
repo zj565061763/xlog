@@ -9,6 +9,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.IOException
 
 class LogPublisherTest {
   @get:Rule
@@ -106,6 +107,24 @@ class LogPublisherTest {
     assertEquals(listOf(filename.logNameOf(date, 1)), logNamesAfterTwoLogs(122))
     // 上限124的一半是62：第1条不切换，第2条仍写进序号0
     assertEquals(listOf(filename.logNameOf(date, 0)), logNamesAfterTwoLogs(124))
+  }
+
+  /** 轮换按字节数判断，不是字符数 */
+  @Test
+  fun testRotateMultiByte() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+
+    newPublisher(dir).use { publisher ->
+      // 50个汉字150字节，加上21字节的前缀和换行共171字节，超过上限300的一半；按字符数算只有71，不会切换
+      publisher.setMaxBytePerDay(300)
+      publisher.publish(testLogRecord(msg = "中".repeat(50)))
+      publisher.publish(testLogRecord(msg = "tail"))
+    }
+
+    assertEquals(listOf(filename.logNameOf(date, 0), filename.logNameOf(date, 1)), dir.logNames())
+    assertEquals(171L, dir.resolve(date).resolve(filename.logNameOf(date, 0)).length())
   }
 
   /** 空闲时文件还在就不关闭，格式化器状态保留，下一条相同tag的日志省略tag */
@@ -539,6 +558,70 @@ class LogPublisherTest {
     assertEquals(false, mainZip.exists())
     assertEquals(true, remoteZip.exists())
     assertEquals(true, unknownZip.exists())
+  }
+
+  /** 日期目录、进程目录被同名文件占用时，删掉文件再创建目录，日志照常写入 */
+  @Test
+  fun testReplaceOccupiedDir() {
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logName = filename.logNameOf(date, 0)
+
+    // 日期目录被占用
+    val dateOccupied = folder.newFolder().apply { resolve(date).writeText("occupied") }
+    newPublisher(dateOccupied, process = "p").use { it.publish(testLogRecord()) }
+    assertEquals(1, dateOccupied.resolve(date).resolve("p").resolve(logName).readLines().size)
+
+    // 进程目录被占用
+    val processOccupied = folder.newFolder().apply {
+      resolve(date).mkdirs()
+      resolve(date).resolve("p").writeText("occupied")
+    }
+    newPublisher(processOccupied, process = "p").use { it.publish(testLogRecord()) }
+    assertEquals(1, processOccupied.resolve(date).resolve("p").resolve(logName).readLines().size)
+
+    // 取不到进程名时日志直接写在日期目录下
+    val noProcess = folder.newFolder().apply { resolve(date).writeText("occupied") }
+    newPublisher(noProcess).use { it.publish(testLogRecord()) }
+    assertEquals(1, noProcess.resolve(date).resolve(logName).readLines().size)
+  }
+
+  /** 运行中日期目录被同名文件占用，空闲时发现日志文件不存在就删掉它，下一条日志重建 */
+  @Test
+  fun testIdleOccupiedDir() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val publisher = newPublisher(dir, process = "p")
+
+    try {
+      publisher.publish(testLogRecord())
+      assertTrue(dir.resolve(date).deleteRecursively())
+      dir.resolve(date).writeText("occupied")
+
+      publisher.onIdle()
+      publisher.publish(testLogRecord(msg = "rebuilt"))
+
+      val lines = dir.resolve(date).resolve("p").resolve(filename.logNameOf(date, 0)).readLines()
+      assertEquals(listOf("rebuilt"), lines.map { it.substringAfter("] ") })
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 日志目录本身或它上层的路径被文件占用时不删除，日志写不进去；这些路径不属于日志库 */
+  @Test
+  fun testKeepFileOutsideDirectory() {
+    val occupied = folder.newFolder().resolve("data").apply { writeText("data") }
+
+    for (dir in listOf(occupied, occupied.resolve("nested").resolve("logs"))) {
+      val publisher = newPublisher(dir, process = "p")
+      assertThrows(IOException::class.java) { publisher.publish(testLogRecord()) }
+      publisher.onIdle()
+      assertThrows(IOException::class.java) { publisher.publish(testLogRecord()) }
+      publisher.close()
+      assertEquals("data", occupied.readText())
+    }
   }
 
   /** 轮换时删除旧文件失败只打印不重试，不抛异常，也不影响继续写入 */

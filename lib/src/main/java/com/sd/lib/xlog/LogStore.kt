@@ -100,17 +100,14 @@ private class CounterOutputStream(output: OutputStream, length: Long) : OutputSt
   }
 }
 
+/**
+ * 创建日志文件，被同名目录占用时先删掉。
+ * 上层目录只创建，不删除占用路径的文件：
+ * 这里不知道日志目录在哪，往上删会删到日志目录外面。
+ */
 private fun File.fCreateFile(): Boolean {
   if (isFile) return true
   if (isDirectory) deleteRecursively()
-  parentFile?.fMakeDirs()
+  parentFile?.mkdirs()
   return createNewFile()
-}
-
-/** 创建目录，路径上被同名文件占用的先删掉，否则当天的日志一直写不进文件 */
-private fun File.fMakeDirs(): Boolean {
-  if (isDirectory) return true
-  if (isFile) delete()
-  parentFile?.fMakeDirs()
-  return mkdir()
 }

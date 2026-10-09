@@ -8,14 +8,14 @@ import java.lang.reflect.Modifier
 
 /** 使用方编译时内联进去的代码会调用这些方法，删除或改签名会导致这些代码运行时崩溃 */
 class LogCompatTest {
-  /** 2.0.0及之前版本的内联代码调用 */
+  /** 1.6.0到2.0.0版本的内联代码调用 */
   @Test
   fun testIsLoggable() {
     val method = flogMethod("isLoggable", Class::class.java, FLogLevel::class.java)
     assertEquals(Boolean::class.javaPrimitiveType, method.returnType)
   }
 
-  /** 2.0.0及之前版本的内联代码调用 */
+  /** 1.6.0到2.0.0版本的内联代码调用 */
   @Test
   fun testLog() {
     val method = flogMethod(

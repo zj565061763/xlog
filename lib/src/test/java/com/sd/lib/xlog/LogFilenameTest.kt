@@ -97,6 +97,15 @@ class LogFilenameTest {
     assertEquals(2, _filename.diffDays("20000301", "20000228"))
   }
 
+  /** 0000年的1、2月在算法里归到上一年，年份变成负数；0000年是闰年 */
+  @Test
+  fun testYearZero() {
+    assertEquals(1, _filename.diffDays("00000301", "00000229"))
+    assertEquals(60, _filename.diffDays("00000301", "00000101"))
+    assertEquals(1, _filename.diffDays("00010101", "00001231"))
+    assertEquals(366, _filename.diffDays("00010101", "00000101"))
+  }
+
   /**
    * 夏令时，切换的那天不是24小时，
    * 如果用[Calendar]转毫秒相减再除以86400000，会少算一天。

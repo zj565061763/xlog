@@ -16,6 +16,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 | `lib/src/test/` | JVM 单元测试 |
 | `app/` | 演示 App，`App.kt` 是初始化示例 |
 | `app/src/androidTest/` | instrumented 测试，公共工具在 `TestUtils.kt` |
+| `test-app/` | 只用来跑 instrumented 测试的空 App，启动时不初始化 `FLog`，测首次 `init` 和 release 混淆 |
 | `gradle/libs.versions.toml` | 依赖和 SDK 版本 |
 
 ## 公共 API
@@ -23,7 +24,8 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 对外类型以 `F` 开头；内部实现用 `internal`，不加前缀。
 - `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，旧版本编译的调用方运行时会崩溃。
   - 改实现时保留旧签名的函数转调新实现；实在要删，必须在 CHANGELOG 的 Breaking Changes 里写明
-  - `FLog.isLoggable(Class, FLogLevel)`、`FLog.log` 是 2.0.0 及之前版本的内联代码在调用，不能删除或改签名
+  - `FLog.isLoggable(Class, FLogLevel)`、`FLog.log` 是 1.6.0 到 2.0.0 的内联代码在调用，不能删除或改签名
+    - 1.5.1 及更早内联的是三参数的 `FLog.log`，1.6.0 起就不兼容，不用考虑
   - `FLog.configOf`、`FLog.isLoggable(FLogLevel, FLoggerConfig?)`、`FLog.publishLog` 是 2.1.0 的内联代码在调用，同样不能删除或改签名
   - 不能加 `@JvmStatic`：内联代码通过 `FLog.INSTANCE` 调用，改成静态方法同样会崩溃
   - `LogCompatTest` 检查这些方法的签名，新增 `@PublishedApi` 函数时一并加进去
@@ -70,7 +72,11 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 序号不补零，跨越 9→10 时文件名字典序和时间序不一致，这是刻意接受的
   - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
-  - 创建日志文件时，路径上被同名文件占用的目录和被同名目录占用的文件都先删掉再创建，日志目录只能存放日志，不用担心误删
+- 日志路径被占用时先删掉再创建，日志目录只能存放日志，不用担心误删。
+  - 日期目录、进程目录被同名文件占用：`DateLogHandler` 创建时删掉，空闲时发现日志文件不存在也删一次
+  - 日志文件被同名目录占用：`FileLogStore` 创建文件时删掉
+  - 日志目录本身和它上层的路径被文件占用时不删，按普通的写入失败处理
+  - 不要改回在 `FileLogStore` 里向上递归删除：它不知道日志目录在哪，会删到日志目录外面
 - 异常隔离：`SafeLogPublisher`（`LogSafe.kt`）捕获并打印异常，保证日志失败不影响业务；`SafeLogStore`（`LogPublisher.kt`）出错时关闭再重抛。
   - 格式化器的 `reset()` 出错只打印不抛出：抛出会中断日志轮换，一直写回旧文件
   - `directory` 也要捕获，抛异常时按取不到处理：它会调用使用方提供的方法，`logDirectory` 在 block 外面取目录，不捕获会让 App 崩溃
@@ -162,16 +168,30 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 |---|---|
 | `./gradlew :lib:test` | JVM 单元测试，无需设备，能访问 `internal`；纯逻辑（日期计算等）放这里，日期可构造成确定值 |
 | `./gradlew :app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，覆盖真实文件读写，跑在 app 的 `minified` 构建上（开启 R8 混淆） |
+| `./gradlew :test-app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，每个用例单独一个进程，跑在 test-app 的 release 构建上（开启 R8 混淆） |
+
+- instrumented 测试在 API 28 以上和以下的模拟器上各跑一遍：获取进程名的旧接口 `runningAppProcesses` 只在 API 28 以下执行。
 
 JVM 单元测试：
 
 - 开启了 `unitTests.isReturnDefaultValues`，`android.util.Log` 返回默认值不抛异常，所以会调用 `libLog` 的代码（打包、异常隔离）也放这里测。
 - 没有 Context，`FLog` 默认是未初始化状态，`LogTest` 依赖这一点测未初始化时的行为。
-- `LogInitTest` 用 `ContextWrapper(null)` 初始化 `FLog`，测 `init` 的扩展点接线；初始化后无法重置，所以 `lib/build.gradle.kts` 设了 `forkEvery = 1`，每个测试类单独一个 JVM。
+- 要初始化 `FLog` 的测试用 `ContextWrapper(null)`，调度器用 `TestUtils.kt` 的 `AwaitDispatcher`。
+  - 初始化后无法重置，所以 `lib/build.gradle.kts` 设了 `forkEvery = 1`，每个测试类单独一个 JVM
+  - 一个测试类只能初始化一次，新的场景另建测试类，并加到下面的表格里
 - 需要真实 Context 的逻辑（默认目录、进程名）放 instrumented 测试。
 - 只跑部分用例用 `./gradlew :lib:testDebugUnitTest --tests '*XxxTest*'`；`:lib:test` 是聚合任务，不支持 `--tests`。
 
-instrumented 测试：
+初始化 `FLog` 的 JVM 测试类：
+
+| 测试类 | 覆盖范围 |
+|---|---|
+| `LogInitTest` | `init` 的扩展点接线 |
+| `LogJavaApiTest` | Java API 的两种重载、等级和模式，通过 `JavaApi.java` 从 Java 调用 |
+| `LogMaxMBTest` | `setMaxMBPerDay` 换算成字节不溢出 |
+| `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
+
+app 的 instrumented 测试：
 
 - 跑在 app 的 `minified` 构建上：基于 debug 开启 R8，并设 `isDebuggable = false`，debuggable 时 AGP 会加 `-dontobfuscate`，不会真正混淆。
   - `app/proguard-minified-rules.pro` 只在这个构建里生效：保留测试 APK 引用的 app 和 lib 类（允许重命名，测试 APK 会套用 mapping），以及 app 提供给测试 APK 的共享依赖（AGP 会把 app 已有的依赖从测试 APK 里去掉）
@@ -190,6 +210,21 @@ instrumented 测试：
   - `logDirectory` 第一件事是 `_publisher.close()`，会改变被测状态
   - `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它
 - 日期只能相对当前时间推算（用 `dateOfDaysAgo`，负数表示以后的日期），不能写死，因为 `deleteLog` 读的是 `System.currentTimeMillis()`。
+- `LogcatTest` 以 shell 身份执行 `logcat -d` 读回日志，覆盖 Logcat 的等级、模式和 `libLog`。
+  - Logcat 异步写入，每个用例最后打印结束标记，等它出现再断言
+  - 消息带上每次运行都不同的标识，区分以前留下的日志
+
+test-app 的 instrumented 测试：
+
+- app 启动时就初始化了 `FLog`，首次 `init` 的行为只能在 test-app 里测。
+- 用 Orchestrator 并设置 `clearPackageData`，每个用例单独一个进程，各自 `init`。
+- 跑在 release 构建上（开启 R8 混淆），`test-app/proguard-rules.pro` 只保留测试 APK 调用的入口和公共 API。
+- 测试目录是 `cacheDir/xlog-tests`，`init` 之前用 `resetLogDir()` 清空。
+
+| 测试类 | 覆盖范围 |
+|---|---|
+| `LogInitTest` | `init` 的清理任务排在写日志和导出之前，取不到目录或获取目录出错后恢复 |
+| `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
 
 ## 依赖
 
