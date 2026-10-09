@@ -331,6 +331,33 @@ class LogDirectoryScopeTest {
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 
+  /** 最后重命名失败时返回null，保留上次的压缩包，不留下临时文件 */
+  @Test
+  fun testRenameErrorKeepPrevious() {
+    val dir = folder.newFolder()
+    val log = dir.createLog(DATE, "p")
+    val publisher = newPublisher(dir, process = "p")
+    val zip = checkNotNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    val bytes = zip.readBytes()
+
+    // 日志有变化，这次打包出来的内容和上次不同
+    log.appendText("new\n")
+    var tempText: String? = null
+    var renameTarget: File? = null
+    val scope = LogDirectoryScopeImpl(publisher, rename = { source, target ->
+      tempText = source.zipEntryText("${DATE}/p/${DATE}.0.log")
+      renameTarget = target
+      false
+    })
+
+    assertNull(scope.logZipOf(DATE))
+    // 确认临时文件已经打包完整，是在重命名这一步失败的，否则这个测试什么也没验证
+    assertEquals("log\nnew\n", tempText)
+    assertEquals(zip, renameTarget)
+    assertArrayEquals(bytes, zip.readBytes())
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
   /** 取不到进程名时多个进程共用压缩包目录，打包不能删除或替换其他进程的临时文件 */
   @Test
   fun testKeepOtherTempFile() {

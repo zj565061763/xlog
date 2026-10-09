@@ -43,6 +43,8 @@ internal class LogDirectoryScopeImpl(
   private val openFile: (File) -> FileInputStream? = { it.inputStreamOrNull() },
   /** 打开压缩包的临时文件，测试时替换成写入会失败的流 */
   private val openOutput: (File) -> OutputStream = { it.outputStream() },
+  /** 把临时文件重命名为压缩包，测试时替换成重命名失败 */
+  private val rename: (File, File) -> Boolean = { source, target -> source.renameTo(target) },
 ) : FLogDirectoryScope {
   @Volatile
   private var _destroyed = false
@@ -60,7 +62,13 @@ internal class LogDirectoryScopeImpl(
     if (!dateDir.isDirectory) return null
 
     val zipFile = publisher.zipFileOf(date) ?: return null
-    val zipped = zip(source = dateDir, target = zipFile, openFile = openFile, openOutput = openOutput)
+    val zipped = zip(
+      source = dateDir,
+      target = zipFile,
+      openFile = openFile,
+      openOutput = openOutput,
+      rename = rename,
+    )
     if (zipped && zipFile.exists()) return zipFile
     libLog("log zip ${zipFile.name} failed")
     return null
@@ -76,6 +84,7 @@ private fun zip(
   target: File,
   openFile: (File) -> FileInputStream?,
   openOutput: (File) -> OutputStream,
+  rename: (File, File) -> Boolean,
 ): Boolean {
   /**
    * 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的。
@@ -97,7 +106,7 @@ private fun zip(
       }
     }
     if (target.isDirectory) target.deleteRecursively()
-    return tempFile.renameTo(target)
+    return rename(tempFile, target)
   } catch (e: Throwable) {
     libLog("log zip error ${e.stackTraceToString()}")
     return false
