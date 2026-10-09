@@ -48,6 +48,9 @@ class LogFilenameTest {
     assertNull(_filename.seqOf("20231125.１.log"))
     // 没有序号
     assertNull(_filename.seqOf("20231125.log"))
+    // 没有日期
+    assertNull(_filename.seqOf(".0.log"))
+    assertNull(_filename.seqOf("0.log"))
     // 旧版本的分片文件
     assertNull(_filename.seqOf("20231125.log.1"))
   }

@@ -63,8 +63,9 @@ private class LogFilenameImpl(
     if (!logName.endsWith(suffix)) return null
 
     val body = logName.dropLast(suffix.length)
+    // 日期部分不能为空，和logNameOf的要求一致
     val index = body.lastIndexOf('.')
-    if (index < 0) return null
+    if (index <= 0) return null
 
     val seqText = body.substring(index + 1)
     val seq = seqText.toIntOrNull() ?: return null

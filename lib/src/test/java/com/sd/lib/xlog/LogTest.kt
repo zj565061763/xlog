@@ -17,6 +17,9 @@ class LogTest {
     assertEquals("You should init before this.", thrown.message)
 
     assertThrows(IllegalStateException::class.java) { FLog.logI(LogTestLogger::class.java, msg = "msg") }
+    // 消息为空时同样提示先初始化，和Kotlin API一致
+    assertThrows(IllegalStateException::class.java) { FLog.logI(LogTestLogger::class.java, msg = null) }
+    assertThrows(IllegalStateException::class.java) { FLog.logI(LogTestLogger::class.java, msg = "") }
     assertThrows(IllegalStateException::class.java) { FLog.setLevel(FLogLevel.Info) }
     assertThrows(IllegalStateException::class.java) { FLog.setMode(FLogMode.Console) }
     assertThrows(IllegalStateException::class.java) { FLog.setMaxMBPerDay(1) }

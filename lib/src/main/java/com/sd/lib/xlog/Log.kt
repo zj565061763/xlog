@@ -285,7 +285,6 @@ object FLog {
     mode: FLogMode?,
     msg: String?,
   ) {
-    if (msg.isNullOrEmpty()) return
     val config = configOf(logger)
     if (isLoggable(level, config)) {
       publishLog(logger = logger, level = level, mode = mode, msg = msg, config = config)
@@ -311,7 +310,7 @@ private fun deleteLogIn(dir: File, filename: LogFilename, today: String, saveDay
     if (file.name.startsWith(".")) continue
 
     if (filename.shouldDeleteLog(today = today, date = file.name, saveDays = saveDays)) {
-      file.deleteRecursively()
+      if (!file.deleteRecursively()) libLog("delete log ${file.name} failed")
     }
   }
 }

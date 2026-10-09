@@ -50,6 +50,21 @@ class LogStoreTest {
     assertEquals(8L, store.size())
   }
 
+  /** 路径上的目录被同名文件占用时，删掉文件再创建目录，日志照常写入 */
+  @Test
+  fun testReplaceParentFile() {
+    val occupied = folder.newFile("date")
+    assertEquals(true, occupied.isFile)
+    val file = occupied.resolve("process").resolve("test.log")
+
+    val store = defaultLogStore(file)
+    store.append("log\n")
+    store.close()
+
+    assertEquals(true, occupied.isDirectory)
+    assertEquals("log\n", file.readText())
+  }
+
   /** 日志路径被同名目录占用时，替换成文件再写入 */
   @Test
   fun testReplaceDirectory() {
