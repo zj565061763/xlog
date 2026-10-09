@@ -36,6 +36,12 @@ open class SampleLog : AppCompatActivity(), FLogger {
     }
 
     FLog.setMode(FLogMode.Default)
+
+    // 测试用：带EXTRA_LOG启动时直接打印日志并退出，不用点击按钮
+    if (intent.getBooleanExtra(EXTRA_LOG, false)) {
+      log()
+      finish()
+    }
   }
 
   private fun log() {
@@ -61,5 +67,10 @@ open class SampleLog : AppCompatActivity(), FLogger {
     li { "Info" }
     lw { "Warning" }
     thread { le { "in thread" } }
+  }
+
+  companion object {
+    /** 启动时带上true，页面创建后直接打印一组日志并退出，供多进程测试使用 */
+    const val EXTRA_LOG = "log"
   }
 }

@@ -70,6 +70,24 @@ class LogDirectoryScopeTest {
     assertEquals("occupied", zipDir.readText())
   }
 
+  /** 压缩包路径被同名目录占用时，删掉该目录后照常打包 */
+  @Test
+  fun testZipFileOccupiedByDirectory() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val publisher = newPublisher(dir, process = "p")
+    val zipFile = checkNotNull(publisher.zipFileOf(DATE)).apply {
+      mkdirs()
+      resolve("child").writeText("child")
+    }
+
+    val zip = checkNotNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    assertEquals(zipFile, zip)
+    assertEquals(true, zip.isFile)
+    assertEquals(listOf("${DATE}/p/${DATE}.0.log"), zip.zipFileNames())
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
   /** 取不到日志目录时不执行block；取到时执行，block里能打包，离开后scope销毁 */
   @Test
   fun testAccessDirectory() {

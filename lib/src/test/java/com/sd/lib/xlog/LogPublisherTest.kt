@@ -56,7 +56,7 @@ class LogPublisherTest {
     val logDir = dir.resolve(date)
 
     try {
-      // 不限制时10条都写在序号0里，共610字节
+      // 不限制时10条都写在序号0里，首条61字节，之后省略tag每条59字节，共592字节
       repeat(10) { publisher.publish(testLogRecord()) }
       assertEquals(listOf(filename.logNameOf(date, 0)), dir.logNames())
 
@@ -83,6 +83,29 @@ class LogPublisherTest {
     } finally {
       publisher.close()
     }
+  }
+
+  /** 当前文件大小恰好等于上限的一半时就切换，小于时不切换 */
+  @Test
+  fun testRotateBoundary() {
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+
+    /** 上限为[maxByte]时写两条日志，返回剩下的日志文件 */
+    fun logNamesAfterTwoLogs(maxByte: Long): List<String> {
+      val dir = folder.newFolder()
+      newPublisher(dir).use { publisher ->
+        publisher.setMaxBytePerDay(maxByte)
+        publisher.publish(testLogRecord())
+        publisher.publish(testLogRecord())
+      }
+      return dir.logNames()
+    }
+
+    // 首条日志61字节，上限122的一半恰好是61：第1条写完就切换，第2条写进序号1，写完再切换并删除序号0
+    assertEquals(listOf(filename.logNameOf(date, 1)), logNamesAfterTwoLogs(122))
+    // 上限124的一半是62：第1条不切换，第2条仍写进序号0
+    assertEquals(listOf(filename.logNameOf(date, 0)), logNamesAfterTwoLogs(124))
   }
 
   /** 空闲时文件还在就不关闭，格式化器状态保留，下一条相同tag的日志省略tag */
@@ -518,6 +541,35 @@ class LogPublisherTest {
     assertEquals(true, unknownZip.exists())
   }
 
+  /** 轮换时删除旧文件失败只打印不重试，不抛异常，也不影响继续写入 */
+  @Test
+  fun testDeleteOldLogFailed() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date).apply { mkdirs() }
+    // 序号0被非空目录占用，删不掉
+    val occupied = logDir.resolve(filename.logNameOf(date, 0)).apply {
+      mkdirs()
+      resolve("child").writeText("child")
+    }
+    // 上一次运行已经写到200字节，再写一条就超过一半上限
+    logDir.resolve(filename.logNameOf(date, 2)).writeText("0".repeat(199) + "\n")
+
+    val publisher = newPublisher(dir)
+    publisher.setMaxBytePerDay(400)
+
+    try {
+      // 写进序号2之后切换，删除序号0失败，继续写序号3
+      publisher.publish(testLogRecord())
+      publisher.publish(testLogRecord())
+      assertEquals(listOf(0, 2, 3).map { filename.logNameOf(date, it) }, logDir.list()?.sortedBy { filename.seqOf(it) })
+      assertEquals("child", occupied.resolve("child").readText())
+    } finally {
+      publisher.close()
+    }
+  }
+
   /** 删除旧日志时，文件已经被其他进程删除不算失败，否则会误报错误日志 */
   @Test
   fun testDeleteOrAbsent() {
@@ -659,14 +711,14 @@ class LogPublisherTest {
     }
   }
 
-  /** 进程名含路径分隔符或者是.和..时会跳出所在目录，按取不到进程名处理 */
+  /** 进程名为空串时按取不到处理；含路径分隔符或者是.和..时会跳出所在目录，也按取不到处理 */
   @Test
   fun testInvalidProcessName() {
     val filename = defaultLogFilename()
     val date = filename.dateOf(RECORD_MILLIS)
     val outside = folder.newFolder()
 
-    for (process in listOf(".", "..", "a/../..", outside.absolutePath)) {
+    for (process in listOf("", ".", "..", "a/../..", outside.absolutePath)) {
       val dir = folder.newFolder()
       val otherZip = newPublisher(dir, process = "other").zipFileOf(date).createZip()
       val publisher = newPublisher(dir, process = process)

@@ -4,6 +4,7 @@ import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.TimeZone
 
+/** 日期和时间格式化，只在调度线程上调用，[_calendar]不是线程安全的 */
 internal object LogTime {
   /**
    * 固定用公历，不用[Calendar.getInstance]：JVM上它会按locale返回佛历等其他日历，日期会变成25661125这种。

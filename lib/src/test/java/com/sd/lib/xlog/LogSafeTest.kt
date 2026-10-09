@@ -64,6 +64,26 @@ class LogSafeTest {
     }
   }
 
+  /** 关闭和空闲回调出错时，包装之后不抛异常 */
+  @Test
+  fun testCloseAndIdleError() {
+    val publisher = object : DirectoryLogPublisher by newPublisher(folder.newFolder()) {
+      override fun close() {
+        error("close error")
+      }
+
+      override fun onIdle() {
+        error("idle error")
+      }
+    }
+    assertThrows(IllegalStateException::class.java) { publisher.close() }
+    assertThrows(IllegalStateException::class.java) { publisher.onIdle() }
+
+    val safePublisher = publisher.safePublisher()
+    safePublisher.close()
+    safePublisher.onIdle()
+  }
+
   /** 包装多次只包一层 */
   @Test
   fun testWrapOnce() {

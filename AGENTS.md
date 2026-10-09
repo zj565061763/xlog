@@ -46,6 +46,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `logDirectory`、`deleteLog` 的任务体是 `LogDirectoryScope.kt` 的 `accessDirectory`，和 `FLog` 解耦是为了在 JVM 单元测试里测取不到目录等分支。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
   - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`getExternalFilesDir()`
+  - `LogTime` 的 `Calendar` 不是线程安全的，日期和时间格式化也只能在调度线程上调用
 - 日志目录（`LogPublisherImpl.directory`）：
   - 默认 `getExternalFilesDir(null)/sd.lib.xlog`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
   - 在调度线程上获取，取到非 null 后缓存，本进程之后一直用它
@@ -169,7 +170,11 @@ JVM 单元测试：
 instrumented 测试：
 
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
-- `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`。
+- `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`、`LogProcessTest`。
+- 多进程由 `LogProcessTest` 覆盖：启动运行在 `:custom` 进程的 `SampleLogProcess`，它不在测试进程里，只能轮询文件系统等待。
+  - `SampleLog` 带 `EXTRA_LOG` 启动时直接打印一组日志并 `finish()`，这是测试依赖的，不要删
+  - 要从测试进程 `startActivity`，不能用 shell 的 `am start`：页面没有 `exported`，API 35 上 shell 启动会被拒绝
+  - 测试前后用 `Process.killProcess` 杀掉 `:custom` 进程，保证它重新 `init`，也避免它留着的句柄影响其他测试
 - 断言文件状态前必须先调 `awaitLogIdle()`。
 - 开头一律用 `resetLogDir()`，不要直接 `dir.deleteRecursively()`；上一个测试可能留着打开的句柄，删目录后写入仍会成功且文件不重建，结果取决于执行顺序。
 - `resetLogDir()` 同时把等级、模式、单日上限恢复为默认值；需要其他值的测试在它之后设置，不要依赖上一个测试留下的全局设置。
