@@ -14,7 +14,7 @@ import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.zip.ZipFile
 
-/** [LogDirectoryScopeImpl.logZipOf]、[inputStreamOrNull]、[listFilesOrNull]和[copyLimitedTo] */
+/** [LogDirectoryScopeImpl.logZipOf]、[accessDirectory]、[inputStreamOrNull]、[listFilesOrNull]和[copyLimitedTo] */
 class LogDirectoryScopeTest {
   @get:Rule
   val folder = TemporaryFolder()
@@ -39,7 +39,7 @@ class LogDirectoryScopeTest {
     folder.newFolder().inputStreamOrNull()
   }
 
-  /** 压缩包里的路径是 <日期>/<进程名>/<日志文件>，打包后不留下临时文件 */
+  /** 压缩包里的路径是 <日期>/<进程名>/<日志文件>，日期和进程目录也有条目，打包后不留下临时文件 */
   @Test
   fun testLogZip() {
     val dir = folder.newFolder()
@@ -47,9 +47,90 @@ class LogDirectoryScopeTest {
     dir.createLog(DATE, "p2")
 
     val zip = checkNotNull(LogDirectoryScopeImpl(newPublisher(dir, process = "p1")).logZipOf(DATE))
-    assertEquals(listOf("${DATE}/p1/${DATE}.0.log", "${DATE}/p2/${DATE}.0.log"), zip.zipFileNames())
+    assertEquals(
+      listOf("${DATE}/", "${DATE}/p1/", "${DATE}/p1/${DATE}.0.log", "${DATE}/p2/", "${DATE}/p2/${DATE}.0.log"),
+      zip.zipEntryNames(),
+    )
     assertEquals("log\n", zip.zipEntryText("${DATE}/p2/${DATE}.0.log"))
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
+  /** 压缩包目录被同名文件占用时打包失败，返回null，不抛异常 */
+  @Test
+  fun testZipDirectoryOccupied() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val publisher = newPublisher(dir, process = "p")
+    val zipDir = checkNotNull(publisher.zipFileOf(DATE)?.parentFile).apply {
+      parentFile?.mkdirs()
+      writeText("occupied")
+    }
+
+    assertNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    assertEquals("occupied", zipDir.readText())
+  }
+
+  /** 取不到日志目录时不执行block；取到时执行，block里能打包，离开后scope销毁 */
+  @Test
+  fun testAccessDirectory() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    var directory: File? = null
+    val publisher = defaultLogPublisher(
+      processProvider = { "p" },
+      directoryProvider = { directory },
+      filename = defaultLogFilename(),
+      formatter = defaultLogFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    )
+
+    var called = 0
+    publisher.accessDirectory { called++ }
+    assertEquals(0, called)
+
+    directory = dir
+    var received: File? = null
+    var scope: FLogDirectoryScope? = null
+    var zip: File? = null
+    publisher.accessDirectory {
+      received = it
+      scope = this
+      zip = logZipOf(DATE)
+    }
+    assertEquals(dir, received)
+    assertEquals(true, zip?.isFile)
+    assertNull(checkNotNull(scope).logZipOf(DATE))
+  }
+
+  /** block抛异常不往外抛，scope照样销毁，之后还能继续访问 */
+  @Test
+  fun testAccessDirectoryError() {
+    val publisher = newPublisher(folder.newFolder(), process = "p")
+    var scope: FLogDirectoryScope? = null
+    publisher.accessDirectory {
+      scope = this
+      error("block error")
+    }
+    assertNull(checkNotNull(scope).logZipOf(DATE))
+
+    var called = false
+    publisher.accessDirectory { called = true }
+    assertEquals(true, called)
+  }
+
+  /** 执行block前先关闭日志文件，所以之后的日志不省略tag */
+  @Test
+  fun testAccessDirectoryClose() {
+    val dir = folder.newFolder()
+    newPublisher(dir).use { publisher ->
+      publisher.publish(testLogRecord(tag = "A"))
+      publisher.accessDirectory { }
+      publisher.publish(testLogRecord(tag = "A"))
+    }
+
+    val lines = dir.walkTopDown().first { it.isFile }.readLines()
+    assertEquals(2, lines.size)
+    assertEquals(true, lines[1].contains("[A|"))
   }
 
   /** 最多复制limit字节，提前读到末尾时停止 */
@@ -253,6 +334,11 @@ private fun File.createLog(date: String, process: String): File {
 /** 压缩包里的文件条目，不包括目录，按名称排序 */
 private fun File.zipFileNames(): List<String> {
   return ZipFile(this).use { zip -> zip.entries().asSequence().filter { !it.isDirectory }.map { it.name }.sorted().toList() }
+}
+
+/** 压缩包里的全部条目，包括目录，按名称排序 */
+private fun File.zipEntryNames(): List<String> {
+  return ZipFile(this).use { zip -> zip.entries().asSequence().map { it.name }.sorted().toList() }
 }
 
 /** 第一次读取前往文件追加一行，模拟打包期间其他进程还在写 */

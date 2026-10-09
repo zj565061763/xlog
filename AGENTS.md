@@ -43,6 +43,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 ## 关键架构
 
 - 写入链路：`flogX` → `FLog.publishLog()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
+- `logDirectory`、`deleteLog` 的任务体是 `LogDirectoryScope.kt` 的 `accessDirectory`，和 `FLog` 解耦是为了在 JVM 单元测试里测取不到目录等分支。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
   - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`getExternalFilesDir()`
 - 日志目录（`LogPublisherImpl.directory`）：

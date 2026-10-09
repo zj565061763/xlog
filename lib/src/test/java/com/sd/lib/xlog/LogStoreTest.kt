@@ -37,4 +37,30 @@ class LogStoreTest {
 
     assertEquals("old\nlog\nlog\n", file.readText())
   }
+
+  /** 关闭之后查询大小读取文件长度，包括关闭期间外部追加的内容 */
+  @Test
+  fun testSizeAfterClose() {
+    val file = folder.newFile()
+    val store = defaultLogStore(file)
+    store.append("log\n")
+    store.close()
+
+    file.appendText("ext\n")
+    assertEquals(8L, store.size())
+  }
+
+  /** 日志路径被同名目录占用时，替换成文件再写入 */
+  @Test
+  fun testReplaceDirectory() {
+    val file = folder.newFolder().apply { resolve("child").writeText("child") }
+    assertEquals(true, file.isDirectory)
+
+    val store = defaultLogStore(file)
+    store.append("log\n")
+    store.close()
+
+    assertEquals(true, file.isFile)
+    assertEquals("log\n", file.readText())
+  }
 }

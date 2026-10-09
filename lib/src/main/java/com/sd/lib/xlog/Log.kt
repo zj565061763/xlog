@@ -142,21 +142,11 @@ object FLog {
   /**
    * 访问日志目录，[block]在调度器上执行，执行前会先关闭当前的日志文件。
    * 取不到日志目录时不执行[block]。
-   * 目录只能存放日志，[deleteLog]会删除其中不是日志的文件。
+   * 目录只能存放日志，[deleteLog]会删除其中不是日志的条目，.开头的除外。
    */
   @JvmStatic
   fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
-    dispatch {
-      _publisher.close()
-      val directory = _publisher.directory ?: return@dispatch
-      val scope = LogDirectoryScopeImpl(_publisher)
-      try {
-        // 避免外部传入的[block]抛异常导致App崩溃
-        libRunCatching { scope.block(directory) }
-      } finally {
-        scope.destroy()
-      }
-    }
+    dispatch { _publisher.accessDirectory(block) }
   }
 
   /** [logger]的配置，没有配置返回null */

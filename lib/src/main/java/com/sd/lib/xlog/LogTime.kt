@@ -1,16 +1,20 @@
 package com.sd.lib.xlog
 
 import java.util.Calendar
+import java.util.GregorianCalendar
+import java.util.TimeZone
 
 internal object LogTime {
   /**
+   * 固定用公历，不用[Calendar.getInstance]：JVM上它会按locale返回佛历等其他日历，日期会变成25661125这种。
+   *
    * 时区在创建时确定，运行期间改时区不会反映到日志上，进程重启后恢复。
    * 这是有意不处理的：这种情况低频，
    * 而且[FLog.deleteLog]的today和日志文件的日期用的是同一个时区，保留策略不会判断错。
    *
-   * 夏令时不受影响，[java.util.TimeZone]会按传入的时间戳动态计算偏移量。
+   * 夏令时不受影响，[TimeZone]会按传入的时间戳动态计算偏移量。
    */
-  private val _calendar = Calendar.getInstance()
+  private val _calendar = GregorianCalendar(TimeZone.getDefault())
 
   /** yyyyMMdd，例如：20231125 */
   fun dateOf(millis: Long): String {

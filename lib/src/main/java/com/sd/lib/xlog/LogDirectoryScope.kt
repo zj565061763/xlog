@@ -22,6 +22,21 @@ interface FLogDirectoryScope {
   fun logZipOf(date: String): File?
 }
 
+/**
+ * 关闭当前日志文件后，在日志目录上执行[block]，取不到目录时不执行。
+ * [block]是外部传入的，抛异常只打印不往外抛，否则会导致App崩溃。
+ */
+internal fun DirectoryLogPublisher.accessDirectory(block: FLogDirectoryScope.(File) -> Unit) {
+  close()
+  val directory = directory ?: return
+  val scope = LogDirectoryScopeImpl(this)
+  try {
+    libRunCatching { scope.block(directory) }
+  } finally {
+    scope.destroy()
+  }
+}
+
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
   /** 打开要打包的文件，测试时替换成打包期间会被追加的文件 */
