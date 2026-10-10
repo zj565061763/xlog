@@ -441,6 +441,26 @@ class LogDirectoryScopeTest {
     assertEquals(setOf(zip.name, otherTemp.name), zip.parentFile?.list()?.toSet())
   }
 
+  /** 取不到进程名时多个进程共用压缩包目录，同时打包同一日期互不影响，都能成功，不留下临时文件 */
+  @Test
+  fun testInterleavedZip() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val other = LogDirectoryScopeImpl(newPublisher(dir, process = null))
+
+    var otherZip: File? = null
+    val scope = LogDirectoryScopeImpl(newPublisher(dir, process = null), rename = { source, target ->
+      // 自己的临时文件写完、重命名之前，另一个进程完整打包一次
+      otherZip = other.logZipOf(DATE)
+      source.renameTo(target)
+    })
+
+    val zip = checkNotNull(scope.logZipOf(DATE))
+    assertEquals(zip, otherZip)
+    assertEquals("log\n", zip.zipEntryText("${DATE}/p/${DATE}.0.log"))
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
+  }
+
   /** 所在目录没有执行权限时读不到文件属性，这些文件按已删除跳过，打包不失败 */
   @Test
   fun testZipSkipUnreadableAttributes() {
