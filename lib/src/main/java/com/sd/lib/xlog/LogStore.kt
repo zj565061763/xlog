@@ -35,9 +35,16 @@ interface FLogStore {
   }
 }
 
-internal fun defaultLogStore(file: File): FLogStore = FileLogStore(file)
+internal fun defaultLogStore(
+  file: File,
+  /** 以追加方式打开日志文件，测试时替换成记录关闭的流 */
+  openOutput: (File) -> OutputStream = { FileOutputStream(it, true) },
+): FLogStore = FileLogStore(file, openOutput)
 
-private class FileLogStore(file: File) : FLogStore {
+private class FileLogStore(
+  file: File,
+  private val openOutput: (File) -> OutputStream,
+) : FLogStore {
   private val _file = file
   private var _output: CounterOutputStream? = null
 
@@ -63,7 +70,7 @@ private class FileLogStore(file: File) : FLogStore {
   private fun getOutput(): CounterOutputStream {
     return _output ?: kotlin.run {
       _file.fCreateFile()
-      FileOutputStream(_file, true)
+      openOutput(_file)
         .let { CounterOutputStream(it, _file.length()) }
         .also { _output = it }
     }

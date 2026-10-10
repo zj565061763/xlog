@@ -199,9 +199,11 @@ JVM 单元测试：
 | `LogInitTest` | `init` 的扩展点接线 |
 | `LogInitErrorTest` | `initBlock` 抛异常后仍是未初始化状态，再次 `init` 成功，失败那次的设置不残留 |
 | `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器写入、空闲时关闭、文件被删除后重建 |
-| `LogJavaApiTest` | Java API 的两种重载、等级和模式，通过 `JavaApi.java` 从 Java 调用 |
+| `LogJavaApiTest` | Java API 的两种重载、等级、等级过滤和模式，通过 `JavaApi.java` 从 Java 调用 |
 | `LogMaxMBTest` | `setMaxMBPerDay` 换算成字节不溢出 |
 | `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
+| `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库 |
+| `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留 |
 
 app 的 instrumented 测试：
 
@@ -225,6 +227,7 @@ app 的 instrumented 测试：
 - `LogcatTest` 以 shell 身份执行 `logcat -d` 读回日志，覆盖 Logcat 的等级、模式和 `libLog`。
   - Logcat 异步写入，每个用例最后打印结束标记，等它出现再断言
   - 消息带上每次运行都不同的标识，区分以前留下的日志
+  - `libLog` 的内容带不上运行标识时（比如打包失败），用随机生成的 8 位数字日期区分
 
 test-app 的 instrumented 测试：
 
@@ -232,10 +235,12 @@ test-app 的 instrumented 测试：
 - 用 Orchestrator 并设置 `clearPackageData`，每个用例单独一个进程，各自 `init`。
 - 跑在 release 构建上（开启 R8 混淆），`test-app/proguard-rules.pro` 只保留测试 APK 调用的入口和公共 API。
 - 测试目录是 `cacheDir/xlog-tests`，`init` 之前用 `resetLogDir()` 清空。
+- 断言 `libLog` 用 `logcatMark()` 和 `libLogsSince()`，只取两个标记之间的输出。
+- `testProcessFromCmdline` 只在 API 28 以下执行：只有旧接口能通过 Context 模拟出错，API 28 及以上会跳过。
 
 | 测试类 | 覆盖范围 |
 |---|---|
-| `LogInitTest` | `init` 的清理任务排在写日志和导出之前，取不到目录或获取目录出错后恢复 |
+| `LogInitTest` | `init` 的清理任务排在写日志和导出之前，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
 
 ## 依赖

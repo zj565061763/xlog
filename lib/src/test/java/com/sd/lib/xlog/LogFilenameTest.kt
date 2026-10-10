@@ -43,6 +43,7 @@ class LogFilenameTest {
     assertNull(_filename.seqOf("20231125.abc.log"))
     // 序号带正负号、前导零或非ASCII数字，logNameOf不会生成这种文件名
     assertNull(_filename.seqOf("20231125.+1.log"))
+    assertNull(_filename.seqOf("20231125.-1.log"))
     assertNull(_filename.seqOf("20231125.01.log"))
     assertNull(_filename.seqOf("20231125.00.log"))
     assertNull(_filename.seqOf("20231125.１.log"))

@@ -9,7 +9,7 @@ import org.junit.rules.TemporaryFolder
 import java.util.Collections
 
 /**
- * Java API：[FLog.logV]等方法的两种重载都能从Java调用，等级、日志标识和模式正确。
+ * Java API：[FLog.logV]等方法的两种重载都能从Java调用，等级、日志标识和模式正确，等级不满足时不打印。
  *
  * 这个类会初始化[FLog]，初始化之后无法重置，所以单独一个测试类。
  */
@@ -43,6 +43,14 @@ class LogJavaApiTest {
     assertEquals(listOf(logger), records.map { it.logger }.distinct())
     assertEquals(listOf("JavaApiLogger"), records.map { it.tag }.distinct())
     assertEquals(msgs + msgs, dir.walkTopDown().filter { it.isFile }.flatMap { it.readLines() }.toList())
+
+    // 等级不满足的不打印，两种重载都一样
+    FLog.setLevel(FLogLevel.Warning)
+    JavaApi.log(logger)
+    JavaApi.log(logger, FLogMode.Store)
+    assertTrue(dispatcher.await())
+    val filtered = listOf("w", "e")
+    assertEquals(msgs + msgs + filtered + filtered, formatter.records.toList().map { it.msg })
   }
 }
 

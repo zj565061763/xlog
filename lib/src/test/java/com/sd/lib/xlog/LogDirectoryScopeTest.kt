@@ -331,6 +331,28 @@ class LogDirectoryScopeTest {
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 
+  /** 打包成功和读取失败时，日志文件的输入流都要关闭 */
+  @Test
+  fun testCloseInput() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val publisher = newPublisher(dir, process = "p")
+
+    var input: CloseRecordInputStream? = null
+    val scope = LogDirectoryScopeImpl(publisher, openFile = { file ->
+      CloseRecordInputStream(file).also { input = it }
+    })
+    checkNotNull(scope.logZipOf(DATE))
+    assertEquals(true, input?.closed)
+
+    var failedInput: CloseRecordInputStream? = null
+    val failedScope = LogDirectoryScopeImpl(publisher, openFile = { file ->
+      CloseRecordInputStream(file, failOnRead = true).also { failedInput = it }
+    })
+    assertNull(failedScope.logZipOf(DATE))
+    assertEquals(true, failedInput?.closed)
+  }
+
   /** 最后重命名失败时返回null，保留上次的压缩包，不留下临时文件 */
   @Test
   fun testRenameErrorKeepPrevious() {
@@ -473,6 +495,22 @@ private class AppendOnReadInputStream(private val file: File) : FileInputStream(
     if (_appended) return
     _appended = true
     file.appendText("new\n")
+  }
+}
+
+/** 记录是否已经关闭，[failOnRead]为true时读取失败 */
+private class CloseRecordInputStream(file: File, private val failOnRead: Boolean = false) : FileInputStream(file) {
+  var closed = false
+    private set
+
+  override fun read(b: ByteArray, off: Int, len: Int): Int {
+    if (failOnRead) throw IOException("read error")
+    return super.read(b, off, len)
+  }
+
+  override fun close() {
+    closed = true
+    super.close()
   }
 }
 

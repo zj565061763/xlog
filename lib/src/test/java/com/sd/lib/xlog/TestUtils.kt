@@ -1,6 +1,9 @@
 package com.sd.lib.xlog
 
 import java.io.File
+import java.util.Calendar
+import java.util.GregorianCalendar
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -41,6 +44,15 @@ internal fun testLogRecord(
 }
 
 private interface RecordLogger : FLogger
+
+/** 当前时间往前推[days]天的日期，负数表示以后的日期，格式和[LogTime.dateOf]一致 */
+internal fun dateOfDaysAgo(days: Int): String {
+  val calendar = GregorianCalendar().apply { add(Calendar.DAY_OF_MONTH, -days) }
+  val year = calendar.get(Calendar.YEAR)
+  val month = calendar.get(Calendar.MONTH) + 1
+  val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
+  return "%04d%02d%02d".format(Locale.US, year, month, dayOfMonth)
+}
 
 /** 单线程调度器，记录执行任务的线程，[await]等待已提交的任务执行完成 */
 internal class AwaitDispatcher : FLogDispatcher {

@@ -5,6 +5,8 @@ import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 /** [defaultLogStore] */
@@ -52,6 +54,26 @@ class LogStoreTest {
     assertEquals(8L, store.size())
   }
 
+  /** 关闭时关闭文件流，之后再追加会重新打开 */
+  @Test
+  fun testCloseOutput() {
+    val file = folder.newFile()
+    val outputs = mutableListOf<CloseRecordOutputStream>()
+    val store = defaultLogStore(file) { CloseRecordOutputStream(it).also { output -> outputs.add(output) } }
+
+    store.append("log\n")
+    assertEquals(listOf(false), outputs.map { it.closed })
+    store.close()
+    assertEquals(listOf(true), outputs.map { it.closed })
+
+    store.append("log\n")
+    assertEquals(listOf(true, false), outputs.map { it.closed })
+    store.close()
+    assertEquals(listOf(true, true), outputs.map { it.closed })
+
+    assertEquals("log\nlog\n", file.readText())
+  }
+
   /** 大小按字节计算，不是字符数，多字节字符原样写入 */
   @Test
   fun testMultiByte() {
@@ -92,5 +114,16 @@ class LogStoreTest {
 
     assertEquals(true, file.isFile)
     assertEquals("log\n", file.readText())
+  }
+}
+
+/** 以追加方式打开文件，记录是否已经关闭 */
+private class CloseRecordOutputStream(file: File) : FileOutputStream(file, true) {
+  var closed = false
+    private set
+
+  override fun close() {
+    closed = true
+    super.close()
   }
 }

@@ -14,9 +14,12 @@ import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 import java.util.UUID
+import kotlin.random.Random
 
 /**
  * 日志输出到Logcat的等级、tag和模式，以及库内部日志。
@@ -87,6 +90,33 @@ class LogcatTest {
     )
   }
 
+  /** 打包失败时输出库内部日志；日期没有日志目录是正常结果，不输出 */
+  @Test
+  fun testLibLogZip() {
+    val dir = resetLogDir()
+    // 日期只要求是8位数字，每次运行随机生成，用来区分Logcat里以前留下的日志
+    val random = Random.nextInt(10_000_000, 99_999_999)
+    val missingDate = random.toString()
+    val failedDate = (random + 1).toString()
+
+    // 有日志目录，但是压缩包目录被同名文件占用，打包失败
+    assertEquals(true, dir.resolve(failedDate).mkdirs())
+    dir.resolve(".zip").writeText("occupied")
+
+    // block里的断言失败会被捕获，所以把结果带出来再断言
+    var zips: List<File?>? = null
+    FLog.logDirectory { zips = listOf(logZipOf(missingDate), logZipOf(failedDate)) }
+    awaitLogIdle()
+    logEnd()
+    awaitLogcat()
+
+    assertEquals(listOf(null, null), zips)
+    assertEquals(emptyList<String>(), readLogcat(missingDate))
+    // 确认失败的那次确实输出了，否则上面什么也没验证
+    val failedLogs = readLogcat(failedDate)
+    assertTrue(failedLogs.toString(), failedLogs.contains("E/$LIB_TAG log zip ${failedDate}.zip failed"))
+  }
+
   /** 打印结束标记，它出现在Logcat里说明之前的日志都已经写进去 */
   private fun logEnd() {
     flogI<LogcatLogger>(mode = FLogMode.Console) { "$_id $END" }
@@ -104,12 +134,12 @@ class LogcatTest {
     }
   }
 
-  /** Logcat里本次运行打印的日志，多行的内容只有带运行标识的那一行 */
-  private fun readLogcat(): List<String> {
+  /** Logcat里内容带[marker]的日志，默认是本次运行打印的，多行的内容只有带[marker]的那一行 */
+  private fun readLogcat(marker: String = _id): List<String> {
     return shell("logcat -d -v tag -s $TAG:V $LIB_TAG:V").lineSequence()
       .mapNotNull { LogcatLine.matchEntire(it) }
       .map { it.destructured }
-      .filter { (_, _, msg) -> msg.contains(_id) }
+      .filter { (_, _, msg) -> msg.contains(marker) }
       .map { (priority, tag, msg) -> "${priority}/${tag} ${msg.replace("$_id ", "")}" }
       .toList()
   }
