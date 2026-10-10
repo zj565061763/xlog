@@ -782,6 +782,32 @@ class LogPublisherTest {
     assertEquals("old", lines[0])
   }
 
+  /** 日志目录已经存在但里面没有日志文件时从序号0开始写，不是日志的文件保留 */
+  @Test
+  fun testContinueSeqNoLogFile() {
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logName = filename.logNameOf(date, 0)
+
+    // 有进程名时日志目录是日期目录下的进程目录
+    for (process in listOf(null, "process")) {
+      // 空目录，以及只有不是日志的文件
+      for (others in listOf(emptyList(), listOf("${date}.log.9", "notes.txt"))) {
+        val message = "process=${process} others=${others}"
+        val dir = folder.newFolder()
+        val logDir = dir.resolve(date).let { if (process == null) it else it.resolve(process) }
+        assertTrue(message, logDir.mkdirs())
+        others.forEach { logDir.resolve(it).writeText("other\n") }
+
+        newPublisher(dir, process = process).use { it.publish(testLogRecord()) }
+
+        assertEquals(message, (others + logName).sorted(), logDir.list()?.sorted())
+        assertEquals(message, 1, logDir.resolve(logName).readLines().size)
+        assertEquals(message, others.map { "other\n" }, others.map { logDir.resolve(it).readText() })
+      }
+    }
+  }
+
   /** 接着写的文件已经写满时，切到下一个序号，并删除当前和上一个之外的旧文件 */
   @Test
   fun testContinueSeqRotate() {
