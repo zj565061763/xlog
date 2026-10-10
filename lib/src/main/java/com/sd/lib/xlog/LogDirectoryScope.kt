@@ -185,5 +185,5 @@ internal fun InputStream.copyLimitedTo(out: OutputStream, limit: Long) {
 
 /** 列出目录内容，目录已经不存在时返回null，其他原因读取失败照常抛出 */
 internal fun File.listFilesOrNull(): Array<File>? {
-  return listFiles() ?: if (exists()) throw IOException("list ${name} failed") else null
+  return listFiles() ?: if (exists()) throw IOException("list $name failed") else null
 }
