@@ -45,6 +45,7 @@ class LogInitTest {
       setLogDispatcher(dispatcher)
       configLogger(InitLogger::class.java) { it.copy(tag = "init") }
       configLogger(LevelLogger::class.java) { it.copy(level = FLogLevel.Warning) }
+      configLogger(EmptyTagLogger::class.java) { it.copy(tag = "", level = FLogLevel.Warning) }
     }
     assertTrue(init)
     assertFalse(FLog.init(ContextWrapper(null)))
@@ -110,6 +111,11 @@ class LogInitTest {
     flogW<LevelLogger> { "level" }
     assertTrue(dispatcher.await())
     assertEquals("init:again\nLevelLogger:level\n", logFile.readText())
+
+    // 配置的tag是空串时和没有tag一样，用默认tag
+    flogW<EmptyTagLogger> { "empty tag" }
+    assertTrue(dispatcher.await())
+    assertEquals("init:again\nLevelLogger:level\nEmptyTagLogger:empty tag\n", logFile.readText())
   }
 }
 
@@ -117,6 +123,9 @@ private interface InitLogger : FLogger
 
 /** 只配置了等级的日志标识 */
 private interface LevelLogger : FLogger
+
+/** 配置的tag是空串、另外配置了等级的日志标识 */
+private interface EmptyTagLogger : FLogger
 
 /** 格式为 tag:msg，记录重置次数 */
 private class TagMsgFormatter : FLogFormatter {

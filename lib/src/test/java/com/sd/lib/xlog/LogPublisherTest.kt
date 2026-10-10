@@ -580,6 +580,14 @@ class LogPublisherTest {
     }
   }
 
+  /** 日期为空时抛异常，不能把日志目录本身当作日期目录 */
+  @Test
+  fun testEmptyDate() {
+    val publisher = newPublisher(folder.newFolder())
+    assertThrows(IllegalArgumentException::class.java) { publisher.logDirOf("") }
+    assertThrows(IllegalArgumentException::class.java) { publisher.zipFileOf("") }
+  }
+
   /** 只删除本进程的压缩包目录，取不到进程名时不删，避免误删其他进程的压缩包 */
   @Test
   fun testDeleteZipDirectory() {

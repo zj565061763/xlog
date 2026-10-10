@@ -200,9 +200,9 @@ JVM 单元测试：
 | `LogInitErrorTest` | `initBlock` 抛异常后仍是未初始化状态，再次 `init` 成功，失败那次的设置不残留 |
 | `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器写入、空闲时关闭、文件被删除后重建 |
 | `LogJavaApiTest` | Java API 的两种重载、等级、等级过滤和模式，通过 `JavaApi.java` 从 Java 调用 |
-| `LogMaxMBTest` | `setMaxMBPerDay` 换算成字节不溢出 |
+| `LogMaxMBTest` | `setMaxMBPerDay` 按 1MB = 1048576 字节换算，不溢出 |
 | `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
-| `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库 |
+| `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库，各等级的 API 都传递模式和等级 |
 | `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留 |
 
 app 的 instrumented 测试：

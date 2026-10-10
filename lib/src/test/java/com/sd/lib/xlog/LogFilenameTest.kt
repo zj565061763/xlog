@@ -3,6 +3,7 @@ package com.sd.lib.xlog
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.util.Calendar
 import java.util.GregorianCalendar
@@ -25,6 +26,10 @@ class LogFilenameTest {
     assertEquals("20231125.1.log", _filename.logNameOf("20231125", 1))
     assertEquals("20231125.10.log", _filename.logNameOf("20231125", 10))
     assertEquals("20231125.1000.log", _filename.logNameOf("20231125", 1000))
+
+    // 日期不能为空，序号不能是负数
+    assertThrows(IllegalArgumentException::class.java) { _filename.logNameOf("", 0) }
+    assertThrows(IllegalArgumentException::class.java) { _filename.logNameOf("20231125", -1) }
   }
 
   /** [LogFilename.logNameOf]和[LogFilename.seqOf]互为逆运算 */
