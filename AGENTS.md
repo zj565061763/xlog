@@ -30,7 +30,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 不能加 `@JvmStatic`：内联代码通过 `FLog.INSTANCE` 调用，改成静态方法同样会崩溃
   - `LogCompatTest` 检查这些方法的签名，新增 `@PublishedApi` 函数时一并加进去
 - `FLog`（`Log.kt`）：单例总控，必须先 `init`，否则抛异常。
-- `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是短类名。
+- `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是去掉包名的类名，嵌套类带外部类名（`Outer$Inner`）。
 - `FLoggerConfig`：通过 `configLogger` 覆盖单个 logger 的 tag/level/mode。
 - 打印日志：
   - `flogV/D/I/W/E<T : FLogger> { "msg" }`（`LogApi.kt`，推荐）
@@ -130,12 +130,16 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
   - 不会崩溃：异常被捕获后输出到 Logcat，这次 `deleteLog` 中断，剩下的过期目录下次再删
   - release 构建没有断言，不受影响
 - `lib/consumer-rules.pro` 用 `-keepnames` 保留 `FLogger` 实现类的类名。
-  - 默认 tag 是短类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
+  - 默认 tag 取自类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
   - 不要改回 `-keep`：它会阻止 R8 移除没用到的实现类
-- 默认 tag 从类名推算，不要改回 `simpleName`。
-  - `simpleName` 依赖内部类信息，外部类没被 keep 时 R8 会移除它，嵌套类、局部类的 tag 会带上外部类名
+- 默认 tag 只用 `name.substringAfterLast('.')`，嵌套类、局部类和匿名类带外部类名，不要改回 `simpleName`，也不要去掉外部类名。
+  - `simpleName` 依赖内部类信息，外部类没被 keep 时 R8 会移除它，混淆前后的 tag 不一致
   - 加 `-keepattributes InnerClasses` 也没用：AGP 默认配置已经有这一条
-  - 每条日志都重新推算，不缓存：缓存会一直占用内存，几次字符串操作的开销可以接受
+  - `simpleName` 也不更轻量：API 34 及之前每次都要查内部类信息，旧系统上取嵌套类的名字慢几十倍
+  - 去掉外部类名的话，分不清编译器加的编号和类名开头的数字：Java 局部类 `Local` 和 Kotlin 嵌套类 `` `1Local` `` 的类名都是 `Outer$1Local`
+  - 去掉外部类名的话，不同外部类里同名的 logger（比如都叫 `Logger`）tag 相同，分不出来
+  - 需要短 tag 的由使用方通过 `configLogger` 指定
+  - 每条日志都重新计算，不缓存：缓存会一直占用内存，一次字符串截取的开销可以接受
 - Logcat 单条日志超过约 4KB 会被系统截断，这是平台限制，不分段输出。
   - 日志文件里是完整内容
 - 打包时列出的条目读不到属性（比如所在目录没有执行权限），`isFile`、`isDirectory`、`exists()` 都返回 false，会按已删除跳过，不让打包失败。

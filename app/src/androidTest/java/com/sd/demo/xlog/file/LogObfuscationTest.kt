@@ -30,8 +30,8 @@ class LogObfuscationTest {
     val lines = dir.todayLogText().lines().filter { it.isNotEmpty() }
     val tags = lines.map { it.substringAfter("[").substringBefore("|") }
     assertEquals(listOf("nested", "local", "anonymous"), lines.map { it.substringAfter("] ") })
-    assertEquals(listOf("NestedLogger", "LocalLogger"), tags.take(2))
-    // 匿名类的编号由编译器决定，只断言去掉包名的类名前缀
+    assertEquals(listOf("ObfuscationLoggers\$NestedLogger", "ObfuscationLoggers\$log\$LocalLogger"), tags.take(2))
+    // 匿名类的编号由编译器决定，只断言编号前面的部分
     assertTrue(tags[2], Regex("ObfuscationLoggers\\\$log\\\$\\d+").matches(tags[2]))
   }
 }

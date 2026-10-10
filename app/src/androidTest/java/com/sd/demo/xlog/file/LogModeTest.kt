@@ -60,7 +60,7 @@ class LogModeTest {
     assertEquals(listOf("call store"), text.lines().filter { it.isNotEmpty() }.map { it.substringAfter("] ") })
   }
 
-  /** 配置的tag优先于默认tag，默认tag是短类名 */
+  /** 配置的tag优先于默认tag，默认tag是去掉包名的类名 */
   @Test
   fun testTag() {
     val dir = resetLogDir()
@@ -118,5 +118,5 @@ class LogModeTest {
   }
 }
 
-/** 实现了[TestLogger]的类，用扩展API打印日志时，tag是它自己的短类名 */
+/** 实现了[TestLogger]的类，用扩展API打印日志时，tag是它自己去掉包名的类名 */
 private class ConcreteLogger : TestLogger

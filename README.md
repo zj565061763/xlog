@@ -25,7 +25,7 @@ FLog.init(context)
 
 ```kotlin
 /**
- * 定义一个日志标识，默认tag为短类名：AppLogger
+ * 定义一个日志标识，默认tag为去掉包名的类名：AppLogger
  */
 interface AppLogger : FLogger
 ```

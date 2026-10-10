@@ -2,12 +2,12 @@ package com.sd.lib.xlog
 
 import android.util.Log
 
-/** 日志标识，一个日志标识代表一类相关的逻辑，默认的tag是子类的短类名 */
+/** 日志标识，一个日志标识代表一类相关的逻辑，默认的tag是子类去掉包名的类名，嵌套类带外部类名，例如`Outer$Inner` */
 interface FLogger
 
 /** [FLogger]配置信息 */
 data class FLoggerConfig(
-  /** 日志tag，为空时使用短类名 */
+  /** 日志tag，为空时使用去掉包名的类名 */
   val tag: String? = null,
   /** 日志等级，覆盖全局等级，但全局等级为[FLogLevel.Off]时一律不打印 */
   val level: FLogLevel? = null,
@@ -16,14 +16,10 @@ data class FLoggerConfig(
 )
 
 /**
- * 默认tag是短类名，匿名类没有短类名，改用去掉包名的类名。
- * 从类名推算，不用[Class.getSimpleName]：R8可能移除它依赖的内部类信息，嵌套类的tag会带上外部类名。
+ * 默认tag是去掉包名的类名，嵌套类、局部类和匿名类带外部类名。
+ * 不用[Class.getSimpleName]：R8可能移除它依赖的内部类信息，混淆前后的结果不一致。
  */
-internal fun Class<out FLogger>.defaultLogTag(): String {
-  val className = name.substringAfterLast('.')
-  // 嵌套类、局部类取最后一个$之后的部分，Java局部类带数字前缀，匿名类只有数字
-  return className.substringAfterLast('$').trimStart { it in '0'..'9' }.ifEmpty { className }
-}
+internal fun Class<out FLogger>.defaultLogTag(): String = name.substringAfterLast('.')
 
 /** 配置信息是否为空 */
 internal fun FLoggerConfig.isEmpty(): Boolean {

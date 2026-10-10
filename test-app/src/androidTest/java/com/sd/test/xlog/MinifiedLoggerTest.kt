@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 /** 验证经过R8的日志调用和consumer rules */
 @RunWith(AndroidJUnit4::class)
 class MinifiedLoggerTest {
-  /** 混淆后保留logger名称，嵌套和局部类型使用短tag，未使用类型仍被移除 */
+  /** 混淆后保留logger名称，嵌套和局部类型的tag带外部类名，未使用类型仍被移除 */
   @Test
   fun testDefaultTagsAndUnusedLogger() {
     val dir = resetLogDir()
@@ -27,8 +27,8 @@ class MinifiedLoggerTest {
       val tags = dir.resolve(dateOfDaysAgo(0)).walkTopDown().filter { it.isFile }.flatMap { it.readLines() }
         .associate { it.substringAfter("] ") to it.substringAfter('[').substringBefore('|') }
       assertEquals("TopLevelLogger", tags["top"])
-      assertEquals("NestedLogger", tags["nested"])
-      assertEquals("LocalLogger", tags["local"])
+      assertEquals("LoggerOuter\$NestedLogger", tags["nested"])
+      assertEquals("MinifiedLoggers\$write\$LocalLogger", tags["local"])
       assertEquals("MinifiedLoggers\$write\$anonymous\$1", tags["anonymous"])
 
       val loader = testContext.classLoader
