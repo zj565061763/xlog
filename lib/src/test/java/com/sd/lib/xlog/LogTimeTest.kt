@@ -6,6 +6,7 @@ import org.junit.BeforeClass
 import org.junit.Test
 import java.util.Calendar
 import java.util.GregorianCalendar
+import java.util.Locale
 import java.util.TimeZone
 
 /** [LogTime] */
@@ -70,23 +71,39 @@ class LogTimeTest {
     }
   }
 
+  /** 固定用公历，默认日历是佛历时日期不变 */
+  @Test
+  fun testGregorianCalendar() {
+    val millis = GregorianCalendar(2026, Calendar.JANUARY, 5).timeInMillis
+    // 确认默认日历确实是佛历，否则下面什么也没验证
+    assertEquals(2569, Calendar.getInstance().apply { timeInMillis = millis }.get(Calendar.YEAR))
+    assertEquals("20260105", LogTime.dateOf(millis))
+  }
+
   companion object {
     /** 有夏令时的时区 */
     private const val TIME_ZONE = "America/New_York"
-    private lateinit var sDefaultTimeZone: TimeZone
 
-    /** [LogTime]的时区在首次使用时固定，要在它初始化之前设置；每个测试类单独一个JVM，不影响其他测试 */
+    /** 泰语，默认日历是佛历，年份比公历多543 */
+    private const val LOCALE = "th-TH"
+    private lateinit var sDefaultTimeZone: TimeZone
+    private lateinit var sDefaultLocale: Locale
+
+    /** [LogTime]的日历在首次使用时创建，时区和locale要在这之前设置；每个测试类单独一个JVM，不影响其他测试 */
     @JvmStatic
     @BeforeClass
     fun setUpClass() {
       sDefaultTimeZone = TimeZone.getDefault()
+      sDefaultLocale = Locale.getDefault()
       TimeZone.setDefault(TimeZone.getTimeZone(TIME_ZONE))
+      Locale.setDefault(Locale.forLanguageTag(LOCALE))
     }
 
     @JvmStatic
     @AfterClass
     fun tearDownClass() {
       TimeZone.setDefault(sDefaultTimeZone)
+      Locale.setDefault(sDefaultLocale)
     }
   }
 }

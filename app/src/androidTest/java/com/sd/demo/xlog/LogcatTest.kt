@@ -4,6 +4,7 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.sd.demo.xlog.log.AppLogger
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogLevel
 import com.sd.lib.xlog.FLogMode
@@ -44,6 +45,21 @@ class LogcatTest {
 
     assertEquals(
       listOf("V/$TAG v", "D/$TAG d", "I/$TAG i", "W/$TAG w", "E/$TAG e"),
+      awaitLogcat(),
+    )
+  }
+
+  /** 配置了tag的logger，Default和Console模式输出到Logcat的都是配置的tag */
+  @Test
+  fun testConfigTag() {
+    resetLogDir()
+    // App里给AppLogger配置了tag
+    flogI<AppLogger> { "$_id default" }
+    flogI<AppLogger>(mode = FLogMode.Console) { "$_id console" }
+    logEnd()
+
+    assertEquals(
+      listOf("I/$CONFIG_TAG default", "I/$CONFIG_TAG console"),
       awaitLogcat(),
     )
   }
@@ -136,7 +152,7 @@ class LogcatTest {
 
   /** Logcat里内容带[marker]的日志，默认是本次运行打印的，多行的内容只有带[marker]的那一行 */
   private fun readLogcat(marker: String = _id): List<String> {
-    return shell("logcat -d -v tag -s $TAG:V $LIB_TAG:V").lineSequence()
+    return shell("logcat -d -v tag -s $TAG:V $CONFIG_TAG:V $LIB_TAG:V").lineSequence()
       .mapNotNull { LogcatLine.matchEntire(it) }
       .map { it.destructured }
       .filter { (_, _, msg) -> msg.contains(marker) }
@@ -148,6 +164,7 @@ class LogcatTest {
 private interface LogcatLogger : FLogger
 
 private const val TAG = "LogcatLogger"
+private const val CONFIG_TAG = "AppLoggerAppLogger"
 private const val LIB_TAG = "XLogLibLogger"
 private const val END = "end"
 

@@ -237,7 +237,7 @@ app 的 instrumented 测试：
   - `app/proguard-test-rules.pro` 让测试 APK 不混淆、不裁剪，测试里按类名断言的 tag 才稳定
   - `LogObfuscationTest` 验证混淆后的默认 tag：`ObfuscationLoggers` 刻意不 keep，R8 会移除它，测试只能通过 `logObfuscation()` 调用，不要直接引用它
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
-- `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`、`LogProcessTest`。
+- `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`、`LogProcessTest`、`LogcatTest`。
 - 多进程由 `LogProcessTest` 覆盖：启动运行在 `:custom` 进程的 `SampleLogProcess`，它不在测试进程里，只能轮询文件系统等待。
   - `SampleLog` 带 `EXTRA_LOG` 启动时直接打印一组日志并 `finish()`，这是测试依赖的，不要删
   - 要从测试进程 `startActivity`，不能用 shell 的 `am start`：页面没有 `exported`，API 35 上 shell 启动会被拒绝
@@ -249,7 +249,7 @@ app 的 instrumented 测试：
   - `logDirectory` 第一件事是 `_publisher.close()`，会改变被测状态
   - `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它
 - 日期只能相对当前时间推算（用 `dateOfDaysAgo`，负数表示以后的日期），不能写死，因为 `deleteLog` 读的是 `System.currentTimeMillis()`。
-- `LogcatTest` 以 shell 身份执行 `logcat -d` 读回日志，覆盖 Logcat 的等级、模式和 `libLog`。
+- `LogcatTest` 以 shell 身份执行 `logcat -d` 读回日志，覆盖 Logcat 的等级、tag、模式和 `libLog`。
   - Logcat 异步写入，每个用例最后打印结束标记，等它出现再断言
   - 消息带上每次运行都不同的标识，区分以前留下的日志
   - `libLog` 的内容带不上运行标识时（比如打包失败），用随机生成的 8 位数字日期区分
