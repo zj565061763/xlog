@@ -116,6 +116,11 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `deleteLog` 保留日期在今天之后的目录，只有 `saveDays<=0` 时才删。
   - 这类目录来自设备时间被调快又恢复
   - 不删是因为当前时间被调慢时，这些目录才是真实的日志
+- debug 构建里 `deleteLog` 和其他进程同时删除同一个目录时，`deleteRecursively()` 会抛 `AssertionError`，不换成自己实现的递归删除。
+  - `deleteLog` 正常只在主进程调用，不会有其他进程同时删除
+  - debuggable 构建开启了断言，Kotlin 的 `deleteRecursively()` 判断 `isDirectory` 之后还会断言一次，中间目录被删掉就失败
+  - 不会崩溃：异常被捕获后输出到 Logcat，这次 `deleteLog` 中断，剩下的过期目录下次再删
+  - release 构建没有断言，不受影响
 - `lib/consumer-rules.pro` 用 `-keepnames` 保留 `FLogger` 实现类的类名。
   - 默认 tag 是短类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
   - 不要改回 `-keep`：它会阻止 R8 移除没用到的实现类
@@ -242,6 +247,7 @@ test-app 的 instrumented 测试：
 |---|---|
 | `LogInitTest` | `init` 的清理任务排在写日志和导出之前，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
+| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog` |
 
 ## 依赖
 

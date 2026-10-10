@@ -97,6 +97,8 @@ class LogFilenameTest {
     assertEquals(7, _filename.diffDays("20240101", "20231225"))
     assertEquals(-1, _filename.diffDays("20231231", "20240101"))
     assertEquals(366, _filename.diffDays("20250101", "20240101"))
+    // 跨千年，年份的四位都要参与计算
+    assertEquals(1, _filename.diffDays("20000101", "19991231"))
     // 能被100整除但不能被400整除，不是闰年
     assertEquals(1, _filename.diffDays("19000301", "19000228"))
     // 能被400整除，是闰年

@@ -162,6 +162,9 @@ class LogDirectoryScopeTest {
     assertEquals(emptyList<Byte>(), copy(0))
     assertEquals(bytes.take(10_000), copy(10_000))
     assertEquals(bytes.toList(), copy(30_000))
+    // 恰好读满缓冲区，以及再多1字节
+    assertEquals(bytes.take(DEFAULT_BUFFER_SIZE), copy(DEFAULT_BUFFER_SIZE.toLong()))
+    assertEquals(bytes.take(DEFAULT_BUFFER_SIZE + 1), copy(DEFAULT_BUFFER_SIZE + 1L))
   }
 
   /** 打包期间其他进程追加的内容不打包，否则写入不比压缩慢时一直读不完 */
@@ -250,6 +253,30 @@ class LogDirectoryScopeTest {
     // 确认目录确实删除了，否则这个测试什么也没验证
     assertEquals(false, dir.resolve(DATE).exists())
     assertEquals(false, real.zipFileOf(DATE)?.parentFile?.exists())
+  }
+
+  /** 日期目录在检查之后被其他进程删除，上次的压缩包还在时同样返回null，并保留上次的压缩包 */
+  @Test
+  fun testDirectoryDeletedKeepPrevious() {
+    val dir = folder.newFolder()
+    dir.createLog(DATE, "p")
+    val real = newPublisher(dir, process = "p")
+    val zip = checkNotNull(LogDirectoryScopeImpl(real).logZipOf(DATE))
+    val bytes = zip.readBytes()
+
+    val publisher = object : DirectoryLogPublisher by real {
+      // 取压缩包路径在目录检查之后、打包之前，在这里删除目录
+      override fun zipFileOf(date: String): File? {
+        dir.resolve(date).deleteRecursively()
+        return real.zipFileOf(date)
+      }
+    }
+
+    assertNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+    // 确认目录确实删除了，否则这个测试什么也没验证
+    assertEquals(false, dir.resolve(DATE).exists())
+    assertArrayEquals(bytes, zip.readBytes())
+    assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 
   /** 离开[FLog.logDirectory]之后返回null */
