@@ -115,6 +115,46 @@ class LibLogTest {
       assertTrue(expired.exists())
     }
   }
+
+  /** 删除日志时某个过期目录删不掉，输出库内部日志，其他过期目录照常删除；恢复之后再删能删掉，不再输出 */
+  @Test
+  fun testDeleteLogFailed() {
+    val dir = resetLogDir()
+    val (locked, other) = (2..3).map { days ->
+      dir.resolve(dateOfDaysAgo(days)).also {
+        assertTrue(it.mkdirs())
+        it.resolve("${it.name}.0.log").writeText("old")
+      }
+    }
+
+    TestLogDispatcher().use { dispatcher ->
+      assertTrue(FLog.init(testContext) {
+        setLogDirectory { dir }
+        setLogDispatcher(dispatcher)
+      })
+      dispatcher.awaitLogIdle()
+
+      // 目录不可写时删不掉里面的日志文件
+      assertTrue(locked.setWritable(false))
+      try {
+        val mark = logcatMark()
+        FLog.deleteLog(1)
+        dispatcher.awaitLogIdle()
+
+        assertTrue(locked.exists())
+        assertFalse(other.exists())
+        assertEquals(listOf("delete log ${locked.name} failed"), libLogsSince(mark))
+      } finally {
+        locked.setWritable(true)
+      }
+
+      val mark = logcatMark()
+      FLog.deleteLog(1)
+      dispatcher.awaitLogIdle()
+      assertFalse(locked.exists())
+      assertEquals(emptyList<String>(), libLogsSince(mark))
+    }
+  }
 }
 
 private interface LibLogger : FLogger

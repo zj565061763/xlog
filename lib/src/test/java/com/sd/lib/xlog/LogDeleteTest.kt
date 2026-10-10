@@ -2,6 +2,7 @@ package com.sd.lib.xlog
 
 import android.content.ContextWrapper
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -80,6 +81,34 @@ class LogDeleteTest {
 
     // 目录不存在时不抛
     deleteLogIn(dir = dir.resolve("missing"), filename = filename, today = today, saveDays = 0)
+  }
+
+  /** 某个过期目录删不掉时不抛异常，其他过期目录照常删除，恢复之后再删能删掉 */
+  @Test
+  fun testDeleteFailed() {
+    val filename = defaultLogFilename()
+    val today = dateOfDaysAgo(0)
+
+    // 目录的列出顺序不确定，轮流让其中一个删不掉，另一个都要照常删除
+    for (lockedIndex in 0..1) {
+      val dir = folder.newFolder()
+      val days = (1..2).map { dir.resolve(dateOfDaysAgo(it)).createLogDir() }
+      val locked = days[lockedIndex]
+      val other = days[1 - lockedIndex]
+
+      // 目录不可写时删不掉里面的日志文件；以root运行时权限不生效，跳过
+      assumeTrue(locked.setWritable(false) && !locked.canWrite())
+      try {
+        deleteLogIn(dir = dir, filename = filename, today = today, saveDays = 0)
+        assertTrue(locked.exists())
+        assertFalse(other.exists())
+      } finally {
+        locked.setWritable(true)
+      }
+
+      deleteLogIn(dir = dir, filename = filename, today = today, saveDays = 0)
+      assertFalse(locked.exists())
+    }
   }
 }
 

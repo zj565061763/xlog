@@ -45,6 +45,8 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 ## 关键架构
 
 - 写入链路：`flogX` → `FLog.publishLog()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
+  - `FLogRecord` 在调用线程上生成，时间戳和线程 ID 都是调用时的，不要移到调度线程上创建
+  - 用写入时间的话，队列积压时时间偏晚，午夜前打印的日志会写进第二天的文件
 - `logDirectory`、`deleteLog` 的任务体是 `LogDirectoryScope.kt` 的 `accessDirectory`，和 `FLog` 解耦是为了在 JVM 单元测试里测取不到目录等分支。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
   - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`getExternalFilesDir()`
@@ -214,7 +216,8 @@ JVM 单元测试：
 | `LogMaxMBTest` | `setMaxMBPerDay` 按 1MB = 1048576 字节换算，不溢出 |
 | `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
 | `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库，各等级的 API 都传递模式和等级 |
-| `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留，日志目录读取失败时抛异常 |
+| `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留，日志目录读取失败时抛异常，某个目录删不掉时继续删其他的 |
+| `LogRecordTest` | 日志记录的时间戳和线程 ID 取自调用时，不是写入时 |
 
 app 的 instrumented 测试：
 
@@ -254,7 +257,7 @@ test-app 的 instrumented 测试：
 |---|---|
 | `LogInitTest` | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
-| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败时输出 |
+| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录时输出 |
 | `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器按顺序写入，调度线程的 nice 值低于 10 |
 
 ## 依赖
