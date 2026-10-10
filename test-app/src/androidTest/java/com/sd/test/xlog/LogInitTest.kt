@@ -176,6 +176,45 @@ class LogInitTest {
     testUnavailableDirectory(throwOnGet = true)
   }
 
+  /** 外部存储不可用时默认目录为null，不回退到内部存储，不输出库内部日志，恢复后可以继续使用 */
+  @Test
+  fun testDefaultDirectoryRecovery() {
+    val externalDir = resetLogDir()
+    val dir = externalDir.resolve("sd.lib.xlog")
+    val internalDir = testContext.filesDir.resolve("sd.lib.xlog")
+    val available = AtomicBoolean()
+    val context = object : ContextWrapper(testContext) {
+      override fun getApplicationContext(): Context = this
+
+      override fun getExternalFilesDir(type: String?): File? = externalDir.takeIf { available.get() }
+    }
+
+    TestLogDispatcher().use { dispatcher ->
+      val mark = logcatMark()
+      assertTrue(FLog.init(context) {
+        setLogDispatcher(dispatcher)
+      })
+
+      var callbacks = 0
+      flogI<InitLogger>(FLogMode.Store) { "lost" }
+      FLog.logDirectory { callbacks++ }
+      dispatcher.awaitLogIdle()
+      // block没有执行说明目录为null，没有回退到其他目录
+      assertEquals(0, callbacks)
+      assertFalse(internalDir.exists())
+      assertEquals(emptyList<String>(), libLogsSince(mark))
+
+      available.set(true)
+      var logDirectory: File? = null
+      flogI<InitLogger>(FLogMode.Store) { "recovered" }
+      FLog.logDirectory { logDirectory = it }
+      dispatcher.awaitLogIdle()
+      assertEquals(dir, logDirectory)
+      val lines = dir.resolve(dateOfDaysAgo(0)).walkTopDown().filter { it.isFile }.flatMap { it.readLines() }.toList()
+      assertEquals(listOf("recovered"), lines.map { it.substringAfter("] ") })
+    }
+  }
+
   /** 系统接口出错时读取/proc/self/cmdline获取进程名，只有API 28以下的旧接口能通过Context让它出错 */
   @Test
   fun testProcessFromCmdline() {

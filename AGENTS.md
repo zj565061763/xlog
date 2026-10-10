@@ -266,7 +266,7 @@ test-app 的 instrumented 测试：
 
 | 测试类 | 覆盖范围 |
 |---|---|
-| `LogInitTest` | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，系统接口出错时读 cmdline 取进程名 |
+| `LogInitTest` | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，外部存储不可用时默认目录不回退到内部存储，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
 | `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录、打开或切换日志文件时目录读取失败时输出 |
 | `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器按顺序写入，调度线程的 nice 值低于 10 |
