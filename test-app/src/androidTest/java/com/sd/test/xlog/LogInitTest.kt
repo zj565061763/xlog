@@ -3,6 +3,7 @@ package com.sd.test.xlog
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
+import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.FLogMode
@@ -18,7 +19,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.FutureTask
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -90,6 +94,70 @@ class LogInitTest {
           archive.getInputStream(entry).bufferedReader().use { it.readText() }
         }
         assertTrue(text, text.endsWith("] after init\n"))
+      } finally {
+        gate.countDown()
+      }
+    }
+  }
+
+  /** 初始化提交清理任务之前，其他线程的日志和导出不能先提交，否则清理会删掉刚导出的压缩包 */
+  @Test
+  fun testInitCleanupBeforeOtherThread() {
+    val dir = resetLogDir()
+    val today = dateOfDaysAgo(0)
+    val staleZip = dir.resolve(".zip/${testContext.packageName}/stale.zip").also {
+      assertTrue(it.parentFile!!.mkdirs())
+      it.writeText("previous")
+    }
+    val held = CountDownLatch(1)
+    val gate = CountDownLatch(1)
+    val dispatchCount = AtomicInteger()
+    val cleanupSubmitted = AtomicBoolean()
+    val submittedBeforeCleanup = AtomicBoolean()
+
+    TestLogDispatcher().use { dispatcher ->
+      try {
+        // 第一个提交的是初始化的清理任务，提交之前先停住，这时init还没有返回
+        val init = FutureTask(Callable {
+          FLog.init(testContext) {
+            setLogDirectory { dir }
+            setLogDispatcher { task ->
+              if (dispatchCount.incrementAndGet() == 1) {
+                held.countDown()
+                check(gate.await(10, TimeUnit.SECONDS))
+                cleanupSubmitted.set(true)
+              } else if (!cleanupSubmitted.get()) {
+                submittedBeforeCleanup.set(true)
+              }
+              dispatcher.dispatch(task)
+            }
+          }
+        })
+        Thread(init).start()
+        assertTrue(held.await(10, TimeUnit.SECONDS))
+
+        var zip: File? = null
+        val other = FutureTask(Callable {
+          flogI<InitLogger>(FLogMode.Store) { "other thread" }
+          FLog.logDirectory { zip = logZipOf(today) }
+        })
+        val otherThread = Thread(other).apply { start() }
+
+        // 等其他线程停在初始化持有的锁上；没有被拦住的话，它会直接执行完
+        val deadline = SystemClock.uptimeMillis() + 10_000
+        while (!other.isDone && otherThread.state != Thread.State.BLOCKED) {
+          assertTrue(SystemClock.uptimeMillis() < deadline)
+          Thread.sleep(10)
+        }
+
+        gate.countDown()
+        assertTrue(init.get(10, TimeUnit.SECONDS))
+        other.get(10, TimeUnit.SECONDS)
+        dispatcher.awaitLogIdle()
+
+        assertFalse(submittedBeforeCleanup.get())
+        assertFalse(staleZip.exists())
+        assertEquals(true, zip?.isFile)
       } finally {
         gate.countDown()
       }
