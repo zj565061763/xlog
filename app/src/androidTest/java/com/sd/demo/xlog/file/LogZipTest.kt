@@ -7,6 +7,7 @@ import com.sd.demo.xlog.dateOfDaysAgo
 import com.sd.demo.xlog.fCreateFile
 import com.sd.demo.xlog.resetLogDir
 import com.sd.demo.xlog.testContext
+import com.sd.demo.xlog.zipEntryText
 import com.sd.demo.xlog.zipFileNames
 import com.sd.lib.xlog.FLog
 import com.sd.lib.xlog.flogI
@@ -65,24 +66,29 @@ class LogZipTest {
     }
   }
 
-  /** 同一日期再次打包时替换上次的压缩包，不留下临时文件 */
+  /** 同一日期再次打包时替换上次的压缩包，包含之后新增的日志，不留下临时文件 */
   @Test
   fun testRepeat() {
     resetLogDir()
-    flogI<TestLogger> { "info" }
-    awaitLogIdle()
-
     val today = dateOfDaysAgo(0)
+    val entry = "${today}/${testContext.packageName}/${today}.0.log"
+
+    /** 压缩包里每条日志的消息 */
+    fun File.logMsgs(): List<String> = zipEntryText(entry).lines().filter { it.isNotEmpty() }.map { it.substringAfter("] ") }
+
+    flogI<TestLogger> { "first" }
     var zip1: File? = null
+    FLog.logDirectory { zip1 = logZipOf(today) }
+    awaitLogIdle()
+    assertEquals(listOf("first"), zip1!!.logMsgs())
+
+    flogI<TestLogger> { "second" }
     var zip2: File? = null
-    FLog.logDirectory {
-      zip1 = logZipOf(today)
-      zip2 = logZipOf(today)
-    }
+    FLog.logDirectory { zip2 = logZipOf(today) }
     awaitLogIdle()
 
     assertEquals(zip1, zip2)
-    assertEquals(true, ZipFile(zip2!!).use { zip -> zip.entries().asSequence().any { !it.isDirectory } })
+    assertEquals(listOf("first", "second"), zip2!!.logMsgs())
     assertEquals(listOf(zip2!!.name), zip2!!.parentFile?.list()?.toList())
   }
 

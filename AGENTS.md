@@ -88,6 +88,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 
 ## 有意的取舍（不是 bug，不要“修复”）
 
+- `init` 不检查嵌套调用，只在 KDoc 里写明不允许在 `initBlock` 里再调用 `init`。
+  - 嵌套调用时内外两次都返回 true，外层覆盖内层的 publisher 和调度器，内层已经打开的日志文件不会关闭
+  - 这是用法错误，不为它增加“初始化中”状态
 - `diffDays` 把 `yyyyMMdd` 转成距 1970-01-01 的天数再相减，纯整数运算，不碰时区。
   - 不要直接减日期字符串：跨月时日志会被全删（commit 5d5f093）
   - 不要改回 `Calendar` 转毫秒相减：夏令时切换日只有 23 小时，会少算一天
@@ -159,6 +162,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `deleteLog` 跳过所有 `.` 开头的条目；历史上 zip 落在日志根目录，文件名解析不出日期而被误删。
 - `deleteLog(0)` 同样不删压缩包，常见用法是“导出 zip → 清空日志 → 上传 zip”；所以不能用 `dir.deleteRecursively()`。
 - 日志根目录永远保留，即使空了也不删，省掉下次写日志时重建目录。
+- 清理失败要输出 `libLog`，不能静默跳过。
+  - `deleteLog` 用 `listFilesOrNull()` 列出日志目录：不存在时不处理，存在但读取失败时抛异常，不能把 `listFiles()` 返回 null 当作空目录
+  - `init` 清空压缩包要检查 `deleteRecursively()` 的返回值，目录不存在时它返回 true，不会误报
 - `logZipOf` 返回的压缩包是临时产物：
   - 只保证本次进程运行期间有效，下次 `init` 清空本进程的压缩包子目录，不影响其他进程
   - 取不到进程名时 `init` 不清空，此时压缩包目录是所有进程共用的
@@ -208,7 +214,7 @@ JVM 单元测试：
 | `LogMaxMBTest` | `setMaxMBPerDay` 按 1MB = 1048576 字节换算，不溢出 |
 | `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
 | `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库，各等级的 API 都传递模式和等级 |
-| `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留 |
+| `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留，日志目录读取失败时抛异常 |
 
 app 的 instrumented 测试：
 
@@ -247,7 +253,7 @@ test-app 的 instrumented 测试：
 |---|---|
 | `LogInitTest` | `init` 的清理任务排在写日志和导出之前，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
-| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog` |
+| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败时输出 |
 
 ## 依赖
 

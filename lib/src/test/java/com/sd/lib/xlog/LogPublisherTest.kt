@@ -9,6 +9,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 class LogPublisherTest {
@@ -428,6 +429,50 @@ class LogPublisherTest {
       publisher.publish(testLogRecord(msg = "two"))
       val lines = dir.walkTopDown().first { it.isFile }.readLines()
       assertEquals(listOf("one", "two"), lines.map { it.substringAfter("] ") })
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 写入一部分后失败时关闭文件流，下一条日志重新打开、带tag，大小包括写了一半的内容，之后照常切换 */
+  @Test
+  fun testPartialWriteRecovery() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logFile = dir.resolve(date).resolve(filename.logNameOf(date, 0))
+    var writeCount = 0
+    val outputs = mutableListOf<PartialWriteOutputStream>()
+    val publisher = newPublisher(dir) { file ->
+      defaultLogStore(file) {
+        // 第2次写入只写30字节就失败
+        PartialWriteOutputStream(it, failBytes = 30) { ++writeCount == 2 }.also { output -> outputs.add(output) }
+      }
+    }
+    // 上限360，写满180字节切换
+    publisher.setMaxBytePerDay(360)
+
+    try {
+      publisher.publish(testLogRecord())
+      assertThrows(IOException::class.java) { publisher.publish(testLogRecord()) }
+      assertEquals(listOf(true), outputs.map { it.closed })
+      // 首条61字节，加上写了一半的30字节
+      assertEquals(91L, logFile.length())
+
+      // 重新打开后接着写，带tag共30字节
+      publisher.publish(testLogRecord(msg = "recovered"))
+      assertEquals(listOf(true, false), outputs.map { it.closed })
+      val text = logFile.readText()
+      assertTrue(text, text.endsWith("[T|I|1] recovered\n"))
+      assertEquals(121L, logFile.length())
+
+      // 再写59字节恰好180，切换；大小没算上写了一半的30字节的话，这里还不会切换
+      publisher.publish(testLogRecord())
+      publisher.publish(testLogRecord(msg = "next"))
+      assertEquals(listOf(filename.logNameOf(date, 0), filename.logNameOf(date, 1)), dir.logNames())
+      val nextText = dir.resolve(date).resolve(filename.logNameOf(date, 1)).readText()
+      assertTrue(nextText, nextText.contains("[T|"))
+      assertTrue(nextText, nextText.endsWith("] next\n"))
     } finally {
       publisher.close()
     }
@@ -972,6 +1017,29 @@ private class FormatErrorFormatter(private val errorAt: Int) : FLogFormatter {
 
   override fun reset() {
     _formatter.reset()
+  }
+}
+
+/** 以追加方式打开文件并记录是否已经关闭，[shouldFail]返回true的那次写入只写[failBytes]字节就失败，模拟磁盘写满 */
+private class PartialWriteOutputStream(
+  file: File,
+  private val failBytes: Int,
+  private val shouldFail: () -> Boolean,
+) : FileOutputStream(file, true) {
+  var closed = false
+    private set
+
+  override fun write(b: ByteArray) {
+    if (shouldFail()) {
+      super.write(b, 0, failBytes)
+      throw IOException("disk full")
+    }
+    super.write(b)
+  }
+
+  override fun close() {
+    closed = true
+    super.close()
   }
 }
 

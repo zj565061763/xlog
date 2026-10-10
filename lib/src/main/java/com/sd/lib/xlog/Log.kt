@@ -59,7 +59,7 @@ object FLog {
   private lateinit var _configHolder: Map<Class<out FLogger>, FLoggerConfig>
 
   /**
-   * 初始化
+   * 初始化，不允许在[initBlock]里嵌套调用
    * @return true-初始化成功；false-已经初始化过了
    */
   @JvmStatic
@@ -298,10 +298,10 @@ object FLog {
   }
 }
 
-/** 按保留天数删除[dir]里的日志 */
-private fun deleteLogIn(dir: File, filename: LogFilename, today: String, saveDays: Int) {
-  val files = dir.listFiles()
-  if (files.isNullOrEmpty()) return
+/** 按保留天数删除[dir]里的日志，[dir]存在但读取失败时抛异常 */
+internal fun deleteLogIn(dir: File, filename: LogFilename, today: String, saveDays: Int) {
+  // 目录不存在时没有日志可删
+  val files = dir.listFilesOrNull() ?: return
   for (file in files) {
     /**
      * 以.开头的是库的内部目录（比如导出的日志压缩包），不受日志保留策略管辖，

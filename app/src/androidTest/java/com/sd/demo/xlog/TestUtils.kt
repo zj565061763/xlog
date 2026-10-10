@@ -75,3 +75,8 @@ fun File.todayLogText(): String {
 fun File.zipFileNames(): List<String> {
   return ZipFile(this).use { zip -> zip.entries().asSequence().filter { !it.isDirectory }.map { it.name }.sorted().toList() }
 }
+
+/** 压缩包里[name]条目的内容 */
+fun File.zipEntryText(name: String): String {
+  return ZipFile(this).use { zip -> zip.getInputStream(zip.getEntry(name)).use { it.readBytes().decodeToString() } }
+}

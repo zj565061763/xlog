@@ -2,11 +2,14 @@ package com.sd.lib.xlog
 
 import android.content.ContextWrapper
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.IOException
 
 /**
  * [FLog.deleteLog]按保留天数删除日志，不是日志的条目一起删除，以后的日期和.开头的条目保留。
@@ -56,6 +59,27 @@ class LogDeleteTest {
     FLog.deleteLog(0)
     assertTrue(dispatcher.await())
     assertEquals(listOf(zipDir.name), dir.list()?.toList())
+  }
+
+  /** 日志目录存在但读不了时抛异常，由调用方输出到Logcat，不能当作空目录；目录不存在时不抛 */
+  @Test
+  fun testListError() {
+    val dir = folder.newFolder()
+    val expired = dir.resolve(dateOfDaysAgo(1)).createLogDir()
+    val filename = defaultLogFilename()
+    val today = dateOfDaysAgo(0)
+
+    // 以root运行时权限不生效，跳过
+    assumeTrue(dir.setReadable(false) && dir.listFiles() == null)
+    try {
+      assertThrows(IOException::class.java) { deleteLogIn(dir = dir, filename = filename, today = today, saveDays = 0) }
+    } finally {
+      dir.setReadable(true)
+    }
+    assertTrue(expired.exists())
+
+    // 目录不存在时不抛
+    deleteLogIn(dir = dir.resolve("missing"), filename = filename, today = today, saveDays = 0)
   }
 }
 

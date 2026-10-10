@@ -52,6 +52,69 @@ class LibLogTest {
       assertEquals(emptyList<String>(), libLogsSince(mark))
     }
   }
+
+  /** 初始化时清空压缩包失败，输出库内部日志 */
+  @Test
+  fun testDeleteZipDirectoryFailed() {
+    val dir = resetLogDir()
+    val zipDir = dir.resolve(".zip/${testContext.packageName}")
+    val staleZip = zipDir.resolve("stale.zip").also {
+      assertTrue(zipDir.mkdirs())
+      it.writeText("previous")
+    }
+
+    // 目录不可写时删不掉里面的压缩包
+    assertTrue(zipDir.setWritable(false))
+    try {
+      TestLogDispatcher().use { dispatcher ->
+        val mark = logcatMark()
+        assertTrue(FLog.init(testContext) {
+          setLogDirectory { dir }
+          setLogDispatcher(dispatcher)
+        })
+        dispatcher.awaitLogIdle()
+
+        // 确认压缩包确实没删掉，否则这个测试什么也没验证
+        assertTrue(staleZip.isFile)
+        assertEquals(listOf("delete zip directory failed"), libLogsSince(mark))
+      }
+    } finally {
+      zipDir.setWritable(true)
+    }
+  }
+
+  /** 删除日志时日志目录读取失败，输出库内部日志，不能当作空目录 */
+  @Test
+  fun testDeleteLogListFailed() {
+    val dir = resetLogDir()
+    val expired = dir.resolve(dateOfDaysAgo(2)).also {
+      assertTrue(it.mkdirs())
+      it.resolve("${it.name}.0.log").writeText("old")
+    }
+
+    TestLogDispatcher().use { dispatcher ->
+      assertTrue(FLog.init(testContext) {
+        setLogDirectory { dir }
+        setLogDispatcher(dispatcher)
+      })
+      dispatcher.awaitLogIdle()
+
+      // 目录不可读时列不出里面的内容
+      assertTrue(dir.setReadable(false))
+      try {
+        assertEquals(null, dir.listFiles())
+        val mark = logcatMark()
+        FLog.deleteLog(1)
+        dispatcher.awaitLogIdle()
+
+        val libLogs = libLogsSince(mark)
+        assertEquals(libLogs.toString(), 1, libLogs.count { it == "lib java.io.IOException: list ${dir.name} failed" })
+      } finally {
+        dir.setReadable(true)
+      }
+      assertTrue(expired.exists())
+    }
+  }
 }
 
 private interface LibLogger : FLogger

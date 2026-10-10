@@ -106,7 +106,7 @@ private class LogPublisherImpl(
   override fun deleteZipDirectory() {
     if (_process.isNullOrEmpty()) return
     val dir = directory ?: return
-    zipDirectoryOf(dir).deleteRecursively()
+    if (!zipDirectoryOf(dir).deleteRecursively()) libLog("delete zip directory failed")
   }
 
   /** 日志目录[dir]下的压缩包目录，以.开头，不参与日志保留策略，里面的内容只在本次进程运行期间有效 */

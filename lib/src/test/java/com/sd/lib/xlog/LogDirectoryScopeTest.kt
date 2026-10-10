@@ -57,6 +57,22 @@ class LogDirectoryScopeTest {
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 
+  /** 同一日期再次打包时替换上次的压缩包，包含之后新增的日志，不留下临时文件 */
+  @Test
+  fun testRepeatReplace() {
+    val dir = folder.newFolder()
+    val log = dir.createLog(DATE, "p")
+    val scope = LogDirectoryScopeImpl(newPublisher(dir, process = "p"))
+    val zip1 = checkNotNull(scope.logZipOf(DATE))
+    assertEquals("log\n", zip1.zipEntryText("${DATE}/p/${DATE}.0.log"))
+
+    log.appendText("new\n")
+    val zip2 = checkNotNull(scope.logZipOf(DATE))
+    assertEquals(zip1, zip2)
+    assertEquals("log\nnew\n", zip2.zipEntryText("${DATE}/p/${DATE}.0.log"))
+    assertEquals(listOf(zip2.name), zip2.parentFile?.list()?.toList())
+  }
+
   /** 压缩包目录被同名文件占用时打包失败，返回null，不抛异常 */
   @Test
   fun testZipDirectoryOccupied() {
