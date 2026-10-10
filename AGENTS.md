@@ -71,6 +71,9 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 日志滚动（`DateLogHandler`）：
   - 当前文件达到 `maxBytePerDay` 的一半时关闭，序号加一继续写，并删除当前和上一个序号之外的旧文件；所以最多两个文件，总量约等于上限
   - 创建时扫描目录取最大序号接着写，进程重启后能续上
+    - 目录存在但读取失败时抛异常，这条日志不写入，下一条日志重新扫描；不能当作空目录，否则从序号 0 开始写，和已有的文件接不上
+    - 代价是目录一直读不了期间日志不写入文件；这种目录本来也没法打包，大小上限也管不住
+  - 切换时列出旧文件失败只输出 `libLog`，不往外抛：序号已经切换，这条日志也已经写入
   - 序号不补零，跨越 9→10 时文件名字典序和时间序不一致，这是刻意接受的
   - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
@@ -261,7 +264,7 @@ test-app 的 instrumented 测试：
 |---|---|
 | `LogInitTest` | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
-| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录时输出 |
+| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录、打开或切换日志文件时目录读取失败时输出 |
 | `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器按顺序写入，调度线程的 nice 值低于 10 |
 
 ## 依赖

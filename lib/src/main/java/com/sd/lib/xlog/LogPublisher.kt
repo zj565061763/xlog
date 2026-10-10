@@ -161,8 +161,12 @@ private class DateLogHandler(
     deleteOccupiedDirs()
   }
 
-  /** 当前日志文件的序号，进程重启之后从已有的文件里恢复，接着往下写 */
-  private var _seq: Int = logDir.listFiles()
+  /**
+   * 当前日志文件的序号，进程重启之后从已有的文件里恢复，接着往下写。
+   * 目录存在但读取失败时抛异常，这条日志不写入，下一条日志重新读取；
+   * 不能当作空目录，否则会从序号0开始写，和已有的文件接不上。
+   */
+  private var _seq: Int = logDir.listFilesOrNull()
     ?.mapNotNull { filename.seqOf(it.name) }
     ?.maxOrNull()
     ?: 0
@@ -250,10 +254,12 @@ private class DateLogHandler(
 
   /**
    * 只保留当前和上一个日志文件。
-   * 删除失败只是多留一个文件，不重试，不影响写入。
+   * 目录读取失败、删除失败都只是多留文件，不重试，不影响写入。
    */
   private fun deleteOldLog() {
-    logDir.listFiles()?.forEach { file ->
+    // 序号已经切换，这条日志也已经写入，读取失败只输出不往外抛
+    val files = libRunCatching { logDir.listFilesOrNull() }.getOrNull() ?: return
+    files.forEach { file ->
       val seq = filename.seqOf(file.name) ?: return@forEach
       if (seq <= _seq - KEEP_COUNT) {
         if (!file.deleteOrAbsent()) libLog("delete old log file ${file.name} failed")

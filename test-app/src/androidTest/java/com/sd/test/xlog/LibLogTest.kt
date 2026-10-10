@@ -155,6 +155,86 @@ class LibLogTest {
       assertEquals(emptyList<String>(), libLogsSince(mark))
     }
   }
+
+  /** 打开日志文件时日志目录读取失败，这条日志不写入，输出库内部日志；恢复后接着已有的最大序号写 */
+  @Test
+  fun testSeqScanListFailed() {
+    val dir = resetLogDir()
+    val today = dateOfDaysAgo(0)
+    val logDir = dir.resolve("${today}/${testContext.packageName}").also { assertTrue(it.mkdirs()) }
+    val logFile = logDir.resolve("${today}.5.log").also { it.writeText("old\n") }
+
+    TestLogDispatcher().use { dispatcher ->
+      assertTrue(FLog.init(testContext) {
+        setLogDirectory { dir }
+        setLogDispatcher(dispatcher)
+      })
+      dispatcher.awaitLogIdle()
+
+      // 目录不可读时列不出里面的内容
+      assertTrue(logDir.setReadable(false))
+      try {
+        val mark = logcatMark()
+        flogI<LibLogger>(FLogMode.Store) { "lost" }
+        dispatcher.awaitLogIdle()
+
+        val libLogs = libLogsSince(mark)
+        assertEquals(libLogs.toString(), 1, libLogs.count { it == "lib java.io.IOException: list ${logDir.name} failed" })
+      } finally {
+        logDir.setReadable(true)
+      }
+
+      val mark = logcatMark()
+      flogI<LibLogger>(FLogMode.Store) { "recovered" }
+      dispatcher.awaitLogIdle()
+      assertEquals(listOf(logFile.name), logDir.list()?.toList())
+      assertEquals(listOf("old", "recovered"), logFile.readLines().map { it.substringAfter("] ") })
+      assertEquals(emptyList<String>(), libLogsSince(mark))
+    }
+  }
+
+  /** 切换日志文件时日志目录读取失败，输出库内部日志，照常切换；恢复后下次切换删掉旧文件，不再输出 */
+  @Test
+  fun testDeleteOldLogListFailed() {
+    val dir = resetLogDir()
+    val today = dateOfDaysAgo(0)
+    val logDir = dir.resolve("${today}/${testContext.packageName}")
+
+    TestLogDispatcher().use { dispatcher ->
+      assertTrue(FLog.init(testContext) {
+        setLogDirectory { dir }
+        setLogDispatcher(dispatcher)
+      })
+
+      // 上限1MB，每条600KB的日志写满一个文件；先写一条小的，打开序号0
+      FLog.setMaxMBPerDay(1)
+      val log = "1".repeat(600 * 1024)
+      flogI<LibLogger>(FLogMode.Store) { "first" }
+      dispatcher.awaitLogIdle()
+
+      // 目录不可读时列不出里面的内容
+      assertTrue(logDir.setReadable(false))
+      try {
+        // 写满序号0和1，切换2次
+        val mark = logcatMark()
+        repeat(2) { flogI<LibLogger>(FLogMode.Store) { log } }
+        dispatcher.awaitLogIdle()
+
+        val libLogs = libLogsSince(mark)
+        assertEquals(libLogs.toString(), 2, libLogs.count { it == "lib java.io.IOException: list ${logDir.name} failed" })
+      } finally {
+        logDir.setReadable(true)
+      }
+      assertEquals(listOf("${today}.0.log", "${today}.1.log"), logDir.list()?.sorted())
+
+      // 写满序号2，切换时把之前删不了的序号0和本该这次删的序号1一起删掉
+      val mark = logcatMark()
+      flogI<LibLogger>(FLogMode.Store) { log }
+      dispatcher.awaitLogIdle()
+      assertEquals(listOf("${today}.2.log"), logDir.list()?.toList())
+      assertEquals(emptyList<String>(), libLogsSince(mark))
+    }
+  }
 }
 
 private interface LibLogger : FLogger

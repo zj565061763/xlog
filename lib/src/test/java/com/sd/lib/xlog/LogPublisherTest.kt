@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -802,6 +803,65 @@ class LogPublisherTest {
 
       publisher.publish(testLogRecord())
       assertEquals(listOf(filename.logNameOf(date, 3), filename.logNameOf(date, 4)), dir.logNames())
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 日志目录存在但读不了时这条日志不写入，不能当作空目录从序号0开始写；恢复后接着最大序号写 */
+  @Test
+  fun testContinueSeqListError() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date).apply { mkdirs() }
+    val logFile = logDir.resolve(filename.logNameOf(date, 5)).apply { writeText("old\n") }
+    val publisher = newPublisher(dir)
+
+    try {
+      // 以root运行时权限不生效，跳过
+      assumeTrue(logDir.setReadable(false) && logDir.listFiles() == null)
+      try {
+        assertThrows(IOException::class.java) { publisher.publish(testLogRecord(msg = "lost")) }
+      } finally {
+        logDir.setReadable(true)
+      }
+      assertEquals(listOf(logFile.name), logDir.list()?.toList())
+
+      publisher.publish(testLogRecord(msg = "recovered"))
+      assertEquals(listOf(logFile.name), logDir.list()?.toList())
+      assertEquals(listOf("old", "recovered"), logFile.readLines().map { it.substringAfter("] ") })
+    } finally {
+      publisher.close()
+    }
+  }
+
+  /** 切换时日志目录读不了，旧文件删不了，但不抛异常、照常切换；恢复后下次切换一起删掉 */
+  @Test
+  fun testDeleteOldLogListError() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logDir = dir.resolve(date)
+    val publisher = newPublisher(dir)
+    // 上限200，写满100字节切换，每2条日志写满一个文件
+    publisher.setMaxBytePerDay(200)
+
+    try {
+      // 先写一条打开序号0，之后再让目录不可读；以root运行时权限不生效，跳过
+      publisher.publish(testLogRecord())
+      assumeTrue(logDir.setReadable(false) && logDir.listFiles() == null)
+      try {
+        // 写满序号0、1、2，切换3次，本该只留下序号2
+        repeat(5) { publisher.publish(testLogRecord()) }
+      } finally {
+        logDir.setReadable(true)
+      }
+      assertEquals(listOf(0, 1, 2).map { filename.logNameOf(date, it) }, dir.logNames())
+
+      // 写满序号3，切换时把之前删不了的一起删掉
+      repeat(2) { publisher.publish(testLogRecord()) }
+      assertEquals(listOf(filename.logNameOf(date, 3)), dir.logNames())
     } finally {
       publisher.close()
     }
