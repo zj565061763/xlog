@@ -46,6 +46,8 @@ class LogInitTest {
       configLogger(InitLogger::class.java) { it.copy(tag = "init") }
       configLogger(LevelLogger::class.java) { it.copy(level = FLogLevel.Warning) }
       configLogger(EmptyTagLogger::class.java) { it.copy(tag = "", level = FLogLevel.Warning) }
+      configLogger(BaseLogger::class.java) { it.copy(tag = "base") }
+      configLogger(ConfiguredLogger::class.java) { it.copy(tag = "configured") }
     }
     assertTrue(init)
     assertFalse(FLog.init(ContextWrapper(null)))
@@ -116,6 +118,16 @@ class LogInitTest {
     flogW<EmptyTagLogger> { "empty tag" }
     assertTrue(dispatcher.await())
     assertEquals("init:again\nLevelLogger:level\nEmptyTagLogger:empty tag\n", logFile.readText())
+
+    // 扩展API按接收者的实际类型取配置，和变量的类型无关，接口的配置不会套用到实现类
+    val configured: BaseLogger = ConfiguredLogger()
+    val plain: BaseLogger = PlainLogger()
+    configured.li { "impl" }
+    plain.li { "plain" }
+    // 确认接口的配置确实生效了，否则上面的plain什么也没验证
+    flogI<BaseLogger> { "interface" }
+    assertTrue(dispatcher.await())
+    assertEquals(listOf("configured:impl", "PlainLogger:plain", "base:interface"), logFile.readLines().drop(3))
   }
 }
 
@@ -126,6 +138,15 @@ private interface LevelLogger : FLogger
 
 /** 配置的tag是空串、另外配置了等级的日志标识 */
 private interface EmptyTagLogger : FLogger
+
+/** 配置了tag的接口 */
+private interface BaseLogger : FLogger
+
+/** 自己也配置了tag的实现类 */
+private class ConfiguredLogger : BaseLogger
+
+/** 没有配置的实现类 */
+private class PlainLogger : BaseLogger
 
 /** 格式为 tag:msg，记录重置次数 */
 private class TagMsgFormatter : FLogFormatter {

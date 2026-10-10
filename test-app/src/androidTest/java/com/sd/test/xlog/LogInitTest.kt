@@ -164,19 +164,19 @@ class LogInitTest {
     }
   }
 
-  /** 目录为null时跳过写入、删除、回调和初始化清理，不输出库内部日志，恢复后可以继续使用 */
+  /** 目录为null时跳过写入、删除、回调和初始化清理，不输出库内部日志，Logcat照常输出，恢复后可以继续使用 */
   @Test
   fun testNullDirectoryRecovery() {
     testUnavailableDirectory(throwOnGet = false)
   }
 
-  /** 获取目录抛异常时不影响调用方，每次都输出库内部日志，恢复后可以继续使用 */
+  /** 获取目录抛异常时不影响调用方，每次都输出库内部日志，Logcat照常输出，恢复后可以继续使用 */
   @Test
   fun testDirectoryErrorRecovery() {
     testUnavailableDirectory(throwOnGet = true)
   }
 
-  /** 外部存储不可用时默认目录为null，不回退到内部存储，不输出库内部日志，恢复后可以继续使用 */
+  /** 外部存储不可用时默认目录为null，不回退到内部存储，不输出库内部日志，Logcat照常输出，恢复后可以继续使用 */
   @Test
   fun testDefaultDirectoryRecovery() {
     val externalDir = resetLogDir()
@@ -196,13 +196,15 @@ class LogInitTest {
       })
 
       var callbacks = 0
-      flogI<InitLogger>(FLogMode.Store) { "lost" }
+      flogI<InitLogger>(FLogMode.Default) { "lost" }
       FLog.logDirectory { callbacks++ }
       dispatcher.awaitLogIdle()
       // block没有执行说明目录为null，没有回退到其他目录
       assertEquals(0, callbacks)
       assertFalse(internalDir.exists())
       assertEquals(emptyList<String>(), libLogsSince(mark))
+      // 写不了文件时Logcat照常输出
+      assertEquals(listOf("lost"), logcatSince(mark, "InitLogger"))
 
       available.set(true)
       var logDirectory: File? = null
@@ -276,7 +278,7 @@ class LogInitTest {
       })
 
       var callbacks = 0
-      flogI<InitLogger>(FLogMode.Store) { "lost" }
+      flogI<InitLogger>(FLogMode.Default) { "lost" }
       FLog.deleteLog(0)
       FLog.logDirectory { callbacks++ }
       dispatcher.awaitLogIdle()
@@ -293,6 +295,8 @@ class LogInitTest {
       } else {
         assertEquals(emptyList<String>(), libLogs)
       }
+      // 写不了文件时Logcat照常输出
+      assertEquals(listOf("lost"), logcatSince(mark, "InitLogger"))
 
       available.set(true)
       flogI<InitLogger>(FLogMode.Store) { "recovered" }

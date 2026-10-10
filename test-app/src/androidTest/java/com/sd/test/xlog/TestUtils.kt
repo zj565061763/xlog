@@ -38,23 +38,26 @@ internal fun logcatMark(): String {
   return UUID.randomUUID().toString().also { Log.i(MARK_TAG, it) }
 }
 
+/** [mark]之后输出到Logcat的库内部日志，一行一条，不含优先级和tag */
+internal fun libLogsSince(mark: String): List<String> = logcatSince(mark, LIB_TAG)
+
 /**
- * [mark]之后输出到Logcat的库内部日志，一行一条，不含优先级和tag。
+ * [mark]之后以[tag]输出到Logcat的日志，一行一条，不含优先级和tag。
  * Logcat是异步写入的，这里再打印一条结束标记，等它出现才返回。
  */
-internal fun libLogsSince(mark: String): List<String> {
+internal fun logcatSince(mark: String, tag: String): List<String> {
   val end = logcatMark()
   val deadline = SystemClock.uptimeMillis() + 10_000
   while (true) {
-    val logs = shell("logcat -d -v tag -s $MARK_TAG:V $LIB_TAG:V").lineSequence()
+    val logs = shell("logcat -d -v tag -s $MARK_TAG:V $tag:V").lineSequence()
       .mapNotNull { LogcatLine.matchEntire(it) }
       .map { it.destructured }
-      .map { (tag, msg) -> tag to msg }
+      .map { (logTag, msg) -> logTag to msg }
       .toList()
     val startIndex = logs.indexOf(MARK_TAG to mark)
     val endIndex = logs.indexOf(MARK_TAG to end)
     if (startIndex >= 0 && endIndex > startIndex) {
-      return logs.subList(startIndex + 1, endIndex).filter { it.first == LIB_TAG }.map { it.second }
+      return logs.subList(startIndex + 1, endIndex).filter { it.first == tag }.map { it.second }
     }
     if (SystemClock.uptimeMillis() >= deadline) throw AssertionError("wait logcat timeout: $logs")
     Thread.sleep(100)
