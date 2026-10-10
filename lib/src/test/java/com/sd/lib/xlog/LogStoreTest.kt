@@ -74,6 +74,28 @@ class LogStoreTest {
     assertEquals("log\nlog\n", file.readText())
   }
 
+  /** 关闭文件流出错时往外抛，之后再追加仍会重新打开 */
+  @Test
+  fun testCloseOutputError() {
+    val file = folder.newFile()
+    val outputs = mutableListOf<CloseRecordOutputStream>()
+    // 只有第一个流关闭时出错
+    val store = defaultLogStore(file) {
+      CloseRecordOutputStream(it, closeError = outputs.isEmpty()).also { output -> outputs.add(output) }
+    }
+
+    store.append("log\n")
+    assertThrows(IOException::class.java) { store.close() }
+    assertEquals(listOf(true), outputs.map { it.closed })
+
+    store.append("log\n")
+    assertEquals(listOf(true, false), outputs.map { it.closed })
+    store.close()
+    assertEquals(listOf(true, true), outputs.map { it.closed })
+
+    assertEquals("log\nlog\n", file.readText())
+  }
+
   /** 大小按字节计算，不是字符数，多字节字符原样写入 */
   @Test
   fun testMultiByte() {
@@ -117,13 +139,17 @@ class LogStoreTest {
   }
 }
 
-/** 以追加方式打开文件，记录是否已经关闭 */
-private class CloseRecordOutputStream(file: File) : FileOutputStream(file, true) {
+/** 以追加方式打开文件，记录是否已经关闭，[closeError]为true时关闭之后抛异常 */
+private class CloseRecordOutputStream(
+  file: File,
+  private val closeError: Boolean = false,
+) : FileOutputStream(file, true) {
   var closed = false
     private set
 
   override fun close() {
     closed = true
     super.close()
+    if (closeError) throw IOException("close error")
   }
 }
