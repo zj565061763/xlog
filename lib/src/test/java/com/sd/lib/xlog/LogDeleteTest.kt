@@ -45,21 +45,23 @@ class LogDeleteTest {
     val other = dir.resolve("other").apply { writeText("other") }
     // .开头的是库的内部目录
     val zipDir = dir.resolve(".zip").apply { mkdirs() }
+    // .开头的其他条目同样保留，不是只保留.zip
+    val hidden = dir.resolve(".nomedia").apply { createNewFile() }
 
     FLog.deleteLog(3)
     assertTrue(dispatcher.await())
     assertEquals(listOf(true, true, false), days.map { it.exists() })
-    assertEquals(listOf(true, true, false, true), listOf(today, future, other, zipDir).map { it.exists() })
+    assertEquals(listOf(true, true, false, true, true), listOf(today, future, other, zipDir, hidden).map { it.exists() })
 
     FLog.deleteLog(1)
     assertTrue(dispatcher.await())
     assertEquals(listOf(false, false, false), days.map { it.exists() })
-    assertEquals(listOf(true, true, true), listOf(today, future, zipDir).map { it.exists() })
+    assertEquals(listOf(true, true, true, true), listOf(today, future, zipDir, hidden).map { it.exists() })
 
     // 小于等于0删除全部日志，包括以后的日期，日志目录本身和.开头的条目保留
     FLog.deleteLog(0)
     assertTrue(dispatcher.await())
-    assertEquals(listOf(zipDir.name), dir.list()?.toList())
+    assertEquals(listOf(hidden.name, zipDir.name), dir.list()?.sorted())
   }
 
   /** 日志目录存在但读不了时抛异常，由调用方输出到Logcat，不能当作空目录；目录不存在时不抛 */

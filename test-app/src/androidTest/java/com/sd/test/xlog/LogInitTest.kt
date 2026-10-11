@@ -217,36 +217,52 @@ class LogInitTest {
     }
   }
 
-  /** 系统接口出错时读取/proc/self/cmdline获取进程名，只有API 28以下的旧接口能通过Context让它出错 */
+  /**
+   * 进程名在调度线程上获取，初始化时不获取；系统接口出错时读取/proc/self/cmdline。
+   * 只有API 28以下的旧接口能通过Context观察它什么时候被调用、让它出错。
+   */
   @Test
   fun testProcessFromCmdline() {
     assumeTrue(Build.VERSION.SDK_INT < Build.VERSION_CODES.P)
     val dir = resetLogDir()
+    val gate = CountDownLatch(1)
     val serviceCount = AtomicInteger()
+    val serviceThread = AtomicReference<Thread>()
     val context = object : ContextWrapper(testContext) {
       override fun getApplicationContext(): Context = this
 
       override fun getSystemService(name: String): Any? {
         if (name != Context.ACTIVITY_SERVICE) return super.getSystemService(name)
         serviceCount.incrementAndGet()
+        serviceThread.set(Thread.currentThread())
         error("service error")
       }
     }
 
     TestLogDispatcher().use { dispatcher ->
-      assertTrue(FLog.init(context) {
-        setLogDirectory { dir }
-        setLogDispatcher(dispatcher)
-      })
-      flogI<InitLogger>(FLogMode.Store) { "msg" }
-      dispatcher.awaitLogIdle()
+      dispatcher.hold(gate)
+      try {
+        assertTrue(FLog.init(context) {
+          setLogDirectory { dir }
+          setLogDispatcher(dispatcher)
+        })
+        assertEquals(0, serviceCount.get())
 
-      // 确认系统接口确实出错了，否则这个测试什么也没验证
-      assertEquals(1, serviceCount.get())
-      // 日志写在进程名对应的目录下
-      val today = dateOfDaysAgo(0)
-      assertEquals(listOf(testContext.packageName), dir.resolve(today).list()?.toList())
-      assertTrue(dir.resolve("${today}/${testContext.packageName}/${today}.0.log").isFile)
+        flogI<InitLogger>(FLogMode.Store) { "msg" }
+        gate.countDown()
+        dispatcher.awaitLogIdle()
+
+        // 确认系统接口确实出错了，否则这个测试什么也没验证
+        assertEquals(1, serviceCount.get())
+        assertNotNull(serviceThread.get())
+        assertNotSame(Thread.currentThread(), serviceThread.get())
+        // 日志写在进程名对应的目录下
+        val today = dateOfDaysAgo(0)
+        assertEquals(listOf(testContext.packageName), dir.resolve(today).list()?.toList())
+        assertTrue(dir.resolve("${today}/${testContext.packageName}/${today}.0.log").isFile)
+      } finally {
+        gate.countDown()
+      }
     }
   }
 

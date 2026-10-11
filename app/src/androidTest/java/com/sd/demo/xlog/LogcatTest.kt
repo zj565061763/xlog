@@ -85,11 +85,17 @@ class LogcatTest {
     )
   }
 
-  /** 库内部错误以Error等级输出到Logcat，tag是XLogLibLogger；全局等级为Off时不输出 */
+  /** 库内部错误以Error等级输出到Logcat，tag是XLogLibLogger；全局等级为Error、模式为Store时照常输出，等级为Off时不输出 */
   @Test
   fun testLibLog() {
     resetLogDir()
     FLog.logDirectory { error("$_id on") }
+    awaitLogIdle()
+
+    // 使用方调高等级、不输出到控制台之后，还要能看到写盘、打包失败
+    FLog.setLevel(FLogLevel.Error)
+    FLog.setMode(FLogMode.Store)
+    FLog.logDirectory { error("$_id error store") }
     awaitLogIdle()
 
     FLog.setLevel(FLogLevel.Off)
@@ -101,7 +107,10 @@ class LogcatTest {
     logEnd()
 
     assertEquals(
-      listOf("E/$LIB_TAG lib java.lang.IllegalStateException: on"),
+      listOf(
+        "E/$LIB_TAG lib java.lang.IllegalStateException: on",
+        "E/$LIB_TAG lib java.lang.IllegalStateException: error store",
+      ),
       awaitLogcat(),
     )
   }

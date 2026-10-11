@@ -765,21 +765,27 @@ class LogPublisherTest {
     assertFalse(dir.deleteOrAbsent())
   }
 
-  /** 进程重启之后从已有文件的最大序号接着写，不动其他文件 */
+  /** 进程重启之后从已有文件的最大序号接着写，不动其他文件；序号按数值比较，不按文件名比较 */
   @Test
   fun testContinueSeq() {
-    val dir = folder.newFolder()
     val filename = defaultLogFilename()
     val date = filename.dateOf(RECORD_MILLIS)
-    val logDir = dir.resolve(date).apply { mkdirs() }
-    listOf(1, 3).forEach { logDir.resolve(filename.logNameOf(date, it)).writeText("old\n") }
 
-    newPublisher(dir).use { it.publish(testLogRecord()) }
+    // 9和10位数不同，按文件名比较的话9排在10后面
+    for (seqs in listOf(listOf(1, 3), listOf(9, 10))) {
+      val message = "seqs=${seqs}"
+      val dir = folder.newFolder()
+      val logDir = dir.resolve(date).apply { mkdirs() }
+      seqs.forEach { logDir.resolve(filename.logNameOf(date, it)).writeText("old\n") }
 
-    assertEquals(listOf(filename.logNameOf(date, 1), filename.logNameOf(date, 3)), dir.logNames())
-    val lines = logDir.resolve(filename.logNameOf(date, 3)).readLines()
-    assertEquals(2, lines.size)
-    assertEquals("old", lines[0])
+      newPublisher(dir).use { it.publish(testLogRecord()) }
+
+      assertEquals(message, seqs.map { filename.logNameOf(date, it) }, dir.logNames())
+      assertEquals(message, listOf("old"), logDir.resolve(filename.logNameOf(date, seqs.first())).readLines())
+      val lines = logDir.resolve(filename.logNameOf(date, seqs.last())).readLines()
+      assertEquals(message, 2, lines.size)
+      assertEquals(message, "old", lines[0])
+    }
   }
 
   /** 日志目录已经存在但里面没有日志文件时从序号0开始写，不是日志的文件保留 */

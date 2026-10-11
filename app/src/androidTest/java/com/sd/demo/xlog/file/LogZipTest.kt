@@ -92,25 +92,35 @@ class LogZipTest {
     assertEquals(listOf(zip2!!.name), zip2!!.parentFile?.list()?.toList())
   }
 
-  /** 日期目录里没有日志文件时返回不含日志的压缩包，日期对应的不是目录时返回null */
+  /** 日期目录里没有日志文件时返回不含日志的压缩包，日期目录本身是空的也一样；日期对应的不是目录时返回null */
   @Test
   fun testNoLog() {
     val dir = resetLogDir()
     val emptyDate = dateOfDaysAgo(1)
     val fileDate = dateOfDaysAgo(2)
+    val bareDate = dateOfDaysAgo(3)
     assertEquals(true, dir.resolve(emptyDate).resolve("process").mkdirs())
     assertEquals(true, dir.resolve(fileDate).fCreateFile())
+    // 日期目录本身是空的，压缩包里只有它自己的条目；一个条目都没有的话，API 23上写不出压缩包
+    assertEquals(true, dir.resolve(bareDate).mkdirs())
 
     // block里的断言失败会被捕获，所以把结果带出来再断言
     var emptyZip: File? = null
     var fileZip: File? = null
+    var bareZip: File? = null
     FLog.logDirectory {
       emptyZip = logZipOf(emptyDate)
       fileZip = logZipOf(fileDate)
+      bareZip = logZipOf(bareDate)
     }
     awaitLogIdle()
-    assertEquals(true, emptyZip?.exists())
-    assertEquals(false, ZipFile(emptyZip!!).use { zip -> zip.entries().asSequence().any { !it.isDirectory } })
+    assertEquals(listOf("${emptyDate}/", "${emptyDate}/process/"), emptyZip?.zipEntryNames())
     assertEquals(null, fileZip)
+    assertEquals(listOf("${bareDate}/"), bareZip?.zipEntryNames())
   }
+}
+
+/** 压缩包里的全部条目，包括目录，按名称排序 */
+private fun File.zipEntryNames(): List<String> {
+  return ZipFile(this).use { zip -> zip.entries().asSequence().map { it.name }.sorted().toList() }
 }
