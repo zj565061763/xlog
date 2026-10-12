@@ -229,6 +229,7 @@ JVM 单元测试：
 | `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库，各等级的 API 都传递模式和等级 |
 | `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留，日志目录读取失败时抛异常，某个目录删不掉时继续删其他的 |
 | `LogRecordTest` | 日志记录的时间戳和线程 ID 取自调用时，不是写入时 |
+| `LogLevelOffTest` | 队列里还有日志时设置 Off，排队的日志照常写入，日志文件等空闲时在调度线程上关闭，不在调用线程上提前关闭 |
 
 app 的 instrumented 测试：
 
@@ -269,7 +270,7 @@ test-app 的 instrumented 测试：
 |---|---|
 | `LogInitTest` | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，取不到目录时 Logcat 照常输出，外部存储不可用时默认目录不回退到内部存储，进程名在调度线程上获取、`init` 里不获取，系统接口出错时读 cmdline 取进程名 |
 | `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
-| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录、打开或切换日志文件时目录读取失败时输出 |
+| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录、打开或切换日志文件时目录读取失败、切换日志文件时删不掉旧文件时输出 |
 | `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器按顺序写入，调度线程的 nice 值低于 10 |
 
 ## 依赖

@@ -235,6 +235,44 @@ class LibLogTest {
       assertEquals(emptyList<String>(), libLogsSince(mark))
     }
   }
+
+  /** 切换日志文件时删不掉旧文件，输出库内部日志，后面的日志照常写入；没有切换时不再删除，也不再输出 */
+  @Test
+  fun testDeleteOldLogFailed() {
+    val dir = resetLogDir()
+    val today = dateOfDaysAgo(0)
+    val logDir = dir.resolve("${today}/${testContext.packageName}")
+    // 序号0被非空目录占用，删不掉
+    val occupied = logDir.resolve("${today}.0.log").also {
+      assertTrue(it.mkdirs())
+      it.resolve("child").writeText("child")
+    }
+    // 已有序号2，接着它写；从序号0开始写的话，创建日志文件时会删掉占用它的目录
+    logDir.resolve("${today}.2.log").writeText("old\n")
+
+    TestLogDispatcher().use { dispatcher ->
+      assertTrue(FLog.init(testContext) {
+        setLogDirectory { dir }
+        setLogDispatcher(dispatcher)
+      })
+
+      // 上限1MB，这条600KB的日志写满序号2，切换时删除序号0失败
+      FLog.setMaxMBPerDay(1)
+      val mark = logcatMark()
+      flogI<LibLogger>(FLogMode.Store) { "1".repeat(600 * 1024) }
+      dispatcher.awaitLogIdle()
+      assertEquals(listOf("delete old log file ${occupied.name} failed"), libLogsSince(mark))
+      assertEquals("child", occupied.resolve("child").readText())
+
+      // 这条日志写入序号3，没有切换
+      val tailMark = logcatMark()
+      flogI<LibLogger>(FLogMode.Store) { "tail" }
+      dispatcher.awaitLogIdle()
+      assertEquals(listOf(0, 2, 3).map { "${today}.${it}.log" }, logDir.list()?.sorted())
+      assertEquals(listOf("tail"), logDir.resolve("${today}.3.log").readLines().map { it.substringAfter("] ") })
+      assertEquals(emptyList<String>(), libLogsSince(tailMark))
+    }
+  }
 }
 
 private interface LibLogger : FLogger
