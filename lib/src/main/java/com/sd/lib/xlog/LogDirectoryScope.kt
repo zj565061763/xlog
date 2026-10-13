@@ -129,7 +129,11 @@ private fun compressFile(
       input.use { inputStream ->
         // 其他进程可能还在追加，只复制打开时的长度，否则写入不比压缩慢时一直读不完
         val size = inputStream.channel.size()
-        outputStream.putNextEntry(ZipEntry(filename))
+        /**
+         * 条目要声明大小：API 23只有预先声明才能写入4GiB以上的文件，否则写入时抛异常。
+         * API 21、22写不了这么大的条目，声明时抛异常，按打包失败处理。
+         */
+        outputStream.putNextEntry(ZipEntry(filename).also { it.size = size })
         inputStream.copyLimitedTo(outputStream, size)
         outputStream.closeEntry()
       }
