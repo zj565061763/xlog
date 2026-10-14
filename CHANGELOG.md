@@ -36,6 +36,7 @@
 - `fLogDir(preferExternal = false)` 改为 `filesDir.resolve("sd.lib.xlog")`
 - 需要写到内部存储或 Direct Boot 期间可用的设备加密存储的，通过 `setLogDirectory` 返回对应目录
 - 之前版本外部存储不可用时写到 `filesDir/sd.lib.xlog` 的日志和压缩包不再被清理，需要时手动删除
+- 从 2.0.0 之前的版本升级的，当天已有的旧日志文件（`<日期>.log`、`<日期>.log.1`）不计入单日大小上限，等 `deleteLog` 按保留天数删除
 - 私有进程的日志和压缩包目录名由 `com.example_worker` 改为 `com.example-worker`，按目录名识别进程的需要同步修改
 - 之前版本私有进程导出的压缩包不会再被 `init` 清空，需要时手动删除 `.zip/com.example_worker`
 - 嵌套类、局部类 logger 需要保持原来的短 tag 的，用 `configLogger` 指定 tag
