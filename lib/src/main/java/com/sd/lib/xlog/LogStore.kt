@@ -77,7 +77,7 @@ private class FileLogStore(
   }
 }
 
-private class CounterOutputStream(output: OutputStream, length: Long) : OutputStream() {
+internal class CounterOutputStream(output: OutputStream, length: Long) : OutputStream() {
   private val _output = output
   private var _written = length
 

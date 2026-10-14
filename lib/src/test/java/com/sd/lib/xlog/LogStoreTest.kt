@@ -5,6 +5,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -136,6 +137,26 @@ class LogStoreTest {
 
     assertEquals(true, file.isFile)
     assertEquals("log\n", file.readText())
+  }
+
+  /** [CounterOutputStream]从已有长度开始累计，三种写入方法都按实际写入的字节数计数 */
+  @Test
+  fun testCounterOutputStream() {
+    val output = ByteArrayOutputStream()
+    val stream = CounterOutputStream(output, 10)
+    assertEquals(10L, stream.written)
+
+    stream.write('a'.code)
+    assertEquals(11L, stream.written)
+
+    stream.write("bc".toByteArray())
+    assertEquals(13L, stream.written)
+
+    // 只写入并计数off到off+len的部分
+    stream.write("xdefx".toByteArray(), 1, 3)
+    assertEquals(16L, stream.written)
+
+    assertEquals("abcdef", output.toString())
   }
 }
 
