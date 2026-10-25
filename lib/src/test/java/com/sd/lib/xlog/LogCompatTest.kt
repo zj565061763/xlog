@@ -2,11 +2,12 @@ package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-/** 使用方编译时内联进去的代码会调用这些方法，删除或改签名会导致这些代码运行时崩溃 */
+/** 旧版本编译的使用方代码会调用这些方法，删除或改签名会导致这些代码运行时崩溃 */
 class LogCompatTest {
   /** 1.6.0到2.0.0版本的内联代码调用 */
   @Test
@@ -28,21 +29,21 @@ class LogCompatTest {
     assertEquals(Void.TYPE, method.returnType)
   }
 
-  /** 2.1.0的内联代码调用 */
+  /** 2.1.0及之后版本的内联代码调用 */
   @Test
   fun testConfigOf() {
     val method = flogMethod("configOf", Class::class.java)
     assertEquals(FLoggerConfig::class.java, method.returnType)
   }
 
-  /** 2.1.0的内联代码调用 */
+  /** 2.1.0及之后版本的内联代码调用 */
   @Test
   fun testIsLoggableWithConfig() {
     val method = flogMethod("isLoggable", FLogLevel::class.java, FLoggerConfig::class.java)
     assertEquals(Boolean::class.javaPrimitiveType, method.returnType)
   }
 
-  /** 2.1.0的内联代码调用 */
+  /** 2.1.0及之后版本的内联代码调用 */
   @Test
   fun testPublishLog() {
     val method = flogMethod(
@@ -54,6 +55,17 @@ class LogCompatTest {
       FLoggerConfig::class.java,
     )
     assertEquals(Void.TYPE, method.returnType)
+  }
+
+  /**
+   * 2.2.0新增的[FLogFormatter.reset]是Java默认方法，没有实现它的旧实现类调用时不抛[AbstractMethodError]。
+   * 同时保留DefaultImpls，2.2.0编译的Kotlin实现类会调用它。
+   */
+  @Test
+  fun testFormatterReset() {
+    assertTrue(FLogFormatter::class.java.getMethod("reset").isDefault)
+    Class.forName("${FLogFormatter::class.java.name}\$DefaultImpls").getMethod("reset", FLogFormatter::class.java)
+    JavaFormatter().reset()
   }
 }
 

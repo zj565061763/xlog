@@ -8,7 +8,7 @@ interface FLogFormatter {
   /** 把[record]格式化成写入日志仓库的字符串，结果原样写入，需要自行包含换行符 */
   fun format(record: FLogRecord): String
 
-  /** 重置内部状态，关闭日志文件或写入失败时调用 */
+  /** 重置内部状态，关闭日志文件，或者格式化、写入、获取大小失败时调用 */
   fun reset() {}
 }
 

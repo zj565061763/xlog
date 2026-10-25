@@ -14,9 +14,9 @@ interface FLogDirectoryScope {
   /**
    * 把指定日期(yyyyMMdd)的日志打包成zip，包含该日期所有进程的日志。
    * 日期不合法、没有该日期的日志目录或打包失败时返回null。
-   * 日志目录存在但里面没有日志文件时，返回不含日志的压缩包。
+   * 该日期的日志目录存在但里面没有日志文件时，返回不含日志的压缩包。
    *
-   * 压缩包只在本次进程运行期间有效，下次[FLog.init]时会被清空，需要长期保存请自行移走。
+   * 压缩包只保证本次进程运行期间有效，下次[FLog.init]时可能被清空，需要长期保存请自行移走。
    * 同一日期再次打包会替换上次的压缩包，打包失败时保留上次的。
    */
   fun logZipOf(date: String): File?
@@ -39,11 +39,11 @@ internal fun DirectoryLogPublisher.accessDirectory(block: FLogDirectoryScope.(Fi
 
 internal class LogDirectoryScopeImpl(
   private val publisher: DirectoryLogPublisher,
-  /** 打开要打包的文件，测试时替换成打包期间会被追加的文件 */
+  /** 打开要打包的文件，测试时替换，模拟打包期间追加、删除、读取失败等情况 */
   private val openFile: (File) -> FileInputStream? = { it.inputStreamOrNull() },
   /** 打开压缩包的临时文件，测试时替换成写入会失败的流 */
   private val openOutput: (File) -> OutputStream = { it.outputStream() },
-  /** 把临时文件重命名为压缩包，测试时替换成重命名失败 */
+  /** 把临时文件重命名为压缩包，测试时替换，模拟重命名失败或在重命名前插入其他进程的打包 */
   private val rename: (File, File) -> Boolean = { source, target -> source.renameTo(target) },
 ) : FLogDirectoryScope {
   @Volatile
@@ -88,7 +88,7 @@ private fun zip(
 ): Boolean {
   /**
    * 先打包到临时文件，成功后再替换，替换前上次的同名压缩包一直是完整的。
-   * 临时文件名随机生成，取不到进程名时多个进程共用压缩包目录，同时打包同一日期不会互相覆盖。
+   * 临时文件名随机生成，取不到进程名时多个进程共用压缩包目录，同时打包同一日期不会互相删除、替换对方的临时文件。
    */
   var tempFile: File? = null
   try {
@@ -111,7 +111,7 @@ private fun zip(
     libLog("log zip error ${e.stackTraceToString()}")
     return false
   } finally {
-    // 失败时临时文件不完整，成功时已经被重命名，删除不影响结果
+    // 打包或重命名失败时临时文件已经没用，成功时已经被重命名，删除不影响结果
     tempFile?.delete()
   }
 }

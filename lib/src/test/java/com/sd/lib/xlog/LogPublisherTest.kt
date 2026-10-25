@@ -626,6 +626,56 @@ class LogPublisherTest {
     }
   }
 
+  /** 获取日志目录出错时按取不到处理，用到目录的方法都不抛异常，访问目录不执行block */
+  @Test
+  fun testDirectoryError() {
+    val publisher = defaultLogPublisher(
+      processProvider = { "p" },
+      directoryProvider = { error("directory error") },
+      filename = defaultLogFilename(),
+      formatter = defaultLogFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    )
+
+    assertNull(publisher.directory)
+    assertNull(publisher.logDirOf("20231125"))
+    assertNull(publisher.zipFileOf("20231125"))
+    publisher.deleteZipDirectory()
+    publisher.publish(testLogRecord())
+    publisher.onIdle()
+    publisher.close()
+
+    var called = false
+    publisher.accessDirectory { called = true }
+    assertFalse(called)
+  }
+
+  /** 获取目录暂时出错后可以恢复写入，取到目录之后不再获取 */
+  @Test
+  fun testDirectoryRecovery() {
+    val dir = folder.newFolder()
+    var directoryCount = 0
+    val publisher = defaultLogPublisher(
+      processProvider = { null },
+      directoryProvider = { if (++directoryCount == 1) error("directory error") else dir },
+      filename = defaultLogFilename(),
+      formatter = defaultLogFormatter(),
+      storeFactory = { defaultLogStore(it) },
+    )
+
+    try {
+      publisher.publish(testLogRecord(msg = "lost"))
+      publisher.publish(testLogRecord(msg = "one"))
+      publisher.publish(testLogRecord(msg = "two"))
+
+      assertEquals(2, directoryCount)
+      val lines = dir.walkTopDown().first { it.isFile }.readLines()
+      assertEquals(listOf("one", "two"), lines.map { it.substringAfter("] ") })
+    } finally {
+      publisher.close()
+    }
+  }
+
   /** 日期为空时抛异常，不能把日志目录本身当作日期目录 */
   @Test
   fun testEmptyDate() {
@@ -840,6 +890,29 @@ class LogPublisherTest {
     }
   }
 
+  /** 序号用完时不切换，继续写当前文件，不抛异常 */
+  @Test
+  fun testSeqExhausted() {
+    val dir = folder.newFolder()
+    val filename = defaultLogFilename()
+    val date = filename.dateOf(RECORD_MILLIS)
+    val logName = filename.logNameOf(date, Int.MAX_VALUE)
+    val logFile = dir.resolve(date).apply { mkdirs() }.resolve(logName)
+    logFile.writeText("0".repeat(199) + "\n")
+
+    val publisher = newPublisher(dir)
+    publisher.setMaxBytePerDay(400)
+
+    try {
+      repeat(3) { publisher.publish(testLogRecord()) }
+    } finally {
+      publisher.close()
+    }
+
+    assertEquals(listOf(logName), dir.logNames())
+    assertEquals(4, logFile.readLines().size)
+  }
+
   /** 日志目录存在但读不了时这条日志不写入，不能当作空目录从序号0开始写；恢复后接着最大序号写 */
   @Test
   fun testContinueSeqListError() {
@@ -899,7 +972,7 @@ class LogPublisherTest {
     }
   }
 
-  /** 进程目录里不是日志的文件不参与序号扫描，轮换时也不删除 */
+  /** 日期目录里名字不符合`<名字>.<序号>.log`的文件不参与序号扫描，轮换时也不删除 */
   @Test
   fun testIgnoreNonLogFile() {
     val dir = folder.newFolder()
@@ -1040,7 +1113,7 @@ class LogPublisherTest {
     }
   }
 
-  /** 进程名为空串时按取不到处理；含路径分隔符或者是.和..时会跳出所在目录，也按取不到处理 */
+  /** 进程名为空串时按取不到处理；含/时可能跳出所在目录，是..时会跳出，是.时等于所在目录本身，也按取不到处理 */
   @Test
   fun testInvalidProcessName() {
     val filename = defaultLogFilename()
@@ -1066,7 +1139,10 @@ class LogPublisherTest {
   }
 }
 
-/** 目录下的日志文件名，按序号排序。不能按文件名排序，序号位数不同的时候字典序和数值序不一致 */
+/**
+ * 目录和子目录下所有文件的文件名，按序号排序，不是日志的排在最前。
+ * 不能按文件名排序，序号位数不同的时候字典序和数值序不一致。
+ */
 private fun File.logNames(): List<String> {
   val filename = defaultLogFilename()
   return walkTopDown().filter { it.isFile }.map { it.name }

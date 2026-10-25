@@ -13,13 +13,16 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * [FLog]的并发：多线程同时初始化只有一个成功，多线程打印的日志不丢失、不串行，每个线程保持自己的顺序。
+ * [FLog]的并发：多线程同时初始化只有一个成功，多线程打印的日志不丢失、不错行，每个线程保持自己的顺序。
  *
  * 这个类会初始化[FLog]，初始化之后无法重置，所以单独一个测试类。
  */
 class LogConcurrentTest {
   @get:Rule
   val folder = TemporaryFolder()
+
+  @get:Rule
+  val sameDay = SameDayRule()
 
   @Test
   fun test() {

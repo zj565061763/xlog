@@ -21,6 +21,8 @@ android {
 
   kotlinOptions {
     jvmTarget = "1.8"
+    // 接口的默认方法编译成Java默认方法，同时保留DefaultImpls，旧版本编译的实现类和调用方都能用
+    freeCompilerArgs += "-Xjvm-default=all-compatibility"
   }
 
   testOptions {

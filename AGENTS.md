@@ -5,179 +5,212 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 核心能力：日志同时输出到 Logcat 和按天分文件的磁盘仓库，支持等级/模式过滤、单日大小限制、按天清理、导出 zip。
 - 版本号在 `lib/gradle.properties` 的 `VERSION_NAME`，发布用 `com.vanniktech.maven.publish`。
 - 变更历史维护在 `CHANGELOG.md`，语言简洁，只写用户可感知的内容。
-  - 标题格式：`## <版本号>`
-  - 小节固定为 `### ⚠️ Breaking Changes` / `### ✨ Improvements` / `### 🐛 Bug Fixes` / `### Migration`，没有内容的小节省略
+    - 标题格式：`## <版本号>`
+    - 小节固定为 `### ⚠️ Breaking Changes` / `### ✨ Improvements` / `### 🐛 Bug Fixes` / `### Migration`，没有内容的小节省略
 
 ## 项目结构
 
-| 路径 | 说明 |
-|---|---|
-| `lib/` | 发布的库，namespace `com.sd.lib.xlog`，`minSdk 21`，纯 Kotlin，运行时零依赖 |
-| `lib/src/test/` | JVM 单元测试 |
-| `app/` | 演示 App，`App.kt` 是初始化示例 |
-| `app/src/androidTest/` | instrumented 测试，公共工具在 `TestUtils.kt` |
-| `test-app/` | 只用来跑 instrumented 测试的空 App，启动时不初始化 `FLog`，测首次 `init` 和 release 混淆 |
-| `gradle/libs.versions.toml` | 依赖和 SDK 版本 |
+| 路径                        | 说明                                                                                     |
+|-----------------------------|------------------------------------------------------------------------------------------|
+| `lib/`                      | 发布的库，namespace `com.sd.lib.xlog`，`minSdk 21`，纯 Kotlin，运行时零依赖              |
+| `lib/src/test/`             | JVM 单元测试                                                                             |
+| `app/`                      | 演示 App，`App.kt` 是初始化示例                                                          |
+| `app/src/androidTest/`      | instrumented 测试，公共工具在 `TestUtils.kt`                                             |
+| `test-app/`                 | 只用来跑 instrumented 测试的空 App，启动时不初始化 `FLog`，测首次 `init` 和 release 混淆 |
+| `gradle/libs.versions.toml` | 依赖和 SDK 版本                                                                          |
 
 ## 公共 API
 
 - 对外类型以 `F` 开头；内部实现用 `internal`，不加前缀。
 - `@PublishedApi` 的函数会内联进使用方的代码，删除或改签名会破坏二进制兼容，旧版本编译的调用方运行时会崩溃。
-  - 改实现时保留旧签名的函数转调新实现；实在要删，必须在 CHANGELOG 的 Breaking Changes 里写明
-  - `FLog.isLoggable(Class, FLogLevel)`、`FLog.log` 是 1.6.0 到 2.0.0 的内联代码在调用，不能删除或改签名
-    - 1.5.1 及更早内联的是三参数的 `FLog.log`，1.6.0 起就不兼容，不用考虑
-  - `FLog.configOf`、`FLog.isLoggable(FLogLevel, FLoggerConfig?)`、`FLog.publishLog` 是 2.1.0 的内联代码在调用，同样不能删除或改签名
-  - 不能加 `@JvmStatic`：内联代码通过 `FLog.INSTANCE` 调用，改成静态方法同样会崩溃
-  - `LogCompatTest` 检查这些方法的签名，新增 `@PublishedApi` 函数时一并加进去
+    - 改实现时保留旧签名的函数转调新实现；实在要删，必须在 CHANGELOG 的 Breaking Changes 里写明
+    - `FLog.isLoggable(Class, FLogLevel)`、`FLog.log` 是 1.6.0 到 2.0.0 的内联代码在调用，不能删除或改签名
+        - 1.5.1 及更早内联的是三参数的 `FLog.log`，1.6.0 起就不兼容，不用考虑
+    - `FLog.configOf`、`FLog.isLoggable(FLogLevel, FLoggerConfig?)`、`FLog.publishLog` 是 2.1.0 及之后的内联代码在调用，同样不能删除或改签名
+    - 不能加 `@JvmStatic`：内联代码通过 `FLog.INSTANCE` 调用，改成静态方法同样会崩溃
+    - `LogCompatTest` 检查这些方法的签名，新增 `@PublishedApi` 函数时一并加进去
+- `lib/build.gradle.kts` 开启了 `-Xjvm-default=all-compatibility`，接口的默认方法编译成 Java 默认方法，同时保留 `DefaultImpls`。
+    - 不要去掉：默认方法在字节码里会变成抽象方法，旧版本编译的实现类没有它，调用时抛 `AbstractMethodError`；Java 实现也被迫实现它
+    - 不要改成 `all`：2.2.0 编译的 Kotlin 实现类通过 `DefaultImpls` 调用 `FLogFormatter.reset()`
+    - `LogCompatTest` 检查 `reset()` 是默认方法、`DefaultImpls` 还在
 - `FLog`（`Log.kt`）：单例总控，必须先 `init`，否则抛异常。
 - `FLogger`（`Logger.kt`）：空标记接口，使用方定义子接口作为日志标识，默认 tag 是去掉包名的类名，嵌套类带外部类名（`Outer$Inner`）。
 - `FLoggerConfig`：通过 `configLogger` 覆盖单个 logger 的 tag/level/mode。
 - 打印日志：
-  - `flogV/D/I/W/E<T : FLogger> { "msg" }`（`LogApi.kt`，推荐）
-  - `FLogger.lv/ld/li/lw/le { "msg" }`（`LoggerApi.kt`）
-  - 消息 block 惰性求值，等级不满足时不执行
+    - `flogV/D/I/W/E<T : FLogger> { "msg" }`（`LogApi.kt`，推荐）
+    - `FLogger.lv/ld/li/lw/le { "msg" }`（`LoggerApi.kt`）
+    - 消息 block 惰性求值，等级不满足时不执行
 - 扩展点在 `FLogInitScope`（`FLog.init {}` 里设置）：日志目录、`FLogFormatter`、`FLogStore.Factory`、`FLogDispatcher`。
-  - 扩展点里打印日志会循环，KDoc 已写明禁止，不要删掉
-  - 获取目录的方法：取不到目录时每条日志都会调用它，它打印的日志又会调用它，调度线程空转，队列排不空，`onIdle` 不再触发
-  - 格式化器、仓库：每条日志都会触发下一条
-  - 调度器：`dispatch` 里打印日志会同步递归，直到栈溢出
+    - 扩展点里打印日志会循环，KDoc 已写明禁止，不要删掉
+    - 获取目录的方法：取不到目录时每条日志都会调用它，它打印的日志又会调用它，调度线程空转，队列排不空，`onIdle` 不再触发
+    - 格式化器、仓库：每条日志都会触发下一条
+    - 调度器：`dispatch` 里打印日志会同步递归，直到栈溢出
 
 ## 关键架构
 
 - 写入链路：`flogX` → `FLog.publishLog()`，Logcat 在调用线程直接输出，仓库写入经 `_dispatcher.dispatch { _publisher.publish(record) }` 在调度线程执行。
-  - `FLogRecord` 在调用线程上生成，时间戳和线程 ID 都是调用时的，不要移到调度线程上创建
-  - 用写入时间的话，队列积压时时间偏晚，午夜前打印的日志会写进第二天的文件
+    - `FLogRecord` 在调用线程上生成，时间戳和线程 ID 都是调用时的，不要移到调度线程上创建
+    - 用写入时间的话，队列积压时时间偏晚，午夜前打印的日志会写进第二天的文件
 - `logDirectory`、`deleteLog` 的任务体是 `LogDirectoryScope.kt` 的 `accessDirectory`，和 `FLog` 解耦是为了在 JVM 单元测试里测取不到目录等分支。
 - 磁盘 I/O 都在调度线程上，不阻塞调用方。
-  - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`getExternalFilesDir()`
-  - `LogTime` 的 `Calendar` 不是线程安全的，日期和时间格式化也只能在调度线程上调用
+    - 包括获取进程名和默认日志目录，`init` 里只传入获取方法，不要直接调用 `currentProcess()`、`getExternalFilesDir()`
+    - `LogTime` 的 `Calendar` 不是线程安全的，日期和时间格式化也只能在调度线程上调用
 - 日志目录（`LogPublisherImpl.directory`）：
-  - 默认 `getExternalFilesDir(null)/sd.lib.xlog`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
-  - 在调度线程上获取，取到非 null 后缓存，本进程之后一直用它
-  - 为 null 时取消这次操作：写日志丢弃，`deleteLog`、`logDirectory` 不执行，`init` 不清空压缩包
+    - 默认 `getExternalFilesDir(null)/sd.lib.xlog`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
+    - 在调度线程上获取，取到非 null 后缓存，本进程之后一直用它
+    - 为 null 时取消这次操作：写日志丢弃，`deleteLog`、`logDirectory` 不执行，`init` 不清空压缩包
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
-  - 保持 `Executors.newSingleThreadExecutor()` 的默认线程工厂，不要为了命名或调优先级自定义：线程优先级 nice ≥ 10 时，Android 12 及以下会把线程移到后台调度组，队列积压，崩溃时丢失排队中的日志
+    - 调度器是整个日志库的基础，刻意不做容错：`LogDispatcherWrapper` 发现任务重复执行时直接抛异常，会覆盖该任务本身抛出的异常
+    - 丢弃任务时计数不归零，`onIdle` 不再触发
+    - 库内部的可变状态（当前日志文件、已写入的字节数、上一条日志的 tag）都没有加 volatile 或锁，完全依赖调度器提供的 happens-before
+    - 保持 `Executors.newSingleThreadExecutor()` 的默认线程工厂，不要为了命名或调优先级自定义：线程优先级 nice ≥ 10 时，Android 12 及以下会把线程移到后台调度组，队列积压，崩溃时丢失排队中的日志
 - `LogDispatcherWrapper` 计数，队列排空时触发 `onIdle`：等级为 Off 则关闭 publisher，否则检查日志文件，被外部删除就关闭，下次写入时重建。
 - 文件路径：
-  - 日志：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.<seq>.log`
-  - 压缩包：`<dir>/.zip/<process>/<yyyyMMdd>.zip`
-  - `<process>` 是进程名，`:` 替换为 `-`
-    - `:` 在 FAT 文件名里不合法，`-` 合法，而且合法的进程名里不会出现
-    - 不要改回 `_`：全局进程名可以含 `_`，`com.example:worker` 和 `com.example_worker` 会共用目录，日志混写，`init` 还会清空对方的压缩包
-    - 2.1.0 及之前私有进程的压缩包目录（如 `.zip/com.example_worker`）不清理，分不清它属于旧版本还是同名的全局进程
-  - 系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层
-    - 系统接口出错时要捕获后继续读 cmdline：Android 7.0–8.1 的 `runningAppProcesses` 会抛异常，进程名懒加载失败会每次重试，日志一直写不进文件
-  - 进程名含 `/` 或者是 `.`、`..` 时按取不到处理，否则会跳出日志目录，`init` 清空压缩包时还会删到别处
+    - 日志：`<dir>/<yyyyMMdd>/<process>/<yyyyMMdd>.<seq>.log`
+    - 压缩包：`<dir>/.zip/<process>/<yyyyMMdd>.zip`
+    - `<process>` 是进程名，`:` 替换为 `-`
+        - `:` 在 FAT 文件名里不合法，`-` 合法，而且合法的进程名里不会出现
+        - 不要改回 `_`：全局进程名可以含 `_`，`com.example:worker` 和 `com.example_worker` 会共用目录，日志混写，`init` 还会清空对方的压缩包
+        - 2.1.0 及之前私有进程的压缩包目录（如 `.zip/com.example_worker`）不清理，分不清它属于旧版本还是同名的全局进程
+    - 系统接口和 `/proc/self/cmdline` 都取不到进程名时省略这一层
+        - 系统接口出错时要捕获后继续读 cmdline：Android 7.0–8.1 的 `runningAppProcesses` 调用系统服务失败时会抛异常（6.0 及以下返回 null），进程名懒加载失败会每次重试，日志一直写不进文件
+        - 系统接口出错时照常输出 `libLog`，即使接着从 cmdline 取到了进程名：调用系统服务失败本身是有用的信息
+    - 进程名含 `/` 或者是 `.`、`..` 时按取不到处理
+        - 含 `/` 时不止一层，可能跳出日志目录，比如 `a/../..` 或绝对路径
+        - 是 `..` 时会跳出日志目录
+        - 跳出日志目录时，`init` 清空压缩包还会删到别处
+        - 是 `.` 时等于上层目录本身，和取不到进程名的进程共用目录，`init` 会清空所有进程的压缩包
 - 日志滚动（`DateLogHandler`）：
-  - 当前文件达到 `maxBytePerDay` 的一半时关闭，序号加一继续写，并删除当前和上一个序号之外的旧文件；所以最多两个文件，总量约等于上限
-  - 创建时扫描目录取最大序号接着写，进程重启后能续上
-    - 目录存在但读取失败时抛异常，这条日志不写入，下一条日志重新扫描；不能当作空目录，否则从序号 0 开始写，和已有的文件接不上
-    - 代价是目录一直读不了期间日志不写入文件；这种目录本来也没法打包，大小上限也管不住
-  - 切换时列出旧文件失败只输出 `libLog`，不往外抛：序号已经切换，这条日志也已经写入
-  - 序号不补零，跨越 9→10 时文件名字典序和时间序不一致，这是刻意接受的
-  - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
+    - 当前文件达到 `maxBytePerDay` 的一半时关闭，序号加一继续写，并删除当前和上一个序号之外的旧文件；所以最多两个文件，总量约等于上限
+    - 创建时扫描目录取最大序号接着写，进程重启后能续上
+        - 目录存在但读取失败时抛异常，这条日志不写入，下一条日志重新扫描；不能当作空目录，否则从序号 0 开始写，和已有的文件接不上
+        - 代价是目录一直读不了期间日志不写入文件；这种目录本来也没法打包，大小上限也管不住
+    - 切换时列出旧文件失败只输出 `libLog`，不往外抛：序号已经切换，这条日志也已经写入
+    - 序号不补零，跨越 9→10 时文件名字典序和时间序不一致，这是刻意接受的
+    - 序号到 `Int.MAX_VALUE` 时不再切换，继续写当前文件
+        - 只有目录里被放了这个序号的文件才会出现，正常写入达不到
+        - 不要去掉这个检查：溢出成负数时 `logNameOf` 抛异常，之后每条日志都写回旧文件再重试切换，文件无限增长
+    - 新文件惰性创建，切换后要等下一条日志写入才出现，测试断言文件列表时注意这个时序
 - `FileLogStore`（`LogStore.kt`）：`CounterOutputStream` 自行累计字节数，避免每次 `file.length()`。
 - 日志路径被占用时先删掉再创建，日志目录只能存放日志，不用担心误删。
-  - 日期目录、进程目录被同名文件占用：`DateLogHandler` 创建时删掉，空闲时发现日志文件不存在也删一次
-  - 日志文件被同名目录占用：`FileLogStore` 创建文件时删掉
-  - 日志目录本身和它上层的路径被文件占用时不删，按普通的写入失败处理
-  - 不要改回在 `FileLogStore` 里向上递归删除：它不知道日志目录在哪，会删到日志目录外面
+    - 日期目录、进程目录被同名文件占用：`DateLogHandler` 创建时删掉，空闲时发现日志文件不存在也删一次
+    - 日志文件被同名目录占用：`FileLogStore` 创建文件时删掉
+    - 压缩包目录 `.zip`、它下面的进程目录被同名文件占用：`zipFileOf` 删掉；`deleteLog` 跳过 `.` 开头的条目，不会清理它们
+    - 日志目录本身和它上层的路径被文件占用时不删，按普通的写入失败处理
+    - 不要改回在 `FileLogStore` 里向上递归删除：它不知道日志目录在哪，会删到日志目录外面
 - 异常隔离：`SafeLogPublisher`（`LogSafe.kt`）捕获并打印异常，保证日志失败不影响业务；`SafeLogStore`（`LogPublisher.kt`）出错时关闭再重抛。
-  - 格式化器的 `reset()` 出错只打印不抛出：抛出会中断日志轮换，一直写回旧文件
-  - `directory` 也要捕获，抛异常时按取不到处理：它会调用使用方提供的方法，`logDirectory` 在 block 外面取目录，不捕获会让 App 崩溃
+    - 格式化器的 `reset()` 出错只打印不抛出：抛出会中断日志轮换，一直写回旧文件
+    - 获取目录在 `LogPublisherImpl.directory` 里捕获，抛异常时按取不到处理：它会调用使用方提供的方法，`logDirectory` 在 block 外面取目录，不捕获会让 App 崩溃
+    - 不要挪回 `SafeLogPublisher`：内部的 `logDirOf`、`zipFileOf`、`deleteZipDirectory` 和写日志读的都是 `LogPublisherImpl` 自己的 `directory`，只在外层捕获的话它们没有保护
 - 库内部日志 `libLog` 直接用 `Log.e` 输出到 Logcat，tag 是 `XLogLibLogger`，只在全局等级为 Off 时不输出。
-  - 不要改回走 `flogX`：使用方调高等级后，写盘、打包失败会完全看不到
-  - 只输出错误，成功等正常结果不要输出，否则会被当成出错
+    - 不要改回走 `flogX`：使用方调高等级后，写盘、打包失败会完全看不到
+    - 只输出错误，成功等正常结果不要输出，否则会被当成出错
 - 格式（`LogFormatter.kt`）：`HH:mm:ss.SSS[tag|L|threadID] msg\n`，`L` 是 V/D/I/W/E；连续相同 tag 省略 tag，主线程省略 threadID。
 - 文件名和日期逻辑集中在 `LogFilename.kt`、`LogTime.kt`，日期格式 `yyyyMMdd`；`logNameOf`/`seqOf` 互为逆运算，不要在别处拼日志文件名。
 
 ## 有意的取舍（不是 bug，不要“修复”）
 
 - `init` 不检查嵌套调用，只在 KDoc 里写明不允许在 `initBlock` 里再调用 `init`。
-  - 嵌套调用时内外两次都返回 true，外层覆盖内层的 publisher 和调度器，内层已经打开的日志文件不会关闭
-  - 这是用法错误，不为它增加“初始化中”状态
+    - 嵌套调用时内外两次都返回 true，外层覆盖内层的 publisher 和调度器，内层已经打开的日志文件不会关闭
+    - 这是用法错误，不为它增加“初始化中”状态
+- `initBlock` 在 `FLog` 的锁里执行，里面等待会调用 `FLog` 的其他线程时会死锁，只在 KDoc 里写明。
+    - 初始化期间其他线程调用 `FLog` 要等 `init` 完成，test-app 的 `LogInitTest` 依赖这一点验证清理任务排在前面
+    - 不要改成不等待直接抛异常：初始化期间其他线程打日志会崩溃
+    - 不要把 `initBlock` 移到锁外：同时 `init` 时它会执行多次，`LogConcurrentTest` 断言只执行一次
 - `diffDays` 把 `yyyyMMdd` 转成距 1970-01-01 的天数再相减，纯整数运算，不碰时区。
-  - 不要直接减日期字符串：跨月时日志会被全删（commit 5d5f093）
-  - 不要改回 `Calendar` 转毫秒相减：夏令时切换日只有 23 小时，会少算一天
+    - 不要直接减日期字符串：跨月时日志会被全删（commit 5d5f093）
+    - 不要改回 `Calendar` 转毫秒相减：进入夏令时那天只有 23 小时，会少算一天
 - 日志文件被外部删除靠 `onIdle` 兜底，不要改成每次写入检查 `isFile`。
-  - 文件被删后 fd 仍有效，写入照样成功，没有比 stat 更便宜的信号
-  - `onIdle` 在队列排空时触发：稀疏写入时和每次检查等价，突发写入时 N 条才检查一次
-  - 代价是最多丢失一个 burst 的日志，而外部删除本身是低概率事件
-- 日志滚动不要改回 `renameTo`，删除旧文件失败也绝不重试。
-  - `renameTo` 失败时原文件大小不变，之后每条日志都重试 close + open + delete + rename，文件无限增长，`setMaxMBPerDay` 失效
-  - 现方案只有 create 和 delete，删除失败最多多留一个文件，不影响写入
+    - 文件被删后 fd 仍有效，写入照样成功，没有比 stat 更便宜的信号
+    - `onIdle` 在队列排空时触发：稀疏写入时和每次检查等价，突发写入时 N 条才检查一次
+    - 代价是最多丢失一个 burst 的日志，而外部删除本身是低概率事件
+- 取不到进程名时多个进程共用同一个日志文件，其他进程删掉它又重建同名文件时，本进程发现不了，不处理。
+    - `onIdle` 只检查 `isFile`，重建后仍是 true，本进程一直写到已删除的文件上
+    - 直到切换文件、跨天、设为 Off 或调用 `logDirectory` 才恢复，期间的日志全部丢失，不止一个 burst
+    - 要同时满足取不到进程名、多个进程写日志、其他进程删除后马上写入，概率很低
+- 进程名只差大小写时（如 `com.example:Push` 和 `com.example:push`）共用同一个进程目录，不处理。
+    - 默认目录所在的外部存储不区分大小写，API 23 和 API 35 的模拟器上都验证过
+    - 后果和 `_` 冲突一样：日志混写，单日上限失效，`init` 时还会清空对方的压缩包
+    - 要同一个 App 里有两个进程名只差大小写，概率很低
+- 日志滚动不要改回 `renameTo`，删除旧文件失败也不立即重试，留到下次切换时一并删除。
+    - `renameTo` 失败时原文件大小不变，之后每条日志都重试 close + open + delete + rename，文件无限增长，`setMaxMBPerDay` 失效
+    - 现方案只有 create 和 delete，删除失败最多多留一个文件，不影响写入
 - 调小 `setMaxMBPerDay` 或单条日志过大时，超过上限的旧文件要等下一次切换才删除，切换时不额外按大小删除。
-  - 正常写入时总量约等于上限，只有上限变化或单条超大日志才会超额
-  - 当天日志写不满半个上限时，超大文件会留到 `deleteLog` 按保留天数清理
-  - 切换时按大小删除只能覆盖部分情况，完整覆盖要在上限变化和重启后额外检查，影响不大，不值得增加复杂度
+    - 正常写入时总量约等于上限，只有上限变化或单条超大日志才会超额
+    - 当天日志写不满半个上限时，超大文件会留到 `deleteLog` 按保留天数清理
+    - 切换时按大小删除只能覆盖部分情况，完整覆盖要在上限变化和重启后额外检查，影响不大，不值得增加复杂度
 - 刚切换、下一条日志还没写时关闭再打开（`logDirectory`、进程重启），会往写满的文件多写一条再切换，不改成写入前先检查大小。
-  - 新文件惰性创建，重新打开时扫描到的最大序号仍是写满的文件
-  - 每次重新打开最多多写一条，只有每写一条就访问一次日志目录才会持续增长，实际用法不会这样
-  - 概率低、影响小，不值得增加复杂度
+    - 新文件惰性创建，重新打开时扫描到的最大序号仍是写满的文件
+    - 每次重新打开最多多写一条，只有每写一条就访问一次日志目录才会持续增长，实际用法不会这样
+    - 概率低、影响小，不值得增加复杂度
 - 首次写入时存放日志文件的目录暂时访问不了、被当作不存在（比如上层目录没有执行权限），恢复后从序号 0 开始写，不重新扫描已有的序号。
-  - `java.io.File` 分不清权限不足和目录不存在，扫描时当作没有日志，序号取 0
-  - 写入失败后 `DateLogHandler` 不丢弃，恢复后接着用这个序号
-  - 和已有的大序号文件接不上，文件总量暂时超过上限
-  - 之后重新打开（`logDirectory`、`deleteLog`、进程重启）会接着最大序号写，下次切换时删掉恢复后写的小序号文件
-  - 要同时满足三点才出现：`DateLogHandler` 在目录访问不了期间创建，当天已有序号大于 0 的文件，同一进程内恢复
-  - 日志目录由应用自己创建，只有应用自身或 root 能改权限，外部存储上 `chmod` 不生效
-  - 概率很低，不值得为它增加状态
-  - 不要改成写入失败就丢弃 `DateLogHandler`：新文件创建不了、旧文件还能写时，每次重新扫描都回到写满的旧文件，旧文件无限增长
+    - `java.io.File` 分不清权限不足和目录不存在，扫描时当作没有日志，序号取 0
+    - 写入失败后 `DateLogHandler` 不丢弃，恢复后接着用这个序号
+    - 和已有的大序号文件接不上，文件总量暂时超过上限
+    - 之后重新打开（`logDirectory`、`deleteLog`、进程重启）会接着最大序号写，下次切换时删掉恢复后写的小序号文件
+    - 要同时满足三点才出现：`DateLogHandler` 在目录访问不了期间创建，当天已有序号大于 0 的文件，同一进程内恢复
+    - 日志目录由应用自己创建，只有应用自身或 root 能改权限，外部存储上 `chmod` 不生效
+    - 概率很低，不值得为它增加状态
+    - 不要改成写入失败就丢弃 `DateLogHandler`：新文件创建不了、旧文件还能写时，每次重新扫描都回到写满的旧文件，旧文件无限增长
 - 每条日志都 `write` + `flush`，不加缓冲。
-  - 崩溃或被杀前的最后几条日志最关键，缓冲会丢掉它们
-  - 要加缓冲必须先回答“进程被 SIGKILL 时怎么 flush”，这在 Android 上无解
+    - 崩溃或被杀前的最后几条日志最关键，缓冲会丢掉它们
+    - 要加缓冲必须先回答“进程被 SIGKILL 时怎么 flush”，这在 Android 上无解
 - `LogTime._calendar` 的时区在首次使用时确定，之后改时区不生效。
-  - 低频，进程重启后自愈
-  - `deleteLog` 的 today 和日志文件日期用同一个时区，保留策略不会判断错
-  - 夏令时与此无关（`TimeZone` 按时间戳动态计算偏移），不要和 `diffDays` 的夏令时问题混为一谈
+    - 低频，进程重启后自愈
+    - `deleteLog` 的 today 和日志文件日期用同一个时区，保留策略不会判断错
+    - 夏令时与此无关（`TimeZone` 按时间戳动态计算偏移），不要和 `diffDays` 的夏令时问题混为一谈
 - `deleteLog` 保留日期在今天之后的目录，只有 `saveDays<=0` 时才删。
-  - 这类目录来自设备时间被调快又恢复
-  - 不删是因为当前时间被调慢时，这些目录才是真实的日志
+    - 这类目录来自设备时间被调快又恢复
+    - 不删是因为当前时间被调慢时，这些目录才是真实的日志
 - debug 构建里 `deleteLog` 和其他进程同时删除同一个目录时，`deleteRecursively()` 会抛 `AssertionError`，不换成自己实现的递归删除。
-  - `deleteLog` 正常只在主进程调用，不会有其他进程同时删除
-  - debuggable 构建开启了断言，Kotlin 的 `deleteRecursively()` 判断 `isDirectory` 之后还会断言一次，中间目录被删掉就失败
-  - 不会崩溃：异常被捕获后输出到 Logcat，这次 `deleteLog` 中断，剩下的过期目录下次再删
-  - release 构建没有断言，不受影响
+    - `deleteLog` 正常只在主进程调用，不会有其他进程同时删除
+    - debuggable 构建开启了断言，Kotlin 的 `deleteRecursively()` 判断 `isDirectory` 之后还会断言一次，中间目录被删掉就失败
+    - 不会崩溃：异常被捕获后输出到 Logcat，这次 `deleteLog` 中断，剩下的过期目录下次再删
+    - release 构建没有断言，不受影响
 - `lib/consumer-rules.pro` 用 `-keepnames` 保留 `FLogger` 实现类的类名。
-  - 默认 tag 取自类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
-  - 不要改回 `-keep`：它会阻止 R8 移除没用到的实现类
+    - 默认 tag 取自类名，删掉这条规则的话，混淆后 tag 会变成无意义的短名
+    - 不要改回 `-keep`：它会阻止 R8 移除没用到的实现类
 - 默认 tag 只用 `name.substringAfterLast('.')`，嵌套类、局部类和匿名类带外部类名，不要改回 `simpleName`，也不要去掉外部类名。
-  - `simpleName` 依赖内部类信息，外部类没被 keep 时 R8 会移除它，混淆前后的 tag 不一致
-  - 加 `-keepattributes InnerClasses` 也没用：AGP 默认配置已经有这一条
-  - `simpleName` 也不更轻量：API 34 及之前每次都要查内部类信息，旧系统上取嵌套类的名字慢几十倍
-  - 去掉外部类名的话，分不清编译器加的编号和类名开头的数字：Java 局部类 `Local` 和 Kotlin 嵌套类 `` `1Local` `` 的类名都是 `Outer$1Local`
-  - 去掉外部类名的话，不同外部类里同名的 logger（比如都叫 `Logger`）tag 相同，分不出来
-  - 需要短 tag 的由使用方通过 `configLogger` 指定
-  - 每条日志都重新计算，不缓存：缓存会一直占用内存，一次字符串截取的开销可以接受
+    - `simpleName` 依赖内部类信息，外部类没被 keep 时 R8 会移除它，混淆前后的 tag 不一致
+    - 加 `-keepattributes InnerClasses` 也没用：AGP 默认配置已经有这一条
+    - `simpleName` 也不更轻量：API 34 及之前每次都要查内部类信息，旧系统上取嵌套类的名字慢几十倍
+    - 去掉外部类名的话，分不清编译器加的编号和类名开头的数字：Java 局部类 `Local` 和 Kotlin 嵌套类 `` `1Local` `` 的类名都是 `Outer$1Local`
+    - 去掉外部类名的话，不同外部类里同名的 logger（比如都叫 `Logger`）tag 相同，分不出来
+    - 需要短 tag 的由使用方通过 `configLogger` 指定
+    - 每条日志都重新计算，不缓存：缓存会一直占用内存，一次字符串截取的开销可以接受
 - Logcat 单条日志超过约 4KB 会被系统截断，这是平台限制，不分段输出。
-  - 日志文件里是完整内容
+    - 日志文件里是完整内容
 - 打包时列出的条目读不到属性（比如所在目录没有执行权限），`isFile`、`isDirectory`、`exists()` 都返回 false，会按已删除跳过，不让打包失败。
-  - `java.io.File` 分不清权限不足和文件不存在
-  - 能区分的 `java.nio.file` 要求 API 26，`Os.stat` 在 JVM 单元测试里测不了，只剩重新列出父目录这种启发式判断
-  - 日志目录由应用自己创建，只有应用自身或 root 能改权限，外部存储上 `chmod` 不生效
-  - 目录没有执行权限时写日志同样失败，压缩包缺文件只是次要问题
+    - `java.io.File` 分不清权限不足和文件不存在
+    - 能区分的 `java.nio.file` 要求 API 26，`Os.stat` 在 JVM 单元测试里测不了，只剩重新列出父目录这种启发式判断
+    - 日志目录由应用自己创建，只有应用自身或 root 能改权限，外部存储上 `chmod` 不生效
+    - 目录没有执行权限时写日志同样失败，压缩包缺文件只是次要问题
 - 打包时进程子目录在确认是目录之后、列出内容之前被其他进程删除，这个分支（`compressFile` 里 `listFilesOrNull()` 返回 null 时跳过）没有测试，不补。
-  - 这两步之间没有可注入的点，要测就得为它把列目录改成可注入
-  - `listFilesOrNull()` 的两种结果已经有单独的测试，这里只是返回 null 时跳过
-  - 退化的后果是极小的时间窗口里 `logZipOf` 返回 null，重试即可
+    - 这两步之间没有可注入的点，要测就得为它把列目录改成可注入
+    - `listFilesOrNull()` 的两种结果已经有单独的测试，这里只是返回 null 时跳过
+    - 退化的后果是极小的时间窗口里 `logZipOf` 返回 null，重试即可
 - `logZipOf` 只检查日期是 8 位 ASCII 数字，不检查日历上是否存在（比如 `20230230`）。
-  - 不存在的日期没有对应的日志目录，本来就返回 null
-  - 8 位 ASCII 数字的检查已经保证路径不会跳出日志目录
-  - 只有日志目录里被手动放了同名目录时才会打包它，这种目录也会被 `deleteLog` 当作不合法日期删掉
-  - 改成检查日历只增加代码和测试，行为上没有实际差别
+    - 不存在的日期没有对应的日志目录，本来就返回 null
+    - 8 位 ASCII 数字的检查已经保证路径不会跳出日志目录
+    - 只有日志目录里被手动放了同名目录时才会打包它，这种目录也会被 `deleteLog` 当作不合法日期删掉
+    - 改成检查日历只增加代码和测试，行为上没有实际差别
 - 日志目录取到后不再重新获取，之后外部存储被卸载时按普通的写入失败处理。
-  - 默认实现 `getExternalFilesDir` 每次都有 IPC，不能每条日志都调用
-  - 目录不切换，就不会出现同一天的日志分散在两个目录、`deleteLog` 和 `init` 要处理两个位置的问题
+    - 默认实现 `getExternalFilesDir` 每次都有 IPC，不能每条日志都调用
+    - 目录不切换，就不会出现同一天的日志分散在两个目录、`deleteLog` 和 `init` 要处理两个位置的问题
 - 日志目录为 null 时，每条日志都重新获取一次，不节流。
-  - 只在外部存储不可用期间发生，比如 Direct Boot 首次解锁前
+    - 只在外部存储不可用期间发生，比如 Direct Boot 首次解锁前
 - 日志目录为 null 时丢弃日志，不输出 `libLog`。
-  - 外部存储未挂载、使用方主动返回 null 都是预期状态，输出会被当成出错
+    - 外部存储未挂载、使用方主动返回 null 都是预期状态，输出会被当成出错
+- 获取日志目录的方法抛异常时，每次获取都输出一次 `libLog`，不节流。
+    - 每条日志、每次 `deleteLog`、`logDirectory` 都输出一份堆栈
+    - 抛异常是使用方的方法出错，要让使用方看到；返回 null 才是预期状态
 - `init` 时日志目录为 null，这次不清空压缩包，留到下次 `init`。
-  - 遗留的压缩包只占空间，不影响打包：同一日期再次打包会替换它
+    - 遗留的压缩包只占空间，不影响打包：同一日期再次打包会替换它
 
 ## 日志清理与压缩包
 
 - `deleteLog(saveDays)`：保留最近 N 天，`saveDays=1` 表示仅当天，`<=0` 表示删除全部。
+- `deleteLog` 的今天按调用时的时间戳算，到调度线程上再格式化成日期；不要改回执行时取，队列积压跨过零点时会多删一天。
 - 是否删除的判断集中在 `LogFilename.kt` 的 `shouldDeleteLog`，不要在 `deleteLog` 里另写。
 - 改日期比较务必考虑跨月、跨年、闰年、夏令时，并补 `LogFilenameTest.kt` 的用例。
 - 日志目录只能存放日志：`deleteLog` 会删除其中不是日志的条目，自定义目录时不能用共用目录。
@@ -185,37 +218,37 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - `deleteLog(0)` 同样不删压缩包，常见用法是“导出 zip → 清空日志 → 上传 zip”；所以不能用 `dir.deleteRecursively()`。
 - 日志根目录永远保留，即使空了也不删，省掉下次写日志时重建目录。
 - 清理失败要输出 `libLog`，不能静默跳过。
-  - `deleteLog` 用 `listFilesOrNull()` 列出日志目录：不存在时不处理，存在但读取失败时抛异常，不能把 `listFiles()` 返回 null 当作空目录
-  - `init` 清空压缩包要检查 `deleteRecursively()` 的返回值，目录不存在时它返回 true，不会误报
+    - `deleteLog` 用 `listFilesOrNull()` 列出日志目录：不存在时不处理，存在但读取失败时抛异常，不能把 `listFiles()` 返回 null 当作空目录
+    - `init` 清空压缩包要检查 `deleteRecursively()` 的返回值，目录不存在时它返回 true，不会误报
 - `logZipOf` 返回的压缩包是临时产物：
-  - 只保证本次进程运行期间有效，下次 `init` 清空本进程的压缩包子目录，不影响其他进程
-  - 取不到进程名时 `init` 不清空，此时压缩包目录是所有进程共用的
-  - 需要长期保存由使用方自行移走，库不提供 target 参数，也不提供删除 API
-  - 生命周期是“导出 → 上传/分享 → 丢弃”，刻意不受 `deleteLog` 管辖
+    - 只保证本次进程运行期间有效，下次 `init` 清空本进程的压缩包子目录，不影响其他进程
+    - 取不到进程名时 `init` 不清空，此时压缩包目录是所有进程共用的
+    - 需要长期保存由使用方自行移走，库不提供 target 参数，也不提供删除 API
+    - 生命周期是“导出 → 上传/分享 → 丢弃”，刻意不受 `deleteLog` 管辖
 - 打包先写临时文件，成功后再 `renameTo` 替换，同一日期再次打包时上次的压缩包保持完整，失败时也保留。
-  - 临时文件名随机生成，不要改回固定名字：取不到进程名时多个进程共用压缩包目录，同时打包同一日期会互相删除、替换对方的临时文件，返回不完整的压缩包
-  - 代价是打包中途被杀留下的临时文件不会被下次打包覆盖；有进程名时由下次 `init` 清空，取不到进程名时会一直留着，概率低、影响小
+    - 临时文件名随机生成，不要改回固定名字：取不到进程名时多个进程共用压缩包目录，同时打包同一日期会互相删除、替换对方的临时文件，返回不完整的压缩包
+    - 代价是打包中途被杀留下的临时文件不会被下次打包覆盖；有进程名时由下次 `init` 清空，取不到进程名时会一直留着，概率低、影响小
 - 打包时跳过列出后、打开前被其他进程删除的文件，其他打开失败照常让打包失败；跨进程无法加锁，只能在打开时容错。
 - 目录同理：列出前被删除的跳过，存在但读取失败的让打包失败，不能把 `listFiles()` 返回 null 当作空目录。
-  - 日期目录本身在列出前被删除时打包失败，返回 null，不生成没有任何条目的压缩包
-  - 没有条目的压缩包 API 23 上写不出来（`ZipOutputStream` 抛异常），API 35 上能写出来，不处理的话返回值随系统版本不同
+    - 日期目录本身在列出前被删除时打包失败，返回 null，不生成没有任何条目的压缩包
+    - 没有条目的压缩包 API 23 上写不出来（`ZipOutputStream` 抛异常），API 35 上能写出来，不处理的话返回值随系统版本不同
 - 压缩包的文件流单独用 `use` 关闭，不要只靠 `ZipOutputStream.close()`。
-  - 写入失败（比如磁盘写满）时，它关闭前的收尾写入会再次抛异常，不再关闭底层的流
-  - 句柄要等 GC 才释放，已删除的临时文件占用的空间在这之前不归还
+    - 写入失败（比如磁盘写满）时，它关闭前的收尾写入会再次抛异常，不再关闭底层的流
+    - 句柄要等 GC 才释放，已删除的临时文件占用的空间在这之前不归还
 - 打包每个文件只复制打开时的长度，不要改回读到末尾：其他进程的写入不比压缩慢时一直读不完，占住调度线程。
-  - 长度用句柄的 `channel.size()` 取，不要改成 `file.length()`：打开后文件被其他进程删除时它返回 0，一个字节都不复制
+    - 长度用句柄的 `channel.size()` 取，不要改成 `file.length()`：打开后文件被其他进程删除时它返回 0，一个字节都不复制
 - 压缩包的条目要声明大小（`ZipEntry.size`），不要删掉。
-  - API 23 只有预先声明才能写入 4 GiB 以上的文件，否则写入时抛异常，`logZipOf` 返回 null
-  - API 24 及以上以实际写入的字节数为准，声明的大小不影响结果
-  - API 21–22 不支持这么大的条目，声明时抛异常，按打包失败处理；不声明的话会返回大小字段错误的压缩包，并替换上次的
-  - API 21–22 的行为只来自平台源码，没有对应的模拟器，没有实测
+    - API 23 只有预先声明才能写入 4 GiB 以上的文件，否则写入时抛异常，`logZipOf` 返回 null
+    - API 24 及以上以实际写入的字节数为准，声明的大小不影响结果
+    - API 21–22 不支持这么大的条目，声明时抛异常，按打包失败处理；不声明的话会返回大小字段错误的压缩包，并替换上次的
+    - API 21–22 的行为只来自平台源码，没有对应的模拟器，没有实测
 
 ## 测试
 
-| 命令 | 说明 |
-|---|---|
-| `./gradlew :lib:test` | JVM 单元测试，无需设备，能访问 `internal`；纯逻辑（日期计算等）放这里，日期可构造成确定值 |
-| `./gradlew :app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，覆盖真实文件读写，跑在 app 的 `minified` 构建上（开启 R8 混淆） |
+| 命令                                       | 说明                                                                                                      |
+|--------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `./gradlew :lib:test`                      | JVM 单元测试，无需设备，能访问 `internal`；纯逻辑（日期计算等）放这里，日期可构造成确定值                 |
+| `./gradlew :app:connectedAndroidTest`      | instrumented 测试，需要设备/模拟器，覆盖真实文件读写，跑在 app 的 `minified` 构建上（开启 R8 混淆）       |
 | `./gradlew :test-app:connectedAndroidTest` | instrumented 测试，需要设备/模拟器，每个用例单独一个进程，跑在 test-app 的 release 构建上（开启 R8 混淆） |
 
 - instrumented 测试在 API 28 以上和以下的模拟器上各跑一遍：获取进程名的旧接口 `runningAppProcesses` 只在 API 28 以下执行。
@@ -225,49 +258,51 @@ JVM 单元测试：
 - 开启了 `unitTests.isReturnDefaultValues`，`android.util.Log` 返回默认值不抛异常，所以会调用 `libLog` 的代码（打包、异常隔离）也放这里测。
 - 没有 Context，`FLog` 默认是未初始化状态，`LogTest` 依赖这一点测未初始化时的行为。
 - 要初始化 `FLog` 的测试用 `ContextWrapper(null)`，调度器用 `TestUtils.kt` 的 `AwaitDispatcher`。
-  - 初始化后无法重置，所以 `lib/build.gradle.kts` 设了 `forkEvery = 1`，每个测试类单独一个 JVM
-  - 一个测试类只能初始化一次，新的场景另建测试类，并加到下面的表格里
+    - 初始化后无法重置，所以 `lib/build.gradle.kts` 设了 `forkEvery = 1`，每个测试类单独一个 JVM
+    - 一个测试类只能初始化一次，新的场景另建测试类，并加到下面的表格里
+- 按真实时间写日志、再按单个文件或文件顺序断言的测试类加 `SameDayRule`：跨过零点时日志分到两天的目录里，失败改为跳过。
 - 需要真实 Context 的逻辑（默认目录、进程名）放 instrumented 测试。
 - 只跑部分用例用 `./gradlew :lib:testDebugUnitTest --tests '*XxxTest*'`；`:lib:test` 是聚合任务，不支持 `--tests`。
 
 初始化 `FLog` 的 JVM 测试类：
 
-| 测试类 | 覆盖范围 |
-|---|---|
-| `LogInitTest` | `init` 的扩展点接线，扩展 API 按接收者的实际类型取配置，接口的配置不套用到实现类 |
-| `LogInitErrorTest` | `initBlock` 抛异常后仍是未初始化状态，再次 `init` 成功，失败那次的设置不残留 |
-| `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器写入、空闲时关闭、文件被删除后重建 |
-| `LogJavaApiTest` | Java API 的两种重载、等级、等级过滤和模式，通过 `JavaApi.java` 从 Java 调用 |
-| `LogMaxMBTest` | `setMaxMBPerDay` 按 1MB = 1048576 字节换算，不溢出 |
-| `LogConcurrentTest` | 多线程同时 `init`、多线程打印日志 |
-| `LogModeTest` | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库，各等级的 API 都传递模式和等级 |
-| `LogDeleteTest` | `deleteLog` 按保留天数删除，以后的日期和 `.` 开头的条目保留，日志目录读取失败时抛异常，某个目录删不掉时继续删其他的 |
-| `LogRecordTest` | 日志记录的时间戳和线程 ID 取自调用时，不是写入时 |
-| `LogLevelOffTest` | 队列里还有日志时设置 Off，排队的日志照常写入，日志文件等空闲时在调度线程上关闭，不在调用线程上提前关闭 |
+| 测试类                     | 覆盖范围                                                                                                                          |
+|----------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `LogInitTest`              | `init` 的扩展点接线，扩展 API 按接收者的实际类型取配置，接口的配置不套用到实现类                                                  |
+| `LogInitErrorTest`         | `initBlock` 抛异常后仍是未初始化状态，再次 `init` 成功，失败那次的设置不残留                                                      |
+| `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器写入、空闲时关闭、文件被删除后重建                                                                      |
+| `LogJavaApiTest`           | Java API 的两种重载、等级、等级过滤和模式，通过 `JavaApi.java` 从 Java 调用                                                       |
+| `LogMaxMBTest`             | `setMaxMBPerDay` 按 1MB = 1048576 字节换算，不溢出                                                                                |
+| `LogConcurrentTest`        | 多线程同时 `init`、多线程打印日志                                                                                                 |
+| `LogModeTest`              | 模式的优先级：调用时传入的 > logger 配置的 > 全局设置，Console 模式不写入仓库，各等级的 API 都传递模式和等级                      |
+| `LogDeleteTest`            | `deleteLog` 按调用时的日期和保留天数删除，以后的日期和 `.` 开头的条目保留，日志目录读取失败时抛异常，某个目录删不掉时继续删其他的 |
+| `LogRecordTest`            | 日志记录的时间戳和线程 ID 取自调用时，不是写入时                                                                                  |
+| `LogLevelOffTest`          | 队列里还有日志时设置 Off，排队的日志照常写入，日志文件等空闲时在调度线程上关闭，不在调用线程上提前关闭                            |
 
 app 的 instrumented 测试：
 
 - 跑在 app 的 `minified` 构建上：基于 debug 开启 R8，并设 `isDebuggable = false`，debuggable 时 AGP 会加 `-dontobfuscate`，不会真正混淆。
-  - `app/proguard-minified-rules.pro` 只在这个构建里生效：保留测试 APK 引用的 app 和 lib 类（允许重命名，测试 APK 会套用 mapping），以及 app 提供给测试 APK 的共享依赖（AGP 会把 app 已有的依赖从测试 APK 里去掉）
-  - `app/proguard-test-rules.pro` 让测试 APK 不混淆、不裁剪，测试里按类名断言的 tag 才稳定
-  - `LogObfuscationTest` 验证混淆后的默认 tag：`ObfuscationLoggers` 刻意不 keep，R8 会移除它，测试只能通过 `logObfuscation()` 调用，不要直接引用它
+    - `app/proguard-minified-rules.pro` 只在这个构建里生效：保留测试 APK 引用的 app 和 lib 类（允许重命名，测试 APK 会套用 mapping），以及 app 提供给测试 APK 的共享依赖（AGP 会把 app 已有的依赖从测试 APK 里去掉）
+    - `app/proguard-test-rules.pro` 让测试 APK 不混淆、不裁剪，测试里按类名断言的 tag 才稳定
+    - `LogObfuscationTest` 验证混淆后的默认 tag：`ObfuscationLoggers` 刻意不 keep，R8 会移除它，测试只能通过 `logObfuscation()` 调用，不要直接引用它
 - `App.kt` 注入了 `TestLogDispatcher`：保持异步、单线程按序执行，额外提供 `await()`。
 - `App.kt` 里 `AppLogger`、`ConsoleLogger` 的配置是测试依赖的，改动时同步修改 `LogTest`、`LogModeTest`、`LogProcessTest`、`LogcatTest`。
 - 多进程由 `LogProcessTest` 覆盖：启动运行在 `:custom` 进程的 `SampleLogProcess`，它不在测试进程里，只能轮询文件系统等待。
-  - `SampleLog` 带 `EXTRA_LOG` 启动时直接打印一组日志并 `finish()`，这是测试依赖的，不要删
-  - 要从测试进程 `startActivity`，不能用 shell 的 `am start`：页面没有 `exported`，API 35 上 shell 启动会被拒绝
-  - 测试前后用 `Process.killProcess` 杀掉 `:custom` 进程，保证它重新 `init`，也避免它留着的句柄影响其他测试
+    - `SampleLog` 带 `EXTRA_LOG` 启动时直接打印一组日志并 `finish()`，这是测试依赖的，不要删
+    - 要从测试进程 `startActivity`，不能用 shell 的 `am start`：页面没有 `exported`，API 35 上 shell 启动会被拒绝
+    - 测试前后用 `Process.killProcess` 杀掉 `:custom` 进程，保证它重新 `init`，也避免它留着的句柄影响其他测试
 - 断言文件状态前必须先调 `awaitLogIdle()`。
 - 开头一律用 `resetLogDir()`，不要直接 `dir.deleteRecursively()`；上一个测试可能留着打开的句柄，删目录后写入仍会成功且文件不重建，结果取决于执行顺序。
 - `resetLogDir()` 同时把等级、模式、单日上限恢复为默认值；需要其他值的测试在它之后设置，不要依赖上一个测试留下的全局设置。
 - `awaitLogIdle()` 不用 `FLog.logDirectory {}` 做屏障，`LogFileDeletedTest` 依赖这个语义：
-  - `logDirectory` 第一件事是 `_publisher.close()`，会改变被测状态
-  - `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它
+    - `logDirectory` 第一件事是 `_publisher.close()`，会改变被测状态
+    - `onIdle` 在 `task.run()` 之后的 `finally` 里执行，从 block 里发信号等不到它
 - 日期只能相对当前时间推算（用 `dateOfDaysAgo`，负数表示以后的日期），不能写死，因为 `deleteLog` 读的是 `System.currentTimeMillis()`。
 - `LogcatTest` 以 shell 身份执行 `logcat -d` 读回日志，覆盖 Logcat 的等级、tag、模式和 `libLog`。
-  - Logcat 异步写入，每个用例最后打印结束标记，等它出现再断言
-  - 消息带上每次运行都不同的标识，区分以前留下的日志
-  - `libLog` 的内容带不上运行标识时（比如打包失败），用随机生成的 8 位数字日期区分
+    - Logcat 异步写入，每个用例最后打印结束标记，等它出现再断言
+    - 消息带上每次运行都不同的标识，区分以前留下的日志
+    - `libLog` 的内容带不上运行标识时（比如打包），用随机生成的 8 位数字日期区分
+    - 打包失败的 `libLog` 在 test-app 的 `LibLogTest` 里测：外部存储上 `chmod` 不生效，`.zip` 被文件占用时库会删掉它照常打包，app 里造不出打包失败
 
 test-app 的 instrumented 测试：
 
@@ -276,17 +311,17 @@ test-app 的 instrumented 测试：
 - 跑在 release 构建上（开启 R8 混淆），`test-app/proguard-rules.pro` 只保留测试 APK 调用的入口和公共 API。
 - 测试目录是 `cacheDir/xlog-tests`，`init` 之前用 `resetLogDir()` 清空。
 - 断言 `libLog` 用 `logcatMark()` 和 `libLogsSince()`，只取两个标记之间的输出。
-  - 断言使用方日志的 Logcat 输出用 `logcatSince()`，传入日志的 tag
+    - 断言使用方日志的 Logcat 输出用 `logcatSince()`，传入日志的 tag
 - 默认调度器只有 `LogDefaultDispatcherTest` 在设备上用到，其他用例和 app 都注入了测试调度器。
 - `testProcessFromCmdline` 只在 API 28 以下执行：只有旧接口能通过 Context 模拟出错、观察获取进程名的时机，API 28 及以上会跳过。
 
-| 测试类 | 覆盖范围 |
-|---|---|
-| `LogInitTest` | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，取不到目录时 Logcat 照常输出，外部存储不可用时默认目录不回退到内部存储，进程名在调度线程上获取、`init` 里不获取，系统接口出错时读 cmdline 取进程名 |
-| `MinifiedLoggerTest` | 混淆后的默认 tag，没用到的 logger 被 R8 移除 |
-| `LibLogTest` | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录、打开或切换日志文件时目录读取失败、切换日志文件时删不掉旧文件时输出 |
-| `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器按顺序写入，调度线程的 nice 值低于 10 |
-| `LogZipLargeFileTest` | 4 GiB 的日志文件能打包，条目大小正确；用稀疏文件，不占实际空间，打包要几十秒，API 23 以下跳过 |
+| 测试类                     | 覆盖范围                                                                                                                                                                                                                                                                                                                     |
+|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `LogInitTest`              | `init` 的清理任务排在写日志和导出之前，其他线程在初始化期间提交的也一样，用 `applicationContext` 获取目录，取不到目录或获取目录出错后恢复，目录为 null 时不输出 `libLog`，取不到目录时 Logcat 照常输出，外部存储不可用时默认目录不回退到内部存储，进程名在调度线程上获取、`init` 里不获取，系统接口出错时读 cmdline 取进程名 |
+| `MinifiedLoggerTest`       | 混淆后的默认 tag，没用到的 logger 被 R8 移除                                                                                                                                                                                                                                                                                 |
+| `LibLogTest`               | 正常的写入、切换日志文件、删除过期日志和打包都不输出 `libLog`，`init` 清空压缩包失败、`deleteLog` 读取日志目录失败或删不掉过期目录、打开或切换日志文件时目录读取失败、切换日志文件时删不掉旧文件、打包失败时输出                                                                                                             |
+| `LogDefaultDispatcherTest` | 不设置调度器时用默认调度器按顺序写入，调度线程的 nice 值低于 10                                                                                                                                                                                                                                                              |
+| `LogZipLargeFileTest`      | 4 GiB 的日志文件能打包，条目大小正确；用稀疏文件，不占实际空间，打包要几十秒，API 23 以下跳过                                                                                                                                                                                                                                |
 
 ## 依赖
 

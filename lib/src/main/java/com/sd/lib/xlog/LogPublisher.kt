@@ -14,7 +14,7 @@ internal interface LogPublisher : AutoCloseable {
 }
 
 internal interface DirectoryLogPublisher : LogPublisher {
-  /** 日志文件目录，取不到时为null，取到之后不再变化 */
+  /** 日志文件目录，取不到或获取出错时为null，取到之后不再变化 */
   val directory: File?
 
   /** 日志文件名 */
@@ -26,7 +26,7 @@ internal interface DirectoryLogPublisher : LogPublisher {
   /** 指定日期(yyyyMMdd)的日志目录，取不到日志目录时返回null */
   fun logDirOf(date: String): File?
 
-  /** 指定日期的日志压缩包文件，取不到日志目录时返回null */
+  /** 指定日期的日志压缩包文件，压缩包目录被同名文件占用时先删掉，取不到日志目录时返回null */
   fun zipFileOf(date: String): File?
 
   /**
@@ -59,13 +59,13 @@ private class LogPublisherImpl(
   private val formatter: FLogFormatter,
   private val storeFactory: FLogStore.Factory,
 ) : DirectoryLogPublisher {
-  /** 获取进程名和目录可能有IPC或磁盘I/O，等到调度线程上第一次用到时再获取 */
+  /** 获取进程名可能有IPC或磁盘I/O，等到调度线程上第一次用到时再获取 */
   private val _process by lazy { processProvider()?.takeIf { it.isValidDirName() } }
   private var _directory: File? = null
 
-  /** 取不到时下次用到再获取，取到之后固定不变 */
+  /** 取不到时下次用到再获取，取到之后固定不变；获取方法可能由使用方提供，抛异常时按取不到处理 */
   override val directory: File?
-    get() = _directory ?: directoryProvider()?.also { _directory = it }
+    get() = _directory ?: libRunCatching { directoryProvider() }.getOrNull()?.also { _directory = it }
 
   private var _handler: DateLogHandler? = null
 
@@ -100,7 +100,10 @@ private class LogPublisherImpl(
   override fun zipFileOf(date: String): File? {
     require(date.isNotEmpty())
     val dir = directory ?: return null
-    return zipDirectoryOf(dir).resolve("${date}.${ZIP_EXTENSION}")
+    // 压缩包目录和进程目录被同名文件占用时删掉，否则打包一直失败；deleteLog跳过.开头的条目，不会清理它们
+    val zipRoot = dir.resolve(ZIP_DIR_NAME).also { if (it.isFile) it.delete() }
+    val zipDir = zipRoot.resolveProcess().also { if (it.isFile) it.delete() }
+    return zipDir.resolve("${date}.${ZIP_EXTENSION}")
   }
 
   override fun deleteZipDirectory() {
@@ -109,7 +112,12 @@ private class LogPublisherImpl(
     if (!zipDirectoryOf(dir).deleteRecursively()) libLog("delete zip directory failed")
   }
 
-  /** 日志目录[dir]下的压缩包目录，以.开头，不参与日志保留策略，里面的内容只在本次进程运行期间有效 */
+  /**
+   * 日志目录[dir]下本进程的压缩包目录，取不到进程名时是所有进程共用的压缩包根目录。
+   *
+   * 压缩包根目录以.开头，不参与日志保留策略。
+   * 里面的内容只保证本次进程运行期间有效。
+   */
   private fun zipDirectoryOf(dir: File): File = dir.resolve(ZIP_DIR_NAME).resolveProcess()
 
   private fun getHandler(record: FLogRecord): DateLogHandler? {
@@ -140,7 +148,10 @@ private class LogPublisherImpl(
   }
 }
 
-/** 能否用作一层目录名，含路径分隔符或者是.和..时会跳出所在目录 */
+/**
+ * 能否用作一层目录名，不检查空串，由调用方按取不到处理。
+ * 含/时不止一层，可能跳出所在目录；是..时会跳出所在目录，是.时等于所在目录本身。
+ */
 private fun String.isValidDirName(): Boolean = '/' !in this && this != "." && this != ".."
 
 /** 日志压缩包目录名，以.开头表示是库的内部目录，不参与日志保留策略 */
@@ -181,8 +192,9 @@ private class DateLogHandler(
       checkLogSize(logStore, maxBytePerDay)
     } catch (e: Throwable) {
       /**
-       * 仓库出错时已经关闭，和关闭日志文件一样要重置格式化器。
-       * 写入失败时这条日志没写进去，不重置的话下一条相同tag的日志会省略tag。
+       * 格式化、写入或检查大小出错时都要重置格式化器。
+       * 仓库出错时已经关闭，和关闭日志文件一样要重置；
+       * 格式化或写入失败时这条日志没写进去，不重置的话下一条相同tag的日志会省略tag。
        */
       resetFormatter()
       throw e
@@ -235,9 +247,13 @@ private class DateLogHandler(
       return
     }
 
+    // 序号用完时不切换，继续写当前文件；溢出成负数的话生成文件名会抛异常
+    val nextSeq = _seq + 1
+    if (nextSeq < 0) return
+
     // 当前文件写满，关掉之后切到下一个序号继续写
     close()
-    _seq++
+    _seq = nextSeq
     _logFile = logDir.resolve(filename.logNameOf(date, _seq))
 
     /**
@@ -254,7 +270,8 @@ private class DateLogHandler(
 
   /**
    * 只保留当前和上一个日志文件。
-   * 目录读取失败、删除失败都只是多留文件，不重试，不影响写入。
+   * 目录读取失败、删除失败都只是多留文件，不影响写入。
+   * 不立即重试，下次切换时一并删除。
    */
   private fun deleteOldLog() {
     // 序号已经切换，这条日志也已经写入，读取失败只输出不往外抛

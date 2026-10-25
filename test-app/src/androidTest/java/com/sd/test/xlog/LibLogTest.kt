@@ -83,6 +83,43 @@ class LibLogTest {
     }
   }
 
+  /** 打包失败时输出库内部日志，返回null */
+  @Test
+  fun testZipFailed() {
+    val dir = resetLogDir()
+    val today = dateOfDaysAgo(0)
+    dir.resolve(today).also {
+      assertTrue(it.mkdirs())
+      it.resolve("${today}.0.log").writeText("log")
+    }
+    val zipDir = dir.resolve(".zip/${testContext.packageName}")
+
+    TestLogDispatcher().use { dispatcher ->
+      assertTrue(FLog.init(testContext) {
+        setLogDirectory { dir }
+        setLogDispatcher(dispatcher)
+      })
+      dispatcher.awaitLogIdle()
+
+      // init会清空压缩包目录，所以初始化之后再创建
+      assertTrue(zipDir.mkdirs())
+      // 目录不可写时创建不了临时文件，打包失败
+      assertTrue(zipDir.setWritable(false))
+      try {
+        val mark = logcatMark()
+        var zips: List<File?>? = null
+        FLog.logDirectory { zips = listOf(logZipOf(today)) }
+        dispatcher.awaitLogIdle()
+
+        assertEquals(listOf(null), zips)
+        val libLogs = libLogsSince(mark)
+        assertTrue(libLogs.toString(), libLogs.contains("log zip ${today}.zip failed"))
+      } finally {
+        zipDir.setWritable(true)
+      }
+    }
+  }
+
   /** 删除日志时日志目录读取失败，输出库内部日志，不能当作空目录 */
   @Test
   fun testDeleteLogListFailed() {

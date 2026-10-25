@@ -7,9 +7,6 @@ import android.os.Build
 import android.os.Process
 import android.util.Log
 import com.sd.lib.xlog.FLog._hasInit
-import com.sd.lib.xlog.FLog.configOf
-import com.sd.lib.xlog.FLog.deleteLog
-import com.sd.lib.xlog.FLog.init
 import java.io.File
 
 /** 日志等级，按声明顺序从低到高 */
@@ -17,7 +14,20 @@ enum class FLogLevel {
   /** 开启所有日志 */
   All,
 
-  Verbose, Debug, Info, Warning, Error,
+  /** 详细 */
+  Verbose,
+
+  /** 调试 */
+  Debug,
+
+  /** 信息 */
+  Info,
+
+  /** 警告 */
+  Warning,
+
+  /** 错误 */
+  Error,
 
   /** 关闭所有日志 */
   Off,
@@ -59,7 +69,8 @@ object FLog {
   private lateinit var _configHolder: Map<Class<out FLogger>, FLoggerConfig>
 
   /**
-   * 初始化，不允许在[initBlock]里嵌套调用
+   * 初始化，[initBlock]里不能打印日志，也不能调用[FLog]的方法，包括嵌套调用init。
+   * 初始化期间其他线程调用[FLog]会等待初始化完成，所以[initBlock]里不能等待这些线程，否则会死锁。
    * @return true-初始化成功；false-已经初始化过了
    */
   @JvmStatic
@@ -86,7 +97,7 @@ object FLog {
       _configHolder = initScope.configHolder.toMap()
 
       /**
-       * 清空上次运行遗留的压缩包。
+       * 清空本进程上次运行遗留的压缩包，取不到进程名或日志目录时不清空。
        * 压缩包只是导出用的临时产物，使用方需要长期保存的话应该自己移走。
        * 要在[_hasInit]之前提交，排在其他线程的任务前面，否则可能删掉它们刚导出的压缩包。
        */
@@ -118,7 +129,13 @@ object FLog {
     _mode = mode
   }
 
-  /** 限制每天日志文件大小(单位MB)，多进程时每个进程单独计算，小于等于0表示不限制，默认不限制 */
+  /**
+   * 限制每天日志文件大小(单位MB)。
+   * 小于等于0表示不限制，默认不限制。
+   * 多进程时每个进程单独计算。
+   * 超过上限时删除当天较早的日志，保留最近的。
+   * 调小上限或单条日志过大时，超出上限的旧日志不会马上删除。
+   */
   @JvmStatic
   fun setMaxMBPerDay(mb: Int) {
     checkInit()
@@ -127,29 +144,39 @@ object FLog {
 
   /**
    * 删除日志，在调度器上执行。
-   * 不会删除[FLogDirectoryScope.logZipOf]导出的压缩包，取不到日志目录时不删除。
+   * 不会删除[FLogDirectoryScope.logZipOf]导出的压缩包。
+   * 取不到日志目录时不删除。
+   * 日期在今天之后的日志也会保留，[saveDays]小于等于0时才删除。
+   * 日志目录下名字不是日期的条目也会删除，.开头的除外。
    * @param saveDays 要保留的日志天数，1表示只保留当天，小于等于0表示删除全部日志
    */
   @JvmStatic
   fun deleteLog(saveDays: Int) {
+    deleteLog(saveDays = saveDays, millis = System.currentTimeMillis())
+  }
+
+  /** 按调用时的时间戳[millis]确定今天，排队到零点之后执行也不会多删一天 */
+  internal fun deleteLog(saveDays: Int, millis: Long) {
     logDirectory { dir ->
       val filename = _publisher.filename
-      val today = filename.dateOf(System.currentTimeMillis())
+      // 日期格式化只能在调度线程上调用
+      val today = filename.dateOf(millis)
       deleteLogIn(dir = dir, filename = filename, today = today, saveDays = saveDays)
     }
   }
 
   /**
    * 访问日志目录，[block]在调度器上执行，执行前会先关闭当前的日志文件。
-   * 取不到日志目录时不执行[block]；[block]抛异常只输出到Logcat，不会往外抛。
-   * 目录只能存放日志，[deleteLog]会删除其中不是日志的条目，.开头的除外。
+   * 取不到日志目录时不执行[block]。
+   * [block]抛异常不会往外抛，全局等级不是[FLogLevel.Off]时输出到Logcat。
+   * 目录只能存放日志，[deleteLog]会删除其中名字不是日期的条目，.开头的除外。
    */
   @JvmStatic
   fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
     dispatch { _publisher.accessDirectory(block) }
   }
 
-  /** [logger]的配置，没有配置返回null */
+  /** [logger]的配置，没有配置返回null，给2.1.0及之后版本编译的内联代码调用，不能删除或改签名 */
   @PublishedApi
   internal fun configOf(logger: Class<out FLogger>): FLoggerConfig? {
     checkInit()
@@ -157,7 +184,7 @@ object FLog {
     return _configHolder[logger]
   }
 
-  /** [level]是否可以打印，[config]是[configOf]返回的配置 */
+  /** [level]是否可以打印，[config]是[configOf]返回的配置，给2.1.0及之后版本编译的内联代码调用，不能删除或改签名 */
   @PublishedApi
   internal fun isLoggable(level: FLogLevel, config: FLoggerConfig?): Boolean {
     checkLoggable(level)
@@ -171,7 +198,7 @@ object FLog {
     return level >= limitLevel
   }
 
-  /** 打印已经通过等级检查的日志，[config]是[configOf]返回的配置 */
+  /** 打印已经通过等级检查的日志，[config]是[configOf]返回的配置，给2.1.0及之后版本编译的内联代码调用，不能删除或改签名 */
   @PublishedApi
   internal fun publishLog(
     logger: Class<out FLogger>,
@@ -222,7 +249,7 @@ object FLog {
 
   //---------- other ----------
 
-  /** 打印[FLogLevel.Verbose]日志 */
+  /** 打印[FLogLevel.Verbose]日志，[msg]为null或空串时不打印 */
   @JvmStatic
   @JvmOverloads
   fun logV(
@@ -233,7 +260,7 @@ object FLog {
     log(logger, FLogLevel.Verbose, mode, msg)
   }
 
-  /** 打印[FLogLevel.Debug]日志 */
+  /** 打印[FLogLevel.Debug]日志，[msg]为null或空串时不打印 */
   @JvmStatic
   @JvmOverloads
   fun logD(
@@ -244,7 +271,7 @@ object FLog {
     log(logger, FLogLevel.Debug, mode, msg)
   }
 
-  /** 打印[FLogLevel.Info]日志 */
+  /** 打印[FLogLevel.Info]日志，[msg]为null或空串时不打印 */
   @JvmStatic
   @JvmOverloads
   fun logI(
@@ -255,7 +282,7 @@ object FLog {
     log(logger, FLogLevel.Info, mode, msg)
   }
 
-  /** 打印[FLogLevel.Warning]日志 */
+  /** 打印[FLogLevel.Warning]日志，[msg]为null或空串时不打印 */
   @JvmStatic
   @JvmOverloads
   fun logW(
@@ -266,7 +293,7 @@ object FLog {
     log(logger, FLogLevel.Warning, mode, msg)
   }
 
-  /** 打印[FLogLevel.Error]日志 */
+  /** 打印[FLogLevel.Error]日志，[msg]为null或空串时不打印 */
   @JvmStatic
   @JvmOverloads
   fun logE(
@@ -304,8 +331,8 @@ internal fun deleteLogIn(dir: File, filename: LogFilename, today: String, saveDa
   val files = dir.listFilesOrNull() ?: return
   for (file in files) {
     /**
-     * 以.开头的是库的内部目录（比如导出的日志压缩包），不受日志保留策略管辖，
-     * 所以即使是删除全部日志也不动它。
+     * 以.开头的条目不受日志保留策略管辖（比如导出的压缩包目录），
+     * 所以即使是删除全部日志也不动它们。
      */
     if (file.name.startsWith(".")) continue
 
@@ -344,7 +371,7 @@ internal fun processOf(system: () -> String?, cmdline: () -> String): String? {
     ?: libRunCatching { processOfCmdline(cmdline()) }.getOrNull()
 }
 
-/** 通过系统接口获取进程名，Android 7.0到8.1跨进程调用失败时会抛异常 */
+/** 通过系统接口获取进程名，Android 7.0到8.1调用系统服务失败时会抛异常 */
 private fun Context.processOfSystem(): String? {
   return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
     Application.getProcessName()

@@ -22,6 +22,9 @@ class LogDeleteTest {
   @get:Rule
   val folder = TemporaryFolder()
 
+  @get:Rule
+  val sameDay = SameDayRule()
+
   @Test
   fun test() {
     val dir = folder.newFolder()
@@ -52,6 +55,12 @@ class LogDeleteTest {
     assertTrue(dispatcher.await())
     assertEquals(listOf(true, true, false), days.map { it.exists() })
     assertEquals(listOf(true, true, false, true, true), listOf(today, future, other, zipDir, hidden).map { it.exists() })
+
+    // 按调用时的日期保留：调用时是昨天的话，昨天的保留，前天的删除，今天的当作以后的日期保留
+    FLog.deleteLog(saveDays = 1, millis = millisOfDaysAgo(1))
+    assertTrue(dispatcher.await())
+    assertEquals(listOf(true, false, false), days.map { it.exists() })
+    assertEquals(listOf(true, true, true, true), listOf(today, future, zipDir, hidden).map { it.exists() })
 
     FLog.deleteLog(1)
     assertTrue(dispatcher.await())

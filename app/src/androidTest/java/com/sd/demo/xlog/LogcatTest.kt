@@ -15,7 +15,6 @@ import com.sd.lib.xlog.flogI
 import com.sd.lib.xlog.flogV
 import com.sd.lib.xlog.flogW
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -115,31 +114,22 @@ class LogcatTest {
     )
   }
 
-  /** 打包失败时输出库内部日志；日期没有日志目录是正常结果，不输出 */
+  /** 日期没有日志目录是正常结果，打包返回null，不输出库内部日志 */
   @Test
-  fun testLibLogZip() {
-    val dir = resetLogDir()
+  fun testLibLogZipMissingDate() {
+    resetLogDir()
     // 日期只要求是8位数字，每次运行随机生成，用来区分Logcat里以前留下的日志
-    val random = Random.nextInt(10_000_000, 99_999_999)
-    val missingDate = random.toString()
-    val failedDate = (random + 1).toString()
-
-    // 有日志目录，但是压缩包目录被同名文件占用，打包失败
-    assertEquals(true, dir.resolve(failedDate).mkdirs())
-    dir.resolve(".zip").writeText("occupied")
+    val missingDate = Random.nextInt(10_000_000, 99_999_999).toString()
 
     // block里的断言失败会被捕获，所以把结果带出来再断言
     var zips: List<File?>? = null
-    FLog.logDirectory { zips = listOf(logZipOf(missingDate), logZipOf(failedDate)) }
+    FLog.logDirectory { zips = listOf(logZipOf(missingDate)) }
     awaitLogIdle()
     logEnd()
     awaitLogcat()
 
-    assertEquals(listOf(null, null), zips)
+    assertEquals(listOf(null), zips)
     assertEquals(emptyList<String>(), readLogcat(missingDate))
-    // 确认失败的那次确实输出了，否则上面什么也没验证
-    val failedLogs = readLogcat(failedDate)
-    assertTrue(failedLogs.toString(), failedLogs.contains("E/$LIB_TAG log zip ${failedDate}.zip failed"))
   }
 
   /** 打印结束标记，它出现在Logcat里说明之前的日志都已经写进去 */

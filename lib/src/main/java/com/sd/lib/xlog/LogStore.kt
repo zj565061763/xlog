@@ -9,6 +9,8 @@ import java.io.OutputStream
  *
  * 所有方法都在调度线程上调用。
  * [close]之后仍可能继续调用[append]，实现需要支持重新打开。
+ * [close]也可能连续调用多次。
+ * 重新打开时父目录也可能不存在，需要自行创建。
  * 不要在里面打印日志，否则会一直循环调用。
  */
 interface FLogStore {
@@ -30,6 +32,7 @@ interface FLogStore {
      * 创建[file]对应的日志仓库，[file]的父目录可能不存在，需要自行创建。
      * 只应写入[file]，写到其他文件的话，日志轮换时不会被删除。
      * [FLogStore.append]返回后[file]必须已经存在，否则每次空闲时都会被当作文件被外部删除而关闭。
+     * 不要在里面打印日志，创建失败时会一直循环调用。
      */
     fun create(file: File): FLogStore
   }
@@ -37,7 +40,7 @@ interface FLogStore {
 
 internal fun defaultLogStore(
   file: File,
-  /** 以追加方式打开日志文件，测试时替换成记录关闭的流 */
+  /** 以追加方式打开日志文件，测试时替换，记录关闭、模拟写入失败或关闭出错 */
   openOutput: (File) -> OutputStream = { FileOutputStream(it, true) },
 ): FLogStore = FileLogStore(file, openOutput)
 

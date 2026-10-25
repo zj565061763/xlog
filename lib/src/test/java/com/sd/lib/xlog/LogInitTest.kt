@@ -17,11 +17,15 @@ import java.util.Collections
  *
  * 这个类会初始化[FLog]，而且初始化之后无法重置，[LogTest]依赖未初始化状态，
  * 所以lib的build.gradle.kts设置了每个测试类单独一个JVM。
- * 没有Context，用[ContextWrapper]代替，它的方法都返回默认值，进程名取不到，日志直接写在日期目录下。
+ * 没有Context，用[ContextWrapper]代替，它的方法都返回默认值，系统接口取不到进程名。
+ * cmdline在macOS上读不到，在Linux上是带/的java路径，都按取不到处理，日志直接写在日期目录下。
  */
 class LogInitTest {
   @get:Rule
   val folder = TemporaryFolder()
+
+  @get:Rule
+  val sameDay = SameDayRule()
 
   @Test
   fun test() {

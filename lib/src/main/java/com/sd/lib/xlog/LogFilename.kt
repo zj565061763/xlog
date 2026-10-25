@@ -20,7 +20,7 @@ internal interface LogFilename {
    */
   fun logNameOf(date: String, seq: Int): String
 
-  /** 从日志文件名[logName]中解析出序号，不是合法的日志文件名返回null */
+  /** 从日志文件名[logName]中解析出序号，不是`<名字>.<序号>.log`格式时返回null，不检查名字是不是日期 */
   fun seqOf(logName: String): Int?
 }
 
@@ -74,13 +74,18 @@ private class LogFilenameImpl(
   }
 }
 
-/** 是否全是ASCII数字，不用[Char.isDigit]，它会接受全角等非ASCII数字 */
+/**
+ * 是否全是ASCII数字
+ *
+ * 空串返回true，调用方需要先检查长度。
+ * 不用[Char.isDigit]，它会接受全角等非ASCII数字。
+ */
 internal fun String.isAsciiDigits(): Boolean = all { it in '0'..'9' }
 
 /**
  * 把yyyyMMdd转为距离1970-01-01的天数，日期不合法返回null。
  * 这里用纯数值计算，不能用[java.util.Calendar]转毫秒再相减，
- * 因为夏令时切换的那天不是24小时，相减除以86400000会少算一天。
+ * 因为进入夏令时那天只有23小时，相减除以86400000会少算一天。
  */
 private fun epochDayOf(date: String): Long? {
   if (date.length != 8) return null

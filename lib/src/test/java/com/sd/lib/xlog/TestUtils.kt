@@ -1,5 +1,9 @@
 package com.sd.lib.xlog
 
+import org.junit.AssumptionViolatedException
+import org.junit.rules.TestRule
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
 import java.io.File
 import java.util.Calendar
 import java.util.GregorianCalendar
@@ -47,11 +51,34 @@ private interface RecordLogger : FLogger
 
 /** 当前时间往前推[days]天的日期，负数表示以后的日期，格式和[LogTime.dateOf]一致 */
 internal fun dateOfDaysAgo(days: Int): String {
-  val calendar = GregorianCalendar().apply { add(Calendar.DAY_OF_MONTH, -days) }
+  val calendar = calendarOfDaysAgo(days)
   val year = calendar.get(Calendar.YEAR)
   val month = calendar.get(Calendar.MONTH) + 1
   val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
   return "%04d%02d%02d".format(Locale.US, year, month, dayOfMonth)
+}
+
+/** 当前时间往前推[days]天的时间戳，负数表示以后的时间；按日历推算，夏令时切换日也落在对应的日期 */
+internal fun millisOfDaysAgo(days: Int): Long = calendarOfDaysAgo(days).timeInMillis
+
+private fun calendarOfDaysAgo(days: Int): Calendar = GregorianCalendar().apply { add(Calendar.DAY_OF_MONTH, -days) }
+
+/**
+ * 测试期间跨过零点时，失败的测试改为跳过。
+ * 日志按打印时的日期分目录，跨天时会分到两个目录里，按单个文件或文件顺序断言会失败。
+ */
+class SameDayRule : TestRule {
+  override fun apply(base: Statement, description: Description): Statement = object : Statement() {
+    override fun evaluate() {
+      val date = dateOfDaysAgo(0)
+      try {
+        base.evaluate()
+      } catch (e: Throwable) {
+        if (date != dateOfDaysAgo(0)) throw AssumptionViolatedException("crossed midnight", e)
+        throw e
+      }
+    }
+  }
 }
 
 /** 单线程调度器，记录执行任务的线程，[await]等待已提交的任务执行完成 */

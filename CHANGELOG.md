@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.1
+
+### 🐛 Bug Fixes
+
+- 按 2.1.0 及之前版本编译的自定义 `FLogFormatter`（比如预编译的 AAR）没有 `reset()`，每次重置格式化器都抛异常并输出到 Logcat
+- Java 实现的 `FLogFormatter` 必须实现 `reset()`；现在可以不实现
+- 零点前调用 `deleteLog`、排队到零点之后才执行时，“今天”按执行时的日期算，会多删一天的日志
+- 日志目录下的 `.zip` 或其中的进程目录被同名文件占用时，`logZipOf` 一直返回 null；现在删掉该文件后照常打包
+
 ## 2.2.0
 
 ### ⚠️ Breaking Changes

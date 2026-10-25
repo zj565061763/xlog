@@ -73,19 +73,22 @@ class LogDirectoryScopeTest {
     assertEquals(listOf(zip2.name), zip2.parentFile?.list()?.toList())
   }
 
-  /** 压缩包目录被同名文件占用时打包失败，返回null，不抛异常 */
+  /** 压缩包目录或进程目录被同名文件占用时，删掉该文件后照常打包 */
   @Test
   fun testZipDirectoryOccupied() {
     val dir = folder.newFolder()
     dir.createLog(DATE, "p")
     val publisher = newPublisher(dir, process = "p")
-    val zipDir = checkNotNull(publisher.zipFileOf(DATE)?.parentFile).apply {
-      parentFile?.mkdirs()
-      writeText("occupied")
-    }
+    val zipRoot = dir.resolve(".zip")
+    val zipDir = zipRoot.resolve("p")
+    for (occupied in listOf(zipRoot, zipDir)) {
+      zipRoot.deleteRecursively()
+      occupied.apply { parentFile?.mkdirs() }.writeText("occupied")
 
-    assertNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
-    assertEquals("occupied", zipDir.readText())
+      val zip = checkNotNull(LogDirectoryScopeImpl(publisher).logZipOf(DATE))
+      assertEquals(zipDir, zip.parentFile)
+      assertEquals(listOf("${DATE}/p/${DATE}.0.log"), zip.zipFileNames())
+    }
   }
 
   /** 压缩包路径被同名目录占用时，删掉该目录后照常打包 */
@@ -441,7 +444,7 @@ class LogDirectoryScopeTest {
     assertEquals(setOf(zip.name, otherTemp.name), zip.parentFile?.list()?.toSet())
   }
 
-  /** 取不到进程名时多个进程共用压缩包目录，同时打包同一日期互不影响，都能成功，不留下临时文件 */
+  /** 取不到进程名时多个进程共用压缩包目录，同时打包同一日期不会互相删除、替换对方的临时文件，都能成功，不留下临时文件 */
   @Test
   fun testInterleavedZip() {
     val dir = folder.newFolder()

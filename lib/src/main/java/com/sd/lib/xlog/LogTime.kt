@@ -1,5 +1,6 @@
 package com.sd.lib.xlog
 
+import com.sd.lib.xlog.LogTime._calendar
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.TimeZone

@@ -18,6 +18,9 @@ class LogModeTest {
   @get:Rule
   val folder = TemporaryFolder()
 
+  @get:Rule
+  val sameDay = SameDayRule()
+
   @Test
   fun test() {
     val dir = folder.newFolder()
