@@ -2,12 +2,12 @@ package com.sd.lib.xlog
 
 import java.io.File
 
-internal interface LogPublisher : AutoCloseable {
+internal interface LogPublisher {
   /** 发布日志记录 */
   fun publish(record: FLogRecord)
 
   /** 关闭 */
-  override fun close()
+  fun close()
 
   /** 调度器空闲回调 */
   fun onIdle()

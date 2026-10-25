@@ -27,6 +27,15 @@ internal fun newPublisher(
   )
 }
 
+/** 执行[block]后关闭，[block]抛异常时也关闭 */
+internal inline fun <T : LogPublisher, R> T.use(block: (T) -> R): R {
+  try {
+    return block(this)
+  } finally {
+    close()
+  }
+}
+
 /** 测试日志记录的时间戳 */
 internal const val RECORD_MILLIS = 1_700_000_000_000L
 
