@@ -52,7 +52,7 @@ internal class LogInitScopeImpl : FLogInitScope {
   }
 
   override fun configLogger(logger: Class<out FLogger>, block: (FLoggerConfig) -> FLoggerConfig) {
-    val config = block(configHolder.getOrPut(logger) { FLoggerConfig() })
+    val config = block(configHolder[logger] ?: FLoggerConfig())
     if (config.isEmpty()) {
       configHolder.remove(logger)
     } else {

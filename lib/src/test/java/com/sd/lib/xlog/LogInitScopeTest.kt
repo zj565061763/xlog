@@ -2,6 +2,8 @@ package com.sd.lib.xlog
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** [FLogInitScope.configLogger] */
@@ -30,6 +32,16 @@ class LogInitScopeTest {
     val scope = LogInitScopeImpl()
     scope.configLogger(ScopeLogger::class.java) { it.copy(tag = "") }
     assertFalse(scope.configHolder.containsKey(ScopeLogger::class.java))
+  }
+
+  /** block抛异常时不写入空配置 */
+  @Test
+  fun testError() {
+    val scope = LogInitScopeImpl()
+    assertThrows(IllegalStateException::class.java) {
+      scope.configLogger(ScopeLogger::class.java) { error("config error") }
+    }
+    assertTrue(scope.configHolder.isEmpty())
   }
 }
 
