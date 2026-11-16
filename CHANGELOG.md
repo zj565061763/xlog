@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.2.3
+## 2.3.0
 
 ### ⚠️ Breaking Changes
 
