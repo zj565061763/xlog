@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.3
+
+### ⚠️ Breaking Changes
+
+- `FLog.logDirectory` 的 block 参数由 `File` 改为 `File?`：取不到日志目录时照常执行并传入 null，期间 `logZipOf` 返回 null，避免等待回调或恢复协程时挂起
+
+### Migration
+
+- 在 `FLog.logDirectory` 里使用了目录参数的，需要处理 null；只调用 `logZipOf` 的无需修改
+
 ## 2.2.2
 
 ### 🐛 Bug Fixes
