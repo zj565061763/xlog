@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.2
+
+### 🐛 Bug Fixes
+
+- `configLogger` 的 block 抛异常时不再保留空配置
+
 ## 2.2.1
 
 ### 🐛 Bug Fixes
