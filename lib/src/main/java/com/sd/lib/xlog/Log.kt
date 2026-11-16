@@ -158,6 +158,7 @@ object FLog {
   /** 按调用时的时间戳[millis]确定今天，排队到零点之后执行也不会多删一天 */
   internal fun deleteLog(saveDays: Int, millis: Long) {
     logDirectory { dir ->
+      if (dir == null) return@logDirectory
       val filename = _publisher.filename
       // 日期格式化只能在调度线程上调用
       val today = filename.dateOf(millis)
@@ -167,12 +168,12 @@ object FLog {
 
   /**
    * 访问日志目录，[block]在调度器上执行，执行前会先关闭当前的日志文件。
-   * 取不到日志目录时不执行[block]。
+   * 取不到日志目录时参数为null，[block]照常执行。
    * [block]抛异常不会往外抛，全局等级不是[FLogLevel.Off]时输出到Logcat。
    * 目录只能存放日志，[deleteLog]会删除其中名字不是日期的条目，.开头的除外。
    */
   @JvmStatic
-  fun logDirectory(block: FLogDirectoryScope.(File) -> Unit) {
+  fun logDirectory(block: FLogDirectoryScope.(File?) -> Unit) {
     dispatch { _publisher.accessDirectory(block) }
   }
 

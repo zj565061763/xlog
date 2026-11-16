@@ -626,7 +626,7 @@ class LogPublisherTest {
     }
   }
 
-  /** 获取日志目录出错时按取不到处理，用到目录的方法都不抛异常，访问目录不执行block */
+  /** 获取日志目录出错时按取不到处理，用到目录的方法都不抛异常，访问目录传入null */
   @Test
   fun testDirectoryError() {
     val publisher = defaultLogPublisher(
@@ -645,9 +645,14 @@ class LogPublisherTest {
     publisher.onIdle()
     publisher.close()
 
-    var called = false
-    publisher.accessDirectory { called = true }
-    assertFalse(called)
+    var received: File? = File("placeholder")
+    var zip: File? = File("placeholder")
+    publisher.accessDirectory {
+      received = it
+      zip = logZipOf("20231125")
+    }
+    assertNull(received)
+    assertNull(zip)
   }
 
   /** 获取目录暂时出错后可以恢复写入，取到目录之后不再获取 */

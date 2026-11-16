@@ -7,7 +7,7 @@ interface FLogInitScope {
   /**
    * 设置获取日志目录的方法，在调度线程上调用。
    * 默认为外部存储`getExternalFilesDir(null)`下的sd.lib.xlog目录。
-   * 返回null时取消这次操作（写日志、删除日志、访问目录），下次再获取。
+   * 返回null时不写入和删除日志，[FLog.logDirectory]的参数为null，下次再获取。
    * 返回非null后本进程一直使用该目录。
    * 抛异常时按返回null处理，全局等级不是[FLogLevel.Off]时输出到Logcat。
    * 目录只能存放日志，[FLog.deleteLog]会删除其中名字不是日期的条目，.开头的除外。

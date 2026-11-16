@@ -58,7 +58,7 @@ Android 日志库，发布到 Maven Central（`io.github.zj565061763.android:xlo
 - 日志目录（`LogPublisherImpl.directory`）：
     - 默认 `getExternalFilesDir(null)/sd.lib.xlog`，只用外部存储，不回退到内部存储；需要其他位置的由使用方通过 `setLogDirectory` 提供
     - 在调度线程上获取，取到非 null 后缓存，本进程之后一直用它
-    - 为 null 时取消这次操作：写日志丢弃，`deleteLog`、`logDirectory` 不执行，`init` 不清空压缩包
+    - 为 null 时：写日志丢弃，`deleteLog` 不执行，`init` 不清空压缩包；`logDirectory` 照常执行 `block(null)`（避免使用方等待回调或恢复协程时挂起），期间 `logZipOf` 直接返回 null，不再重复获取目录
 - 调度器（`LogDispatcher.kt`）：默认单线程 executor，实现契约见 `FLogDispatcher` 的注释。
     - 调度器是整个日志库的基础，刻意不做容错：`LogDispatcherWrapper` 发现任务重复执行时直接抛异常，会覆盖该任务本身抛出的异常
     - 丢弃任务时计数不归零，`onIdle` 不再触发

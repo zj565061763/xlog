@@ -109,33 +109,51 @@ class LogDirectoryScopeTest {
     assertEquals(listOf(zip.name), zip.parentFile?.list()?.toList())
   }
 
-  /** 取不到日志目录时不执行block；取到时执行，block里能打包，离开后scope销毁 */
+  /** 取不到日志目录时block收到null、logZipOf返回null且不重复获取目录；取到时能打包，离开后scope销毁 */
   @Test
   fun testAccessDirectory() {
     val dir = folder.newFolder()
     dir.createLog(DATE, "p")
     var directory: File? = null
+    var directoryCount = 0
     val publisher = defaultLogPublisher(
       processProvider = { "p" },
-      directoryProvider = { directory },
+      directoryProvider = {
+        directoryCount++
+        directory
+      },
       filename = defaultLogFilename(),
       formatter = defaultLogFormatter(),
       storeFactory = { defaultLogStore(it) },
     )
 
     var called = 0
-    publisher.accessDirectory { called++ }
-    assertEquals(0, called)
-
-    directory = dir
-    var received: File? = null
+    var received: File? = File("placeholder")
     var scope: FLogDirectoryScope? = null
-    var zip: File? = null
+    var zip: File? = File("placeholder")
     publisher.accessDirectory {
+      called++
       received = it
       scope = this
       zip = logZipOf(DATE)
     }
+    assertEquals(1, called)
+    assertEquals(1, directoryCount)
+    assertNull(received)
+    assertNull(zip)
+    assertNull(checkNotNull(scope).logZipOf(DATE))
+    assertEquals(1, directoryCount)
+
+    directory = dir
+    scope = null
+    publisher.accessDirectory {
+      called++
+      received = it
+      scope = this
+      zip = logZipOf(DATE)
+    }
+    assertEquals(2, called)
+    assertEquals(2, directoryCount)
     assertEquals(dir, received)
     assertEquals(true, zip?.isFile)
     assertNull(checkNotNull(scope).logZipOf(DATE))

@@ -13,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -164,7 +165,7 @@ class LogInitTest {
     }
   }
 
-  /** 目录为null时跳过写入、删除、回调和初始化清理，不输出库内部日志，Logcat照常输出，恢复后可以继续使用 */
+  /** 目录为null时跳过写入、删除和初始化清理，logDirectory收到null，不输出库内部日志，Logcat照常输出，恢复后可以继续使用 */
   @Test
   fun testNullDirectoryRecovery() {
     testUnavailableDirectory(throwOnGet = false)
@@ -196,18 +197,24 @@ class LogInitTest {
       })
 
       var callbacks = 0
+      var logDirectory: File? = File("placeholder")
+      var zip: File? = File("placeholder")
       flogI<InitLogger>(FLogMode.Default) { "lost" }
-      FLog.logDirectory { callbacks++ }
+      FLog.logDirectory {
+        callbacks++
+        logDirectory = it
+        zip = logZipOf(dateOfDaysAgo(0))
+      }
       dispatcher.awaitLogIdle()
-      // block没有执行说明目录为null，没有回退到其他目录
-      assertEquals(0, callbacks)
+      assertEquals(1, callbacks)
+      assertNull(logDirectory)
+      assertNull(zip)
       assertFalse(internalDir.exists())
       assertEquals(emptyList<String>(), libLogsSince(mark))
       // 写不了文件时Logcat照常输出
       assertEquals(listOf("lost"), logcatSince(mark, "InitLogger"))
 
       available.set(true)
-      var logDirectory: File? = null
       flogI<InitLogger>(FLogMode.Store) { "recovered" }
       FLog.logDirectory { logDirectory = it }
       dispatcher.awaitLogIdle()
@@ -293,16 +300,22 @@ class LogInitTest {
         }
       })
 
-      var callbacks = 0
+      val today = dateOfDaysAgo(0)
+      val receivedDirs = mutableListOf<File?>()
+      var zip: File? = File("placeholder")
       flogI<InitLogger>(FLogMode.Default) { "lost" }
       FLog.deleteLog(0)
-      FLog.logDirectory { callbacks++ }
+      FLog.logDirectory {
+        receivedDirs.add(it)
+        zip = logZipOf(today)
+      }
       dispatcher.awaitLogIdle()
       assertEquals(4, directoryCount.get())
-      assertEquals(0, callbacks)
+      assertEquals(listOf<File?>(null), receivedDirs)
+      assertNull(zip)
       assertTrue(oldLog.isFile)
       assertTrue(staleZip.isFile)
-      assertFalse(dir.resolve(dateOfDaysAgo(0)).exists())
+      assertFalse(dir.resolve(today).exists())
 
       // 目录为null是预期状态，不输出；获取目录出错才输出，每次获取输出一条
       val libLogs = libLogsSince(mark)
@@ -316,18 +329,18 @@ class LogInitTest {
 
       available.set(true)
       flogI<InitLogger>(FLogMode.Store) { "recovered" }
-      FLog.logDirectory { callbacks++ }
+      FLog.logDirectory { receivedDirs.add(it) }
       dispatcher.awaitLogIdle()
       assertEquals(5, directoryCount.get())
-      assertEquals(1, callbacks)
+      assertEquals(listOf<File?>(null, dir), receivedDirs)
 
       available.set(false)
       flogI<InitLogger>(FLogMode.Store) { "cached" }
-      FLog.logDirectory { callbacks++ }
+      FLog.logDirectory { receivedDirs.add(it) }
       dispatcher.awaitLogIdle()
       assertEquals(5, directoryCount.get())
-      assertEquals(2, callbacks)
-      val lines = dir.resolve(dateOfDaysAgo(0)).walkTopDown().filter { it.isFile }.flatMap { it.readLines() }.toList()
+      assertEquals(listOf<File?>(null, dir, dir), receivedDirs)
+      val lines = dir.resolve(today).walkTopDown().filter { it.isFile }.flatMap { it.readLines() }.toList()
       assertEquals(listOf("recovered", "cached"), lines.map { it.substringAfter("] ") })
       assertTrue(lines.all { it.contains("[InitLogger|") })
       assertEquals("old", oldLog.readText())

@@ -13,7 +13,7 @@ import java.util.zip.ZipOutputStream
 interface FLogDirectoryScope {
   /**
    * 把指定日期(yyyyMMdd)的日志打包成zip，包含该日期所有进程的日志。
-   * 日期不合法、没有该日期的日志目录或打包失败时返回null。
+   * 日期不合法、取不到日志目录、没有该日期的日志目录或打包失败时返回null。
    * 该日期的日志目录存在但里面没有日志文件时，返回不含日志的压缩包。
    *
    * 压缩包只保证本次进程运行期间有效，下次[FLog.init]时可能被清空，需要长期保存请自行移走。
@@ -23,13 +23,13 @@ interface FLogDirectoryScope {
 }
 
 /**
- * 关闭当前日志文件后，在日志目录上执行[block]，取不到目录时不执行。
+ * 关闭当前日志文件后，在日志目录上执行[block]，取不到目录时参数为null。
  * [block]是外部传入的，抛异常只打印不往外抛，否则会导致App崩溃。
  */
-internal fun DirectoryLogPublisher.accessDirectory(block: FLogDirectoryScope.(File) -> Unit) {
+internal fun DirectoryLogPublisher.accessDirectory(block: FLogDirectoryScope.(File?) -> Unit) {
   close()
-  val directory = directory ?: return
-  val scope = LogDirectoryScopeImpl(this)
+  val directory = directory
+  val scope = LogDirectoryScopeImpl(if (directory != null) this else null)
   try {
     libRunCatching { scope.block(directory) }
   } finally {
@@ -38,7 +38,7 @@ internal fun DirectoryLogPublisher.accessDirectory(block: FLogDirectoryScope.(Fi
 }
 
 internal class LogDirectoryScopeImpl(
-  private val publisher: DirectoryLogPublisher,
+  private val publisher: DirectoryLogPublisher?,
   /** 打开要打包的文件，测试时替换，模拟打包期间追加、删除、读取失败等情况 */
   private val openFile: (File) -> FileInputStream? = { it.inputStreamOrNull() },
   /** 打开压缩包的临时文件，测试时替换成写入会失败的流 */
@@ -55,13 +55,14 @@ internal class LogDirectoryScopeImpl(
       return null
     }
 
+    val pub = publisher ?: return null
     if (date.length != 8) return null
     if (!date.isAsciiDigits()) return null
 
-    val dateDir = publisher.logDirOf(date) ?: return null
+    val dateDir = pub.logDirOf(date) ?: return null
     if (!dateDir.isDirectory) return null
 
-    val zipFile = publisher.zipFileOf(date) ?: return null
+    val zipFile = pub.zipFileOf(date) ?: return null
     val zipped = zip(
       source = dateDir,
       target = zipFile,
