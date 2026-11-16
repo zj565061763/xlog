@@ -46,14 +46,16 @@ internal fun testLogRecord(
   msg: String = "0123456789012345678901234567890123456789",
   millis: Long = RECORD_MILLIS,
   isMainThread: Boolean = false,
-): FLogRecord = object : FLogRecord {
-  override val logger: Class<out FLogger> = RecordLogger::class.java
-  override val level: FLogLevel = level
-  override val tag: String = tag
-  override val msg: String = msg
-  override val millis: Long = millis
-  override val isMainThread: Boolean = isMainThread
-  override val threadID: String = "1"
+): FLogRecord {
+  return object : FLogRecord {
+    override val logger: Class<out FLogger> = RecordLogger::class.java
+    override val level: FLogLevel = level
+    override val tag: String = tag
+    override val msg: String = msg
+    override val millis: Long = millis
+    override val isMainThread: Boolean = isMainThread
+    override val threadID: String = "1"
+  }
 }
 
 private interface RecordLogger : FLogger
@@ -68,23 +70,29 @@ internal fun dateOfDaysAgo(days: Int): String {
 }
 
 /** 当前时间往前推[days]天的时间戳，负数表示以后的时间；按日历推算，夏令时切换日也落在对应的日期 */
-internal fun millisOfDaysAgo(days: Int): Long = calendarOfDaysAgo(days).timeInMillis
+internal fun millisOfDaysAgo(days: Int): Long {
+  return calendarOfDaysAgo(days).timeInMillis
+}
 
-private fun calendarOfDaysAgo(days: Int): Calendar = GregorianCalendar().apply { add(Calendar.DAY_OF_MONTH, -days) }
+private fun calendarOfDaysAgo(days: Int): Calendar {
+  return GregorianCalendar().apply { add(Calendar.DAY_OF_MONTH, -days) }
+}
 
 /**
  * 测试期间跨过零点时，失败的测试改为跳过。
  * 日志按打印时的日期分目录，跨天时会分到两个目录里，按单个文件或文件顺序断言会失败。
  */
 class SameDayRule : TestRule {
-  override fun apply(base: Statement, description: Description): Statement = object : Statement() {
-    override fun evaluate() {
-      val date = dateOfDaysAgo(0)
-      try {
-        base.evaluate()
-      } catch (e: Throwable) {
-        if (date != dateOfDaysAgo(0)) throw AssumptionViolatedException("crossed midnight", e)
-        throw e
+  override fun apply(base: Statement, description: Description): Statement {
+    return object : Statement() {
+      override fun evaluate() {
+        val date = dateOfDaysAgo(0)
+        try {
+          base.evaluate()
+        } catch (e: Throwable) {
+          if (date != dateOfDaysAgo(0)) throw AssumptionViolatedException("crossed midnight", e)
+          throw e
+        }
       }
     }
   }

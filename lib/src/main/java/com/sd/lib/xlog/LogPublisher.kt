@@ -118,7 +118,9 @@ private class LogPublisherImpl(
    * 压缩包根目录以.开头，不参与日志保留策略。
    * 里面的内容只保证本次进程运行期间有效。
    */
-  private fun zipDirectoryOf(dir: File): File = dir.resolve(ZIP_DIR_NAME).resolveProcess()
+  private fun zipDirectoryOf(dir: File): File {
+    return dir.resolve(ZIP_DIR_NAME).resolveProcess()
+  }
 
   private fun getHandler(record: FLogRecord): DateLogHandler? {
     val date = filename.dateOf(record.millis)
@@ -152,7 +154,9 @@ private class LogPublisherImpl(
  * 能否用作一层目录名，不检查空串，由调用方按取不到处理。
  * 含/时不止一层，可能跳出所在目录；是..时会跳出所在目录，是.时等于所在目录本身。
  */
-private fun String.isValidDirName(): Boolean = '/' !in this && this != "." && this != ".."
+private fun String.isValidDirName(): Boolean {
+  return '/' !in this && this != "." && this != ".."
+}
 
 /** 日志压缩包目录名，以.开头表示是库的内部目录，不参与日志保留策略 */
 private const val ZIP_DIR_NAME = ".zip"
@@ -168,21 +172,14 @@ private class DateLogHandler(
   private val formatter: FLogFormatter,
   private val storeFactory: FLogStore.Factory,
 ) {
-  init {
-    deleteOccupiedDirs()
-  }
-
   /**
    * 当前日志文件的序号，进程重启之后从已有的文件里恢复，接着往下写。
    * 目录存在但读取失败时抛异常，这条日志不写入，下一条日志重新读取；
    * 不能当作空目录，否则会从序号0开始写，和已有的文件接不上。
    */
-  private var _seq: Int = logDir.listFilesOrNull()
-    ?.mapNotNull { filename.seqOf(it.name) }
-    ?.maxOrNull()
-    ?: 0
+  private var _seq: Int
 
-  private var _logFile: File = logDir.resolve(filename.logNameOf(date, _seq))
+  private var _logFile: File
   private var _logStore: FLogStore? = null
 
   fun publish(record: FLogRecord, maxBytePerDay: Long) {
@@ -283,13 +280,24 @@ private class DateLogHandler(
       }
     }
   }
+
+  init {
+    deleteOccupiedDirs()
+    _seq = logDir.listFilesOrNull()
+      ?.mapNotNull { filename.seqOf(it.name) }
+      ?.maxOrNull()
+      ?: 0
+    _logFile = logDir.resolve(filename.logNameOf(date, _seq))
+  }
 }
 
 /** 保留的日志文件个数，当前文件加上一个写满的文件 */
 private const val KEEP_COUNT = 2
 
 /** 删除文件，已经不存在也算成功，比如列出之后被其他进程删除 */
-internal fun File.deleteOrAbsent(): Boolean = delete() || !exists()
+internal fun File.deleteOrAbsent(): Boolean {
+  return delete() || !exists()
+}
 
 private class SafeLogStore(
   private val instance: FLogStore,

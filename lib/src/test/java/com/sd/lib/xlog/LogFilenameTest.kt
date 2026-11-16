@@ -271,4 +271,6 @@ private fun Calendar.logDate(): String {
   return "${year}${month.pad()}${dayOfMonth.pad()}"
 }
 
-private fun Int.pad(): String = toString().padStart(length = 2, padChar = '0')
+private fun Int.pad(): String {
+  return toString().padStart(length = 2, padChar = '0')
+}

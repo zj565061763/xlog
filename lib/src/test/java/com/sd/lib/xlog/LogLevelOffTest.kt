@@ -70,4 +70,6 @@ class LogLevelOffTest {
 private interface LevelOffLogger : FLogger
 
 /** 日志文件里每条日志的消息 */
-private fun File.msgs(): List<String> = readLines().map { it.substringAfter("] ") }
+private fun File.msgs(): List<String> {
+  return readLines().map { it.substringAfter("] ") }
+}

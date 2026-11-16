@@ -37,7 +37,9 @@ internal fun LogFilename.shouldDeleteLog(today: String, date: String, saveDays: 
   return diffDays > saveDays - 1
 }
 
-internal fun defaultLogFilename(): LogFilename = LogFilenameImpl()
+internal fun defaultLogFilename(): LogFilename {
+  return LogFilenameImpl()
+}
 
 private class LogFilenameImpl(
   private val extension: String = "log",
@@ -80,7 +82,9 @@ private class LogFilenameImpl(
  * 空串返回true，调用方需要先检查长度。
  * 不用[Char.isDigit]，它会接受全角等非ASCII数字。
  */
-internal fun String.isAsciiDigits(): Boolean = all { it in '0'..'9' }
+internal fun String.isAsciiDigits(): Boolean {
+  return all { it in '0'..'9' }
+}
 
 /**
  * 把yyyyMMdd转为距离1970-01-01的天数，日期不合法返回null。

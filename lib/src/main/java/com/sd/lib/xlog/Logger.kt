@@ -23,7 +23,9 @@ data class FLoggerConfig(
  * 默认tag是去掉包名的类名，嵌套类、局部类和匿名类带外部类名。
  * 不用[Class.getSimpleName]：R8可能移除它依赖的内部类信息，混淆前后的结果不一致。
  */
-internal fun Class<out FLogger>.defaultLogTag(): String = name.substringAfterLast('.')
+internal fun Class<out FLogger>.defaultLogTag(): String {
+  return name.substringAfterLast('.')
+}
 
 /** 配置信息是否为空 */
 internal fun FLoggerConfig.isEmpty(): Boolean {

@@ -12,28 +12,32 @@ interface FLogFormatter {
   fun reset() {}
 }
 
-internal fun defaultLogFormatter(): FLogFormatter = LogFormatterImpl()
+internal fun defaultLogFormatter(): FLogFormatter {
+  return LogFormatterImpl()
+}
 
 private class LogFormatterImpl : FLogFormatter {
   /** 上一次打印日志的tag */
   private var _lastLogTag = ""
 
-  override fun format(record: FLogRecord): String = with(record) {
-    buildString {
-      append(LogTime.timeOf(millis))
-      append("[")
+  override fun format(record: FLogRecord): String {
+    return with(record) {
+      buildString {
+        append(LogTime.timeOf(millis))
+        append("[")
 
-      val logTag = if (tag == _lastLogTag) "" else tag
-      _lastLogTag = tag
+        val logTag = if (tag == _lastLogTag) "" else tag
+        _lastLogTag = tag
 
-      if (logTag.isNotEmpty()) append(logTag).append("|")
-      append(level.displayName())
-      if (!isMainThread) append("|").append(threadID)
+        if (logTag.isNotEmpty()) append(logTag).append("|")
+        append(level.displayName())
+        if (!isMainThread) append("|").append(threadID)
 
-      append("]")
-      append(" ")
-      append(msg)
-      append("\n")
+        append("]")
+        append(" ")
+        append(msg)
+        append("\n")
+      }
     }
   }
 

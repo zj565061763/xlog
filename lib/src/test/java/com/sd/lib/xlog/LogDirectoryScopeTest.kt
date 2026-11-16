@@ -176,7 +176,9 @@ class LogDirectoryScopeTest {
   @Test
   fun testCopyLimited() {
     val bytes = ByteArray(20_000) { it.toByte() }
-    fun copy(limit: Long) = ByteArrayOutputStream().also { bytes.inputStream().copyLimitedTo(it, limit) }.toByteArray().toList()
+    fun copy(limit: Long): List<Byte> {
+      return ByteArrayOutputStream().also { bytes.inputStream().copyLimitedTo(it, limit) }.toByteArray().toList()
+    }
 
     assertEquals(emptyList<Byte>(), copy(0))
     assertEquals(bytes.take(10_000), copy(10_000))

@@ -157,7 +157,9 @@ private class TagMsgFormatter : FLogFormatter {
   var resetCount = 0
     private set
 
-  override fun format(record: FLogRecord): String = "${record.tag}:${record.msg}\n"
+  override fun format(record: FLogRecord): String {
+    return "${record.tag}:${record.msg}\n"
+  }
 
   override fun reset() {
     resetCount++

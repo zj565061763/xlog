@@ -28,7 +28,9 @@ class LogMaxMBTest {
       setLogDispatcher(dispatcher)
     })
 
-    fun logFileCount(): Int = dir.walkTopDown().count { it.isFile }
+    fun logFileCount(): Int {
+      return dir.walkTopDown().count { it.isFile }
+    }
 
     // 4097MB用Int计算会溢出成1MB，写满512KB就切换；不溢出的话600KB远没到上限
     FLog.setMaxMBPerDay(4097)

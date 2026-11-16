@@ -104,7 +104,11 @@ private class SignalStoreFactory : FLogStore.Factory {
     }
   }
 
-  fun awaitAppend(count: Int = 1): Boolean = _appends.tryAcquire(count, 10, TimeUnit.SECONDS)
+  fun awaitAppend(count: Int = 1): Boolean {
+    return _appends.tryAcquire(count, 10, TimeUnit.SECONDS)
+  }
 
-  fun awaitClose(): Boolean = _closes.tryAcquire(10, TimeUnit.SECONDS)
+  fun awaitClose(): Boolean {
+    return _closes.tryAcquire(10, TimeUnit.SECONDS)
+  }
 }

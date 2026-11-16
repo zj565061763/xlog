@@ -1168,8 +1168,14 @@ private fun File?.createZip(): File {
 
 private class ResetErrorFormatter : FLogFormatter {
   private val _formatter = defaultLogFormatter()
-  override fun format(record: FLogRecord): String = _formatter.format(record)
-  override fun reset() = error("reset error")
+
+  override fun format(record: FLogRecord): String {
+    return _formatter.format(record)
+  }
+
+  override fun reset() {
+    error("reset error")
+  }
 }
 
 /** 第[errorAt]次格式化时，先更新内部状态再抛异常 */
@@ -1218,7 +1224,9 @@ private class ResetCountFormatter : FLogFormatter {
   var resetCount = 0
     private set
 
-  override fun format(record: FLogRecord): String = _formatter.format(record)
+  override fun format(record: FLogRecord): String {
+    return _formatter.format(record)
+  }
 
   override fun reset() {
     resetCount++

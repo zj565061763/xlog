@@ -42,7 +42,9 @@ internal fun defaultLogStore(
   file: File,
   /** 以追加方式打开日志文件，测试时替换，记录关闭、模拟写入失败或关闭出错 */
   openOutput: (File) -> OutputStream = { FileOutputStream(it, true) },
-): FLogStore = FileLogStore(file, openOutput)
+): FLogStore {
+  return FileLogStore(file, openOutput)
+}
 
 private class FileLogStore(
   file: File,
