@@ -1,9 +1,14 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.zj565061763.android/xlog)](https://central.sonatype.com/search?q=g:io.github.zj565061763.android+xlog)
+[![JitPack](https://jitpack.io/v/zj565061763/xlog.svg)](https://jitpack.io/#zj565061763/xlog)
 
 # Gradle
 
 ```kotlin
+// Maven Central
 implementation("io.github.zj565061763.android:xlog:$version")
+
+// JitPack
+implementation("com.github.zj565061763:xlog:$version")
 ```
 
 # About

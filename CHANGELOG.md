@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.3.1
+
+### ✨ Improvements
+
+- 支持通过 JitPack 引入，依赖坐标为 `com.github.zj565061763:xlog`，版本号填写 Git 标签
+
+### 🐛 Bug Fixes
+
+- 修复与其他 Android 库一起打包时可能出现的 Kotlin 模块元数据文件重名问题
+- 将发布 POM 中的许可证由 Apache 2.0 更正为 MIT，与仓库的 `LICENSE` 一致
+
 ## 2.3.0
 
 ### ⚠️ Breaking Changes
